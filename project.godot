@@ -22,8 +22,7 @@ config/features=PackedStringArray("4.4", "Mobile")
 config/icon="res://icon.svg"
 config/quit_on_go_back=false
 boot_splash/bg_color=Color(0.027451, 0.0431373, 0.0666667, 1)
-boot_splash/show_image=true
-boot_splash/image="res://icon.svg"
+boot_splash/show_image=false
 boot_splash/fullsize=false
 boot_splash/use_filter=true
 
