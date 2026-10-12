@@ -8,8 +8,8 @@ extends Control
 ## the same account always gets the same colour and shape on every device.
 
 const PALETTE: Array[Color] = [
-	Color("ff7a1a"), Color("18e0c8"), Color("4da3ff"), Color("b48cff"),
-	Color("38e07b"), Color("ffb020"), Color("ff4d6d"), Color("7aa2ff"),
+	Color("baff4a"), Color("47d9ff"), Color("648dff"), Color("b48cff"),
+	Color("50e3a4"), Color("ffc857"), Color("ff6480"), Color("7aa2ff"),
 ]
 
 var initials: String = "??":
@@ -44,7 +44,8 @@ static func make(for_profile: PlayerProfile, pixel_size: float = 48.0) -> Avatar
 	var avatar := AvatarView.new()
 	avatar.custom_minimum_size = Vector2(pixel_size, pixel_size)
 	avatar.size = Vector2(pixel_size, pixel_size)
-	avatar.palette_index = absi(for_profile.uid.hash()) % PALETTE.size()
+	avatar.palette_index = posmod(for_profile.avatar_color, PALETTE.size()) \
+		if for_profile.avatar_color >= 0 else absi(for_profile.uid.hash()) % PALETTE.size()
 	avatar.initials = for_profile.initials()
 	avatar.level = for_profile.level
 	return avatar

@@ -1,6 +1,6 @@
 class_name GameTypes
 extends RefCounted
-## Central enum warehouse for HEXORA.
+## Central enum warehouse for PixelField.
 ##
 ## Every enum that crosses a module boundary lives here so that signals,
 ## services and UI can stay strongly typed without the autoloads having to
@@ -219,19 +219,19 @@ static func ping_quality(ping_ms: int) -> PingQuality:
 ## code — scoreboards, kill feed — also needs it and must not depend on UI.
 static func ping_color(quality: PingQuality) -> Color:
 	match quality:
-		PingQuality.EXCELLENT: return Color("38e07b")
-		PingQuality.GOOD: return Color("a6e22e")
-		PingQuality.FAIR: return Color("ffb020")
-		PingQuality.POOR: return Color("ff4d4d")
-		_: return Color("7a8798")
+		PingQuality.EXCELLENT: return Color("50e3a4")
+		PingQuality.GOOD: return Color("baff4a")
+		PingQuality.FAIR: return Color("ffc857")
+		PingQuality.POOR: return Color("ff6480")
+		_: return Color("91a1bf")
 
 
 ## Stable team accent colours shared by world markers and the HUD.
 static func team_color(team: Team) -> Color:
 	match team:
-		Team.ALPHA: return Color("4da3ff")
-		Team.BRAVO: return Color("ff6b3d")
-		_: return Color("e6edf5")
+		Team.ALPHA: return Color("59c7ff")
+		Team.BRAVO: return Color("ff846f")
+		_: return Color("f4f7ff")
 
 
 static func team_key(team: Team) -> StringName:

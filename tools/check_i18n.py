@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the HEXORA string tables.
+"""Validate the PixelField string tables.
 
 Runs without Godot, so it can gate every commit:
 

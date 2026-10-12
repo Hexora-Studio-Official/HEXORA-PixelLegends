@@ -19,8 +19,8 @@ extends RefCounted
 
 const TABLE := {
 	# ---------------------------------------------------------------- meta
-	"app.name": "HEXORA",
-	"app.tagline": "Tactical online shooter",
+	"app.name": "PixelField",
+	"app.tagline": "Find your fight. Shape your field.",
 	"app.version_label": "Version {version}",
 	"app.build": "Build {build}",
 
@@ -77,7 +77,8 @@ const TABLE := {
 
 	# ---------------------------------------------------------------- auth
 	"auth.login.title": "Welcome to the field",
-	"auth.login.subtitle": "One account, every mode. Your progress, loadouts and squad follow you across devices.",
+	"auth.login.subtitle": "Sign in, choose a mode and meet your squad on the field.",
+	"auth.login.separator": "or",
 	"auth.login.google": "Continue with Google",
 	"auth.login.google_busy": "Waiting for Google…",
 	"auth.login.guest": "Play as guest",
@@ -146,7 +147,7 @@ const TABLE := {
 	"menu.settings": "Settings",
 	"menu.settings.desc": "Graphics, controls, audio and language.",
 	"menu.exit": "Quit",
-	"menu.exit.confirm": "Leave HEXORA?",
+	"menu.exit.confirm": "Leave PixelField?",
 	"menu.section.combat": "Combat",
 	"menu.section.progression": "Progression",
 	"menu.section.social": "Social",
@@ -540,7 +541,7 @@ const TABLE := {
 
 	# --------------------------------------------------------------- toasts
 	"toast.local_account": "Signed in on this device — the backend has not confirmed this account yet",
-	"toast.welcome": "Welcome to HEXORA",
+	"toast.welcome": "Welcome to PixelField",
 	"toast.signed_out": "Signed out",
 	"toast.guest_banner": "Playing as a guest — progress is local only",
 	"toast.no_network": "Offline. Local features still work.",

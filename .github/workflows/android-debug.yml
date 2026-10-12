@@ -60,7 +60,7 @@ jobs:
           export/android/java_sdk_path = "$JAVA_HOME"
           EOF
           keytool -genkeypair -v \
-            -keystore "$RUNNER_TEMP/hexora-debug.keystore" \
+            -keystore "$RUNNER_TEMP/pixelfield-debug.keystore" \
             -storepass android \
             -alias androiddebugkey \
             -keypass android \
@@ -112,7 +112,7 @@ jobs:
       - name: Export Android debug APK
         shell: bash
         env:
-          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ runner.temp }}/hexora-debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ runner.temp }}/pixelfield-debug.keystore
           GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
@@ -120,7 +120,7 @@ jobs:
           mkdir -p build
           log_file="$RUNNER_TEMP/godot-android-export.log"
           status=0
-          godot --headless --path . --export-debug "Android Debug" build/HEXORA-debug.apk >"$log_file" 2>&1 || status=$?
+          godot --headless --path . --export-debug "Android Debug" build/PixelField-debug.apk >"$log_file" 2>&1 || status=$?
           cat "$log_file"
           if grep -E '^(ERROR:|SCRIPT ERROR:)|Parse Error' "$log_file"; then
             status=1
@@ -142,24 +142,24 @@ jobs:
             echo "::error file=.github/workflows/android-debug.yml,line=1,title=Android debug export::${diagnostics}"
             exit "$status"
           fi
-          if [ ! -s build/HEXORA-debug.apk ]; then
-            diagnostics="$(printf 'Godot exited with status %s, but build/HEXORA-debug.apk is missing or empty.\n' "$status"; tail -n 25 "$log_file")"
+          if [ ! -s build/PixelField-debug.apk ]; then
+            diagnostics="$(printf 'Godot exited with status %s, but build/PixelField-debug.apk is missing or empty.\n' "$status"; tail -n 25 "$log_file")"
             escaped="$(printf '%s' "$diagnostics" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
             echo "::error file=.github/workflows/android-debug.yml,line=1,title=Missing APK after export::${escaped}"
             exit 1
           fi
           sdk_path="${ANDROID_HOME:-${ANDROID_SDK_ROOT:?Android SDK path is not set}}"
           verify_log="$RUNNER_TEMP/apksigner-verify.log"
-          if ! "$sdk_path/build-tools/34.0.0/apksigner" verify --verbose build/HEXORA-debug.apk >"$verify_log" 2>&1; then
+          if ! "$sdk_path/build-tools/34.0.0/apksigner" verify --verbose build/PixelField-debug.apk >"$verify_log" 2>&1; then
             cat "$verify_log"
             escaped="$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$verify_log")"
             echo "::error file=.github/workflows/android-debug.yml,line=1,title=APK signature verification failed::${escaped}"
             exit 1
           fi
           cat "$verify_log"
-          unzip -t build/HEXORA-debug.apk >/dev/null
+          unzip -t build/PixelField-debug.apk >/dev/null
           badging_log="$RUNNER_TEMP/aapt2-badging.log"
-          if "$sdk_path/build-tools/34.0.0/aapt2" dump badging build/HEXORA-debug.apk >"$badging_log" 2>&1; then
+          if "$sdk_path/build-tools/34.0.0/aapt2" dump badging build/PixelField-debug.apk >"$badging_log" 2>&1; then
             sed -n '1p' "$badging_log"
             if ! grep -Fq "android.permission.VIBRATE" "$badging_log"; then
               echo "::error file=export_presets.cfg,line=1,title=Android vibration permission missing::The exported manifest must include android.permission.VIBRATE because touch feedback invokes the device vibrator."
@@ -170,12 +170,12 @@ jobs:
             escaped="$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$badging_log")"
             echo "::warning file=.github/workflows/android-debug.yml,line=1,title=APK manifest metadata inspection warning::${escaped}"
           fi
-          sha256sum build/HEXORA-debug.apk
+          sha256sum build/PixelField-debug.apk
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: hexora-debug-apk
-          path: build/HEXORA-debug.apk
+          name: pixelfield-debug-apk
+          path: build/PixelField-debug.apk
           if-no-files-found: error
           retention-days: 14

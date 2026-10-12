@@ -157,16 +157,15 @@ func _build_top_bar() -> Control:
 
 func _build_mobile_top_bar() -> Control:
 	var bar := UiKit.panel(&"TopBarPanel")
-	var content_column := UiKit.vbox(Design.SPACE_SM)
-	bar.add_child(content_column)
-
 	var identity_row := UiKit.hbox(Design.SPACE_MD)
-	content_column.add_child(identity_row)
+	identity_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	bar.add_child(identity_row)
+
 	_avatar = AvatarView.make(Session.profile, 48.0)
 	identity_row.add_child(_avatar)
 
 	var identity := UiKit.vbox(Design.SPACE_XXS)
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	identity.alignment = BoxContainer.ALIGNMENT_CENTER
 	_name_label = UiKit.label(Session.display_name(), &"SubheadingLabel")
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -175,9 +174,7 @@ func _build_mobile_top_bar() -> Control:
 	identity.add_child(_level_label)
 	identity_row.add_child(identity)
 
-	_status_row = UiKit.hbox(Design.SPACE_MD)
-	content_column.add_child(_status_row)
-	_refresh_status()
+	_status_row = null
 	return bar
 
 

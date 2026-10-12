@@ -1,4 +1,4 @@
-# HEXORA — art direction
+# PixelField — art direction
 
 **Target look: "medium / balanced".** Clean semi-realistic 3D — graphite and
 machined aluminium, lit by sodium orange and instrument teal. Explicitly *not*
@@ -45,9 +45,9 @@ choices so every match scene starts from the same look.
 
 ## UI
 
-The interface is part of the art direction: dark, low-saturation surfaces, one
-warm accent for actions and one cold accent for information, hairline borders
-instead of heavy chrome. All of it is built at runtime from `src/autoload/design.gd`
+The interface is part of the art direction: deep indigo surfaces, vivid electric
+lime for actions and pixel cyan for information, with hairline borders instead
+of heavy chrome. All of it is built at runtime from `src/autoload/design.gd`
 — there is no `.tres` theme to keep in sync, and no image assets for the UI to
 load.
 

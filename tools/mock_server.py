@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A local stand-in for the HEXORA backend. DEVELOPMENT ONLY.
+"""A local stand-in for the PixelField backend. DEVELOPMENT ONLY.
 
 The client is written against the real API contract (see
 `src/autoload/api_client.gd` and `docs/AUTH_SETUP.md` §6). This server
@@ -49,7 +49,7 @@ STATE_PATH = Path(__file__).resolve().parent / ".mock_state.json"
 
 WARNING = """
 ────────────────────────────────────────────────────────────────────────────
-  HEXORA mock backend — DEVELOPMENT ONLY
+  PixelField mock backend — DEVELOPMENT ONLY
   It accepts any id_token and trusts every request. Never expose this.
   Point the game at it:  Settings ▸ Developer ▸ Backend base URL
 ────────────────────────────────────────────────────────────────────────────

@@ -15,8 +15,8 @@ extends RefCounted
 
 const TABLE := {
 	# ---------------------------------------------------------------- meta
-	"app.name": "HEXORA",
-	"app.tagline": "شوتر آنلاین تاکتیکی",
+	"app.name": "PixelField",
+	"app.tagline": "میدانِ خودت را بساز؛ نبردت را انتخاب کن.",
 	"app.version_label": "نسخه {version}",
 	"app.build": "بیلد {build}",
 
@@ -73,7 +73,8 @@ const TABLE := {
 
 	# ---------------------------------------------------------------- auth
 	"auth.login.title": "به میدان خوش آمدی",
-	"auth.login.subtitle": "یک حساب، همه‌ی حالت‌ها. پیشرفت، لودآوت و تیمت روی همه‌ی دستگاه‌ها همراهت می‌آید.",
+	"auth.login.subtitle": "وارد شو، حالت بازی را انتخاب کن و تیمت را به میدان ببر.",
+	"auth.login.separator": "یا",
 	"auth.login.google": "ادامه با گوگل",
 	"auth.login.google_busy": "در انتظار پاسخ گوگل…",
 	"auth.login.guest": "ورود به‌عنوان مهمان",
@@ -142,7 +143,7 @@ const TABLE := {
 	"menu.settings": "تنظیمات",
 	"menu.settings.desc": "گرافیک، کنترل‌ها، صدا و زبان.",
 	"menu.exit": "خروج از بازی",
-	"menu.exit.confirm": "از HEXORA خارج می‌شوی؟",
+	"menu.exit.confirm": "از PixelField خارج می‌شوی؟",
 	"menu.section.combat": "نبرد",
 	"menu.section.progression": "پیشرفت",
 	"menu.section.social": "اجتماعی",
@@ -536,7 +537,7 @@ const TABLE := {
 
 	# --------------------------------------------------------------- toasts
 	"toast.local_account": "ورود روی همین دستگاه انجام شد — هنوز سرور این حساب را تأیید نکرده",
-	"toast.welcome": "به HEXORA خوش آمدی",
+	"toast.welcome": "به PixelField خوش آمدی",
 	"toast.signed_out": "از حساب خارج شدی",
 	"toast.guest_banner": "به‌عنوان مهمان بازی می‌کنی — پیشرفت فقط محلی است",
 	"toast.no_network": "آفلاین هستی. امکانات محلی کار می‌کنند.",

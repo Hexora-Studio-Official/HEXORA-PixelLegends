@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 300" width="360" height="300" role="img" aria-label="PixelField PF mark">
+  <title>PixelField</title>
+  <!-- Same 9-by-7 block-built PF monogram as pixel_field_mark.gd. -->
+  <g fill="#47D9FF">
+    <path d="M22 28h28v28H22z M58 28h28v28H58z M94 28h28v28H94z
+             M22 64h28v28H22z M130 64h28v28h-28z
+             M22 100h28v28H22z M58 100h28v28H58z M94 100h28v28H94z
+             M22 136h28v28H22z M22 172h28v28H22z M22 208h28v28H22z M22 244h28v28H22z"/>
+  </g>
+  <g fill="#BAFF4A">
+    <path d="M202 28h28v28h-28z M238 28h28v28h-28z M274 28h28v28h-28z M310 28h28v28h-28z
+             M202 64h28v28h-28z
+             M202 100h28v28h-28z M238 100h28v28h-28z M274 100h28v28h-28z
+             M202 136h28v28h-28z M202 172h28v28h-28z M202 208h28v28h-28z M202 244h28v28h-28z"/>
+  </g>
+</svg>

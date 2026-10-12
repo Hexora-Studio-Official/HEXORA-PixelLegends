@@ -30,17 +30,33 @@ func _ready() -> void:
 func _build_frame() -> void:
 	scroll = UiKit.scroll(true)
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.clip_contents = true
 	add_child(scroll)
 
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_bottom", Design.SPACE_XXL)
-	margin.add_theme_constant_override("margin_top", Design.SPACE_XS)
+	margin.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	margin.add_theme_constant_override("margin_left", Design.SPACE_XL)
+	margin.add_theme_constant_override("margin_right", Design.SPACE_XL)
+	margin.add_theme_constant_override("margin_top", Design.SPACE_SM)
+	margin.add_theme_constant_override("margin_bottom", Design.SPACE_XL)
 	scroll.add_child(margin)
 
-	body = UiKit.vbox(Design.SPACE_LG)
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_child(body)
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	margin.add_child(center)
+
+	var viewport_width := get_viewport_rect().size.x
+	var horizontal_insets := float(Design.SPACE_XL * 4)
+	if not OS.has_feature("mobile"):
+		horizontal_insets += 232.0 + Design.SPACE_LG
+	var body_width := minf(1120.0, maxf(320.0, viewport_width - horizontal_insets))
+	body = UiKit.vbox(Design.SPACE_MD if OS.has_feature("mobile") else Design.SPACE_LG)
+	body.custom_minimum_size = Vector2(body_width, 0)
+	body.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	body.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	center.add_child(body)
 
 
 ## Override: fill `body`.

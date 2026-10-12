@@ -102,6 +102,8 @@ static func scroll(follow_focus: bool = false) -> ScrollContainer:
 	container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	container.follow_focus = follow_focus
+	container.clip_contents = true
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
 	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return container
@@ -240,36 +242,39 @@ static func mode_card(mode: GameMode, selected: bool = false,
 		on_toggle: Callable = Callable()) -> Button:
 	var node := Button.new()
 	node.theme_type_variation = &"CardButtonActive" if selected else &"CardButton"
-	node.custom_minimum_size = Vector2(296, 128)
+	node.custom_minimum_size = Vector2(0, 96)
 	node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	node.focus_mode = Control.FOCUS_NONE
+	node.tooltip_text = Loc.t(mode.rules_key)
 
-	var row := hbox(Design.SPACE_MD)
+	var row := hbox(Design.SPACE_SM)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	node.add_child(row)
 
-	var icon := HexIcon.make(mode.icon_kind, mode.accent, 36.0, 2.0, mode.accent)
+	var icon := HexIcon.make(mode.icon_kind, mode.accent, 28.0, 2.0, mode.accent)
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(icon)
 
 	var column := vbox(Design.SPACE_XXS)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(column)
 
-	var title := label(Loc.t(mode.title_key), &"SubheadingLabel")
+	var title := label(Loc.t(mode.title_key), &"SectionLabel")
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(title)
-	column.add_child(paragraph(Loc.t(mode.rules_key), 220.0, &"CaptionLabel"))
 
-	var tags := hbox(Design.SPACE_XS)
-	tags.add_child(pill(mode.format_tag(), mode.accent))
+	var details := mode.format_tag()
 	if mode.ranked:
-		tags.add_child(pill(Loc.t(&"play.ranked"), Design.TEAL))
+		details += " · " + Loc.t(&"play.ranked").to_upper()
 	if not mode.supports_lan:
-		tags.add_child(pill(Loc.t(&"common.online"), Design.TEXT_MUTED))
-	column.add_child(tags)
+		details += " · " + Loc.t(&"common.online").to_upper()
+	var summary := label(details, &"CaptionLabel")
+	summary.add_theme_color_override("font_color", Design.TEXT_MUTED)
+	summary.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	column.add_child(summary)
 
 	node.set_meta(META_LABEL, title)
 	node.set_meta(META_ICON, icon)
@@ -277,7 +282,6 @@ static func mode_card(mode: GameMode, selected: bool = false,
 	if on_toggle.is_valid():
 		node.pressed.connect(func() -> void: on_toggle.call(mode.id))
 	return node
-
 
 ## Restyle a mode card in place. Cheaper and less flickery than rebuilding the
 ## whole grid every time a mode is toggled.
@@ -295,7 +299,7 @@ static func set_card_active(node: Button, active: bool) -> void:
 ## Selectable chip, used for modes, regions and filters.
 static func chip(text: String, active: bool = false, icon_kind: StringName = &"") -> Button:
 	var node := button(text, &"ChipButtonActive" if active else &"ChipButton", icon_kind)
-	node.custom_minimum_size = Vector2(0, 40)
+	node.custom_minimum_size = Vector2(0, 56)
 	return node
 
 

@@ -22,10 +22,10 @@ signing in first.
 3. **APIs & Services ▸ Credentials ▸ Create credentials ▸ OAuth client ID**
    → application type **Desktop app**. (Yes, even for Android — see §4.)
 4. Copy the **Client ID**. Copy the **Client secret** too; Google wants it at the
-   token endpoint even for a public client, and HEXORA will send it if you paste
+   token endpoint even for a public client, and PixelField will send it if you paste
    it in.
 
-## 2. Tell HEXORA about it
+## 2. Tell PixelField about it
 
 In the game: **Settings ▸ Developer** (the gear button, top right of the main
 menu — or the gear on the login screen before you sign in).
@@ -39,7 +39,7 @@ menu — or the gear on the login screen before you sign in).
 The redirect URI is `http://127.0.0.1:8712/` by default. Register it under
 **Authorized redirect URIs** on the OAuth client. For loopback redirects Google
 ignores the port, so `http://127.0.0.1:8712/` also covers the fallback ports
-HEXORA tries if 8712 is busy. If you would rather not think about it, register
+PixelField tries if 8712 is busy. If you would rather not think about it, register
 `http://127.0.0.1/` and `http://localhost/` as well.
 
 > **Why the client secret is in a client.** For an installed app it is not a
@@ -53,14 +53,14 @@ HEXORA tries if 8712 is busy. If you would rather not think about it, register
 
 ```
 ┌─────────┐  1. generate PKCE verifier + challenge
-│ HEXORA  │  2. TCPServer.listen(127.0.0.1:8712)
+│ PixelField  │  2. TCPServer.listen(127.0.0.1:8712)
 │ (phone) │  3. OS.shell_open(auth URL)
 └────┬────┘
      │ 4. browser → accounts.google.com (user signs in)
      │ 5. Google → 302 http://127.0.0.1:8712/?code=...&state=...
      ▼
 ┌─────────┐  6. read the loopback socket, answer with a "you can close this" page
-│ HEXORA  │  7. POST /token {code, code_verifier, redirect_uri, [client_secret]}
+│ PixelField  │  7. POST /token {code, code_verifier, redirect_uri, [client_secret]}
 │         │  8. GET /v1/userinfo with the access token
 │         │  9. hand {sub, email, name, picture, id_token} to AuthService
 └─────────┘
@@ -102,7 +102,7 @@ APK can hand `AuthService` any account dictionary it likes — that is true of
 every OAuth client that ever shipped, and it is why
 `AuthService.unverified_remote` exists.
 
-What HEXORA does about it today:
+What PixelField does about it today:
 
 - With no backend configured, the Google account becomes a **local-only
   profile** (`uid = "google-local-<sub>"`), `unverified_remote` is set, and the
@@ -142,7 +142,7 @@ carries afterwards; the Google token is never reused as a session.
 | --- | --- |
 | `redirect_uri_mismatch` | The URI in Developer settings is not registered on the client. Copy it exactly. |
 | `invalid_request: client_secret is missing` | Paste the client secret in Developer settings. |
-| The browser opens, nothing happens | Port 8712 is blocked or the redirect went to a different interface. Try again — HEXORA walks up to 12 ports and reports the URI it actually used. |
+| The browser opens, nothing happens | Port 8712 is blocked or the redirect went to a different interface. Try again — PixelField walks up to 12 ports and reports the URI it actually used. |
 | `access_denied` | The consent screen is in testing mode and your account is not a test user. |
 | Works on desktop, not on the phone | Some Android builds hand loopback redirects to the *browser*, not the app. Use the native SDK client (see §4) for production. |
 | Signs in, then says "not confirmed" | Working as intended: no backend is configured, so the account is local-only (§5). |

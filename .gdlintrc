@@ -1,4 +1,4 @@
-# gdtoolkit / gdlint configuration for HEXORA.
+# gdtoolkit / gdlint configuration for PixelField.
 #
 # Install once:  python -m pip install -r requirements-dev.txt
 # Run:           gdlint $(find src -name '*.gd' -print)

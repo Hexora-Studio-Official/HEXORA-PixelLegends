@@ -363,7 +363,7 @@ func _local_entry(is_host: bool) -> Dictionary:
 		"name": Session.display_name(),
 		"level": profile.level,
 		"rank_points": profile.rank_points,
-		"avatar_color": absi(profile.uid.hash()) % 8,
+		"avatar_color": posmod(profile.avatar_color, 8) if profile.avatar_color >= 0 else absi(profile.uid.hash()) % 8,
 		"is_host": is_host,
 		"is_local": true,
 		"is_bot": false,

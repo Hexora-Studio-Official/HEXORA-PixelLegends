@@ -1,6 +1,6 @@
-# HEXORA
+# PixelField
 
-An Android-first 3D shooter prototype built with **Godot 4.4+ and GDScript**. Desktop is currently a development target. The project has a substantial client shell, but **there is no playable match yet**: no player controller, weapon/damage loop, match scene, production backend, or dedicated match server.
+PixelField is an Android-first 3D shooter prototype built with **Godot 4.4+ and GDScript**. Desktop is currently a development target. The project has a substantial client shell, but **there is no playable match yet**: no player controller, weapon/damage loop, match scene, production backend, or dedicated match server.
 
 The local Wi-Fi / phone-hotspot path is intended **only for friends playing casually offline**. It needs no internet or account and is never ranked. “Friends-only” describes the product use, not account-based identity verification: the current LAN lobby trusts the shared local network and does not authenticate friend identities. Online competitive matches, when implemented, must use a server-authoritative dedicated server.
 
@@ -94,6 +94,6 @@ The project code is © HEXORA Studio. No redistribution license has been selecte
 
 ### خلاصهٔ فارسی
 
-**HEXORA** یک پروژهٔ شوتر سه‌بعدی با Godot 4.4+ است؛ فعلاً پوستهٔ کلاینت و منوها را دارد و **هنوز مسابقهٔ قابل‌بازی ندارد**. هدف Wi‑Fi/هات‌اسپات این است که چند دوست مودهای پیاده‌سازی‌شده را آفلاین و غیررقابتی بازی کنند؛ فعلاً گیم‌پلی‌ای برای اجرا وجود ندارد. بتل‌رویالِ برنامه‌ریزی‌شده حالت انفرادی و اسکوادهای ۲، ۳ و ۵ نفره دارد؛ Hard Mode گونه‌ای از بتل‌رویال با سلاح و منابع بسیار کمیاب است، نه مودِ بدون سلاح. این قابلیت‌ها هنوز پیاده‌سازی نشده‌اند.
+**PixelField** یک پروژهٔ شوتر سه‌بعدی با Godot 4.4+ است؛ فعلاً پوستهٔ کلاینت و منوها را دارد و **هنوز مسابقهٔ قابل‌بازی ندارد**. هدف Wi‑Fi/هات‌اسپات این است که چند دوست مودهای پیاده‌سازی‌شده را آفلاین و غیررقابتی بازی کنند؛ فعلاً گیم‌پلی‌ای برای اجرا وجود ندارد. بتل‌رویالِ برنامه‌ریزی‌شده حالت انفرادی و اسکوادهای ۲، ۳ و ۵ نفره دارد؛ Hard Mode گونه‌ای از بتل‌رویال با سلاح و منابع بسیار کمیاب است، نه مودِ بدون سلاح. این قابلیت‌ها هنوز پیاده‌سازی نشده‌اند.
 
 **مرحلهٔ فعلی: مرحلهٔ ۱، پایهٔ فنی و ساختار پروژه.** کد لابی محلی وجود دارد، اما اجرای آن در Godot و آزمایش روی دستگاه واقعی هنوز انجام نشده است. وضعیت واقعی و برنامهٔ مراحل در `docs/DEVELOPMENT_PLAN.md` و `docs/ROADMAP.md` آمده است.

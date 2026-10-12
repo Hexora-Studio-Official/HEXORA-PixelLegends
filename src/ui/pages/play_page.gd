@@ -17,16 +17,26 @@ var fill_squad: bool = true
 
 var _cards: Dictionary = {}          ## mode id -> Button
 var _search_button: Button
+var _quick_button: Button
 var _estimate: Label
+var _search_dock: PanelContainer
 
 
 func build() -> void:
-	body.add_child(header(&"play.title", &"play.subtitle", _build_region_badge()))
-	body.add_child(_build_quick_card())
+	if _search_dock != null and is_instance_valid(_search_dock):
+		remove_child(_search_dock)
+		_search_dock.queue_free()
+		_search_dock = null
+	var subtitle := &"" if OS.has_feature("mobile") else &"play.subtitle"
+	body.add_child(header(&"play.title", subtitle, _build_region_badge()))
 	body.add_child(_build_modes())
 	body.add_child(_build_options())
-	body.add_child(_build_search())
-	body.add_child(_build_offline_card())
+	var search := _build_search()
+	if OS.has_feature("mobile"):
+		_attach_search_dock(search)
+	else:
+		body.add_child(search)
+	_refresh()
 
 
 func _build_region_badge() -> Control:
@@ -40,33 +50,16 @@ func _build_region_badge() -> Control:
 	return row
 
 
-func _build_quick_card() -> Control:
-	var panel := UiKit.panel(&"BannerPanel")
-	var row: Container
-	if OS.has_feature("mobile"):
-		row = UiKit.vbox(Design.SPACE_MD)
-	else:
-		row = UiKit.hbox(Design.SPACE_LG)
-	panel.add_child(row)
-
-	var column := UiKit.vbox(Design.SPACE_XXS)
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.add_child(UiKit.subheading(Loc.t(&"play.quick")))
-	column.add_child(UiKit.paragraph(Loc.t(&"play.quick.body"), 560.0, &"CaptionLabel"))
-	row.add_child(column)
-
-	var button := UiKit.button(Loc.t(&"play.quick.button"), &"PrimaryButton", &"bolt")
-	if OS.has_feature("mobile"):
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	else:
-		button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	UiKit.on_press(button, func() -> void: _start_queue(_quick_pool(), true), "confirm")
-	row.add_child(button)
-	return panel
+func _mode_available(mode: GameMode) -> bool:
+	if Api.is_configured():
+		return true
+	# Matchmaking mirrors the local room cap only for battle royale; smaller
+	# LAN modes can still fill with the capped local pool.
+	return mode.supports_lan and not (
+		mode.is_battle_royale and mode.max_players > RoomService.MAX_LAN_PLAYERS
+	)
 
 
-## Every ruleset the queue is allowed to pick from, minus anything that cannot
-## run on this device right now.
 func _quick_pool() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for mode in GameCatalog.matchmaking_pool():
@@ -75,22 +68,13 @@ func _quick_pool() -> Array[StringName]:
 	return ids
 
 
-func _mode_available(mode: GameMode) -> bool:
-	if Api.is_configured():
-		return true
-	# No backend: only what one phone can host over a hotspot.
-	return mode.supports_lan and mode.max_players <= RoomService.MAX_LAN_PLAYERS
-
-
 func _build_modes() -> Control:
-	var column := UiKit.vbox(Design.SPACE_MD)
+	var column := UiKit.vbox(Design.SPACE_SM if OS.has_feature("mobile") else Design.SPACE_MD)
 	column.add_child(UiKit.section_header(Loc.t(&"play.modes")))
-	column.add_child(UiKit.paragraph(Loc.t(&"play.modes.hint"), 720.0, &"CaptionLabel"))
+	column.add_child(UiKit.paragraph(Loc.t(&"play.modes.hint"), 1120.0, &"CaptionLabel"))
+	column.add_child(UiKit.micro(Loc.t(&"play.online_only")))
 
-	var online_only := UiKit.micro(Loc.t(&"play.online_only"))
-	column.add_child(online_only)
-
-	var grid := UiKit.grid(1 if OS.has_feature("mobile") else 2, Design.SPACE_MD)
+	var grid := UiKit.grid(3, Design.SPACE_MD)
 	_cards.clear()
 	for mode in GameCatalog.matchmaking_pool():
 		var available := _mode_available(mode)
@@ -108,7 +92,7 @@ func _build_modes() -> Control:
 
 
 func _build_options() -> Control:
-	var column := UiKit.vbox(Design.SPACE_MD)
+	var column := UiKit.vbox(Design.SPACE_SM if OS.has_feature("mobile") else Design.SPACE_MD)
 	column.add_child(UiKit.section_header(Loc.t(&"play.options")))
 
 	var row := HFlowContainer.new()
@@ -116,6 +100,7 @@ func _build_options() -> Control:
 	row.add_theme_constant_override("h_separation", Design.SPACE_SM)
 	row.add_theme_constant_override("v_separation", Design.SPACE_SM)
 	var ranked := UiKit.chip(Loc.t(&"play.ranked"), ranked_enabled)
+	ranked.tooltip_text = Loc.t(&"play.ranked.hint")
 	UiKit.on_press(ranked, func() -> void:
 		ranked_enabled = not ranked_enabled
 		UiKit.set_chip_active(ranked, ranked_enabled)
@@ -129,65 +114,49 @@ func _build_options() -> Control:
 	)
 	row.add_child(squad)
 	column.add_child(row)
-	column.add_child(UiKit.paragraph(Loc.t(&"play.ranked.hint"), 720.0, &"CaptionLabel"))
 	return column
 
 
 func _build_search() -> Control:
 	var column := UiKit.vbox(Design.SPACE_SM)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_estimate = UiKit.muted("")
+	_estimate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_estimate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_estimate)
 
+	var actions := UiKit.hbox(Design.SPACE_SM)
 	_search_button = UiKit.button("", &"PrimaryButton", &"play")
-	_search_button.custom_minimum_size = Vector2(0, 60)
-	UiKit.on_press(_search_button, func() -> void: _start_queue(selected, false), "confirm")
-	column.add_child(_search_button)
+	_search_button.custom_minimum_size = Vector2(0, 64)
+	_search_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiKit.on_press(_search_button, func() -> void: _start_queue(selected), "confirm")
+	actions.add_child(_search_button)
+
+	_quick_button = UiKit.button(Loc.t(&"play.quick.button"), &"OutlineButton", &"bolt")
+	_quick_button.custom_minimum_size = Vector2(0, 64)
+	_quick_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiKit.on_press(_quick_button, func() -> void: _start_queue(_quick_pool(), true), "confirm")
+	actions.add_child(_quick_button)
+
+	column.add_child(actions)
 	return column
 
 
-func _build_offline_card() -> Control:
-	var column := card(&"rooms.hotspot.title")
-	column.add_child(UiKit.paragraph(Loc.t(&"rooms.hotspot.desc"), 720.0, &"CaptionLabel"))
+func _attach_search_dock(search: Control) -> void:
+	const DOCK_HEIGHT := 140.0
+	scroll.offset_bottom = -DOCK_HEIGHT
 
-	var row := HFlowContainer.new()
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("h_separation", Design.SPACE_SM)
-	row.add_theme_constant_override("v_separation", Design.SPACE_SM)
-	var host := UiKit.button(Loc.t(&"rooms.create"), &"OutlineButton", &"plus")
-	UiKit.on_press(host, func() -> void: _open_rooms_tab(0))
-	row.add_child(host)
-
-	var join := UiKit.button(Loc.t(&"rooms.hotspot.discover"), &"OutlineButton", &"wifi")
-	UiKit.on_press(join, func() -> void: _open_rooms_tab(2))
-	row.add_child(join)
-	column.add_child(row)
-	return column
+	var dock := UiKit.panel(&"TopBarPanel")
+	dock.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	dock.offset_top = -DOCK_HEIGHT
+	dock.offset_bottom = 0.0
+	dock.mouse_filter = Control.MOUSE_FILTER_STOP
+	dock.add_child(search)
+	add_child(dock)
+	_search_dock = dock
 
 
 # ------------------------------------------------------------------ behaviour
-
-## Ask the menu shell to open Rooms on a specific tab. Play does not own that
-## page, so it does not reach into it: it asks the shell for the instance and
-## tells it which tab to show.
-func _open_rooms_tab(index: int) -> void:
-	var shell := _find_shell()
-	if shell == null:
-		return
-	shell.call("open_page", &"rooms")
-	var rooms := shell.call("page", &"rooms") as RoomsPage
-	if rooms != null:
-		rooms.tab = index
-		rooms.rebuild()
-
-
-func _find_shell() -> Node:
-	var node := get_parent()
-	while node != null:
-		if node.has_method("open_page"):
-			return node
-		node = node.get_parent()
-	return null
-
 
 func _toggle_mode(mode_id: StringName) -> void:
 	if selected.has(mode_id):
@@ -214,17 +183,15 @@ func _toggle_mode(mode_id: StringName) -> void:
 func _refresh() -> void:
 	if _search_button == null:
 		return
-	var names := PackedStringArray()
 	var total := 0.0
 	for mode_id in selected:
-		var mode := GameCatalog.resolve(mode_id)
-		names.append(Loc.t(mode.short_key))
 		total += float(Matchmaking.BASE_WAIT_SEC.get(mode_id, 14.0))
 	var average := total / float(maxi(1, selected.size()))
 	UiKit.set_label_text(_search_button, Loc.t(&"play.search", {"count": selected.size()}))
-	_estimate.text = "%s · %s" % [
-		" / ".join(names),
-		Loc.t(&"play.estimated", {"time": _humanise(average)}),
+	_estimate.text = "%s · %s · %s" % [
+		Loc.t(&"play.search.count", {"count": selected.size()}),
+		Loc.t(&"play.estimated"),
+		_humanise(average),
 	]
 
 
@@ -234,7 +201,7 @@ func _humanise(seconds: float) -> String:
 	return Loc.t(&"common.minutes_short", {"value": maxi(1, int(round(seconds / 60.0)))})
 
 
-func _start_queue(modes: Array[StringName], quick: bool) -> void:
+func _start_queue(modes: Array[StringName], quick: bool = false) -> void:
 	if modes.is_empty():
 		EventBus.toast_requested.emit(Loc.t(&"play.keep_one"), &"warning")
 		return
@@ -247,8 +214,9 @@ func _start_queue(modes: Array[StringName], quick: bool) -> void:
 	EventBus.matchmaking_state_changed.emit(GameTypes.MatchmakingState.SEARCHING)
 	if quick:
 		selected = modes.duplicate()
-		for mode_id in _cards.keys():
-			UiKit.set_card_active(_cards[mode_id], selected.has(mode_id))
+		for mode_id: StringName in _cards:
+			var card := _cards[mode_id] as Button
+			UiKit.set_card_active(card, selected.has(mode_id))
 		_refresh()
 
 
@@ -274,6 +242,9 @@ func on_shown() -> void:
 	selected = _sanitise(selected)
 	if selected.is_empty():
 		selected = [&"tdm"]
+	for mode_id: StringName in _cards:
+		var card := _cards[mode_id] as Button
+		UiKit.set_card_active(card, selected.has(mode_id))
 	_refresh()
 
 

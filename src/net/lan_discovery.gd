@@ -1,6 +1,6 @@
 class_name LanDiscovery
 extends Node
-## Finds HEXORA rooms on the local network — a Wi-Fi router or a phone hotspot.
+## Finds PixelField rooms on the local network — a Wi-Fi router or a phone hotspot.
 ##
 ## This is the part of "play with friends without internet" that people
 ## actually get stuck on, so it is deliberately dumb and redundant:

@@ -27,6 +27,7 @@ const RANK_TIER_CEIL: int = 5000
 @export var display_name: String = "Recruit"
 @export var email: String = ""
 @export var avatar_url: String = ""
+@export var avatar_color: int = -1
 @export var provider: int = GameTypes.AuthProvider.NONE
 @export var region: int = GameTypes.Region.AUTO
 @export var clan_tag: String = ""

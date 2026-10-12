@@ -23,7 +23,7 @@ extends Resource
 
 @export_group("Presentation")
 @export var icon_kind: StringName = &"mode_tdm"
-@export var accent: Color = Color("ff7a1a")
+@export var accent: Color = Color("baff4a")
 @export var sort_index: int = 0
 
 @export_group("Lobby")

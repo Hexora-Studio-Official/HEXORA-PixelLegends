@@ -1,60 +1,59 @@
 extends Node
-## The HEXORA design system: one palette, one type scale, one Theme.
+## The PixelField design system: one palette, one type scale, one Theme.
 ##
 ## Everything visual that more than one screen needs lives here. Screens ask
 ## for *semantic* type variations ("PrimaryButton", "CardPanel") instead of
 ## assembling their own StyleBoxFlats, which is what keeps the UI coherent as
 ## more screens land.
 ##
-## Art direction (agreed for the project): clean semi-realistic 3D, not pixel
-## art and not photoreal — think "graphite and machined aluminium, lit by
-## sodium orange and instrument teal". The interface follows the same rule:
-## dark, low-saturation surfaces, one warm accent for actions, one cold accent
-## for information, and thin hairline borders instead of heavy chrome.
+## Art direction: a vivid tactical field at night — deep indigo surfaces, bright
+## pixel-grid accents, electric lime for actions and cyan for information. The
+## interface should feel energetic and unmistakably like PixelField, not a
+## generic black-and-orange military dashboard.
 
 # ------------------------------------------------------------------- palette
 
-const BG: Color = Color("070b11")            ## App background, deepest layer.
-const BG_RAISED: Color = Color("0b1119")
-const SURFACE: Color = Color("0c1219")       ## Cards, panels.
-const SURFACE_ALT: Color = Color("111a24")
-const SURFACE_HI: Color = Color("17222e")    ## Hover / selected surface.
-const SURFACE_SUNKEN: Color = Color("080d13")## Inset fields, tracks.
+const BG: Color = Color("080d1d")            ## Deep indigo canvas.
+const BG_RAISED: Color = Color("101a30")
+const SURFACE: Color = Color("141f38")       ## Cards, panels.
+const SURFACE_ALT: Color = Color("1c2b49")
+const SURFACE_HI: Color = Color("293d61")    ## Hover / selected surface.
+const SURFACE_SUNKEN: Color = Color("0b1327")## Inset fields, tracks.
 
-const LINE: Color = Color("1e2c3a")          ## Hairline borders.
-const LINE_STRONG: Color = Color("2b3d4f")
+const LINE: Color = Color("2a3d5d")          ## Blue-steel hairline.
+const LINE_STRONG: Color = Color("435d84")
 
-const TEXT: Color = Color("e8eef5")
-const TEXT_MUTED: Color = Color("8fa0b3")
-const TEXT_DIM: Color = Color("5c6b7d")
-const TEXT_INVERSE: Color = Color("070b11")
+const TEXT: Color = Color("f4f7ff")
+const TEXT_MUTED: Color = Color("c0cbe0")
+const TEXT_DIM: Color = Color("91a1bf")
+const TEXT_INVERSE: Color = Color("111a2b")
 
-const ACCENT: Color = Color("ff7a1a")        ## Warm: the player acts.
-const ACCENT_HI: Color = Color("ffa53d")
-const ACCENT_DEEP: Color = Color("c9530a")
-const TEAL: Color = Color("18e0c8")          ## Cold: the game informs.
-const TEAL_DEEP: Color = Color("0d8f80")
+const ACCENT: Color = Color("baff4a")        ## Electric lime: the player acts.
+const ACCENT_HI: Color = Color("d5ff83")
+const ACCENT_DEEP: Color = Color("78ad23")
+const TEAL: Color = Color("47d9ff")          ## Pixel cyan: the field informs.
+const TEAL_DEEP: Color = Color("168bb5")
 
-const SUCCESS: Color = Color("38e07b")
-const WARNING: Color = Color("ffb020")
-const DANGER: Color = Color("ff4d6d")
+const SUCCESS: Color = Color("50e3a4")
+const WARNING: Color = Color("ffc857")
+const DANGER: Color = Color("ff6480")
 const GOLD: Color = Color("ffd166")
 
-const TEAM_ALPHA: Color = Color("4da3ff")
-const TEAM_BRAVO: Color = Color("ff6b3d")
+const TEAM_ALPHA: Color = Color("59c7ff")
+const TEAM_BRAVO: Color = Color("ff846f")
 
 ## Soft tints, used for chips and highlighted rows.
-const ACCENT_TINT: Color = Color(1.0, 0.478, 0.102, 0.14)
-const TEAL_TINT: Color = Color(0.094, 0.878, 0.784, 0.12)
-const DANGER_TINT: Color = Color(1.0, 0.302, 0.427, 0.14)
+const ACCENT_TINT: Color = Color(0.729, 1.0, 0.29, 0.14)
+const TEAL_TINT: Color = Color(0.278, 0.851, 1.0, 0.14)
+const DANGER_TINT: Color = Color(1.0, 0.392, 0.502, 0.14)
 
 ## Currency / rarity ramp, reused by the store and reward popups later.
 const RARITY: Array[Color] = [
-	Color("8fa0b3"),  # common
-	Color("38e07b"),  # uncommon
-	Color("4da3ff"),  # rare
+	Color("91a1bf"),  # common
+	Color("50e3a4"),  # uncommon
+	Color("59c7ff"),  # rare
 	Color("b48cff"),  # epic
-	Color("ffb020"),  # legendary
+	Color("ffc857"),  # legendary
 ]
 
 # ------------------------------------------------------------------- metrics
@@ -62,35 +61,35 @@ const RARITY: Array[Color] = [
 # A 4px base grid. Screens should use these instead of magic numbers so that
 # spacing stays consistent when a designer asks for "a bit more air".
 
-const SPACE_XXS: int = 2
-const SPACE_XS: int = 4
-const SPACE_SM: int = 8
-const SPACE_MD: int = 12
-const SPACE_LG: int = 16
-const SPACE_XL: int = 24
-const SPACE_XXL: int = 32
+const SPACE_XXS: int = 4
+const SPACE_XS: int = 8
+const SPACE_SM: int = 12
+const SPACE_MD: int = 16
+const SPACE_LG: int = 20
+const SPACE_XL: int = 28
+const SPACE_XXL: int = 36
 const SPACE_HUGE: int = 48
 
-const RADIUS_SM: int = 4
-const RADIUS_MD: int = 8
-const RADIUS_LG: int = 14
+const RADIUS_SM: int = 8
+const RADIUS_MD: int = 12
+const RADIUS_LG: int = 20
 const RADIUS_PILL: int = 999
 
 const BORDER_THIN: int = 1
 const BORDER_ACCENT: int = 2
 const BORDER_STRIPE: int = 3    ## The accent stripe on primary buttons.
 
-const FONT_MICRO: int = 12
-const FONT_SMALL: int = 14
-const FONT_BODY: int = 16
-const FONT_LEAD: int = 19
-const FONT_SUBHEAD: int = 22
-const FONT_H3: int = 26
-const FONT_H2: int = 34
-const FONT_H1: int = 46
-const FONT_DISPLAY: int = 64
+const FONT_MICRO: int = 14
+const FONT_SMALL: int = 16
+const FONT_BODY: int = 18
+const FONT_LEAD: int = 22
+const FONT_SUBHEAD: int = 26
+const FONT_H3: int = 30
+const FONT_H2: int = 40
+const FONT_H1: int = 52
+const FONT_DISPLAY: int = 72
 
-const TOUCH_TARGET_MIN: int = 48  ## Android accessibility minimum, in px.
+const TOUCH_TARGET_MIN: int = 56  ## Comfortable mobile tap target, in px.
 
 # --------------------------------------------------------------------- fonts
 
@@ -474,7 +473,7 @@ func _add_inputs(built: Theme) -> void:
 		built.set_color(&"font_placeholder_color", variation, TEXT_DIM)
 		built.set_color(&"font_selected_color", variation, TEXT_INVERSE)
 		built.set_color(&"caret_color", variation, ACCENT)
-		built.set_color(&"selection_color", variation, Color(1.0, 0.478, 0.102, 0.35))
+		built.set_color(&"selection_color", variation, Color(ACCENT.r, ACCENT.g, ACCENT.b, 0.35))
 		built.set_constant(&"caret_width", variation, 2)
 		built.set_constant(&"minimum_character_width", variation, 4)
 

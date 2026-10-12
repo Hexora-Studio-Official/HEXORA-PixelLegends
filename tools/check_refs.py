@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static reference check for HEXORA — runs without Godot, gates every commit.
+"""Static reference check for PixelField — runs without Godot, gates every commit.
 
 gdlint only sees one file at a time, so it cannot tell you that a screen calls
 `UiKit.card_title()` when the only method is `card()`. This script is the

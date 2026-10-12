@@ -268,7 +268,7 @@ func _handle_request(raw_request: String) -> void:
 	var request_line := raw_request.split("\r\n", false)[0]
 	var parts := request_line.split(" ")
 	if parts.size() < 2 or not String(parts[0]).begins_with("GET"):
-		_respond("Bad request", "HEXORA", false)
+		_respond("Bad request", "PixelField", false)
 		return
 
 	var target := String(parts[1])
@@ -279,7 +279,7 @@ func _handle_request(raw_request: String) -> void:
 
 	# Ignore the browser's automatic /favicon.ico probe.
 	if query.is_empty() and not target.begins_with("/?") and target != "/":
-		_respond("Not found", "HEXORA", false)
+		_respond("Not found", "PixelField", false)
 		return
 
 	if query.has("error"):
@@ -440,11 +440,11 @@ func _form_encode(fields: Dictionary) -> String:
 func _respond(title: String, subtitle: String, success: bool) -> void:
 	if _peer == null:
 		return
-	var accent := "#38e07b" if success else "#ff4d6d"
+	var accent := "#50e3a4" if success else "#ff6480"
 	var body := """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HEXORA</title></head>
+<title>PixelField</title></head>
 <body style="margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
 background:#070b11;color:#e8eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
 <div style="text-align:center;padding:32px;max-width:420px">

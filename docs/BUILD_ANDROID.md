@@ -18,7 +18,7 @@ APK launches correctly on a physical phone.
 | Godot **4.4 or newer** (CI preset uses **4.4.1**) | Standard build; the .NET/C# build also works but nothing here uses C#. |
 | Android SDK + build-tools | Android Studio → SDK Manager → *Android SDK Platform 34* and *Build-Tools 34*. The committed preset uses Godot's prebuilt template (no Gradle build); install NDK 23c+ and CMake only if you later build custom Android templates or enable the Gradle path. |
 | JDK 17 | Godot's Android export needs 17; the CI workflow uses Temurin 17. |
-| A keystore | `keytool -genkey -v -keystore hexora-release.keystore -alias hexora -keyalg RSA -keysize 2048 -validity 10000` |
+| A keystore | `keytool -genkey -v -keystore pixelfield-release.keystore -alias pixelfield -keyalg RSA -keysize 2048 -validity 10000` |
 
 Then in Godot: **Editor ▸ Editor Settings ▸ Export ▸ Android** and set *Android
 SDK Path*, *Java SDK Path* and the debug keystore fields. The editor's
@@ -40,7 +40,7 @@ project has no native plugins.
 | Permissions ▸ Access Network State / Access Wi-Fi State | On in the debug preset | The local room path reads network state/address information. |
 | Permissions ▸ Vibrate | **On in the debug preset** | `Controls.haptic()` calls Android's vibrator for button feedback; without the manifest permission, button taps can fail on device. |
 | Permissions ▸ Access Fine Location | Off | Not needed: LAN discovery is a UDP beacon, not a Wi-Fi scan. Google Play asks for a justification for this one; don't request it. |
-| Keystore ▸ Release | your keystore, alias `hexora` | Debug builds use the editor's debug key — fine for testing, rejected by Play. |
+| Keystore ▸ Release | your keystore, alias `pixelfield` | Debug builds use the editor's debug key — fine for testing, rejected by Play. |
 | Architectures | `arm64-v8a` (+ `armeabi-v7a` only if you care about pre-2018 devices) | 64-bit is mandatory on Play; the 32-bit slice doubles the download for a small audience. |
 
 Export **AAB** for Play, **APK** for sideloading to a test phone.
@@ -50,7 +50,7 @@ Export **AAB** for Play, **APK** for sideloading to a test phone.
 `.github/workflows/android-debug.yml` runs on pushes to the session branch and
 can also be started with `workflow_dispatch`. It uses Godot 4.4.1, Java 17,
 Android SDK/build-tools 34, and the `Android Debug` preset. The runner creates
-a temporary debug keystore and uploads `hexora-debug-apk` for 14 days after a
+a temporary debug keystore and uploads `pixelfield-debug-apk` for 14 days after a
 successful build. Download it from the workflow run's **Artifacts** section.
 
 This is a **debug/test build only**, signed with an ephemeral Android debug
@@ -77,7 +77,7 @@ gdlint $(find src -name '*.gd')
 #    the player it is not configured. See docs/AUTH_SETUP.md §4.
 
 # 4. Export, then install and actually launch it:
-adb install -r build/hexora-release.apk
+adb install -r build/PixelField-release.apk
 adb logcat -s godot:V
 ```
 

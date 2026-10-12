@@ -1,49 +1,36 @@
-# Brand
+# PixelField brand
 
 | File | Use |
 | --- | --- |
-| `hexora_mark.svg` | Flat, square-safe mark: store listing, splash, social preview, one-colour stamp. |
-| `../../icon.svg` | The app icon Godot imports (`application/config/icon`), a rounded-square variant with the reticle. |
+| `pixelfield_mark.svg` | Standalone block-built PF mark for store, splash and social artwork. |
+| `../../icon.svg` | Rounded-square launcher icon imported by Godot. |
+| `../../src/ui/components/pixel_field_mark.gd` | Shared runtime mark used on the boot and sign-in screens. |
 
-Both are hand-written SVG using plain shapes only — no filters, no masks, no
-foreign objects — so ThorVG (Godot's importer) and every browser render them
-identically. Keep it that way: a gradient that renders in Chrome and fails in
-the importer is a broken launcher icon nobody notices until release.
+The app icon, standalone mark and runtime drawing share the same PixelField
+monogram. Keep the artwork legible at small launcher sizes and retain the plain
+SVG shapes so Godot's importer and browsers render it consistently.
 
 ## Palette
 
-Straight from `src/autoload/design.gd`. If you change a colour there, change it
-here too — the logo sitting next to UI that uses a different orange looks like a
-mistake, because it is one.
+The source of truth is `src/autoload/design.gd`. If a color changes there, update
+the SVG and runtime mark to match.
 
-| Name | Hex | Where it is used |
+| Name | Hex | Role |
 | --- | --- | --- |
-| Deep background | `#070B11` | App background, logo field |
-| Surface | `#0C1219` | Cards, panels, logo plate |
-| Line | `#2B3D4F` | Hairline borders, logo stroke |
-| **Sodium** (warm accent) | `#FF7A1A` | Actions, the player acts. Primary in the mark. |
-| Sodium bright | `#FFA53D` | Hover, highlights |
-| **Instrument teal** (cold accent) | `#18E0C8` | Information, status. Secondary in the mark. |
-| Text | `#E8EEF5` | Body copy |
-| Muted text | `#8FA0B3` | Captions, secondary labels |
+| Deep indigo | `#080D1D` | Background |
+| Raised surface | `#101A30` | Panels and icon plate |
+| Surface | `#141F38` | Cards |
+| Blue-steel line | `#435D84` | Borders and icon frame |
+| Electric lime | `#BAFF4A` | Primary actions and PF accent |
+| Pixel cyan | `#47D9FF` | Information and PF accent |
+| Text | `#F4F7FF` | Main copy |
+| Muted text | `#C0CBE0` | Secondary copy |
 
 ## Rules
 
-- **Two accents, one meaning each.** Warm means *you can act*; cold means *the
-  game is telling you something*. Never use teal for a primary button and never
-  use orange for a status light.
-- **Minimum sizes.** The mark must stay legible at 48 px: below that, use the
-  icon without the inner reticle lines.
-- **Clear space** of half the mark's width on every side.
-- **Don't** recolour the mark, add a gradient, put it on a busy photo, or
-  outline it. If it needs a background, use Deep background.
-- **Wordmark**: "HEXORA" in Chakra Petch Bold, tracked slightly positive, upper
-  case, text colour — never the accent colour, which stops it reading as a name
-  and starts reading as a button.
-
-## Naming
-
-The studio is **HEXORA Studio**; the game is **HEXORA**. Don't write "Hexora" in
-upper-case contexts or "HEXORA Studio" where the game is meant — the store
-listing and the in-game title have to agree or the search result looks
-unofficial.
+- Use lime for actions and cyan for information; keep both accents visible on
+  the deep-indigo surfaces.
+- Build marks from crisp, separated blocks so the PF monogram survives at
+  48 px and below.
+- Keep the PixelField wordmark in title case. HEXORA Studio is the studio name,
+  not the game name.
