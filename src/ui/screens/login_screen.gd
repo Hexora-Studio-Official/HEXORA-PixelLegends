@@ -22,10 +22,15 @@ var _busy: bool = false
 func build() -> void:
 	_busy = Auth.is_busy()
 
+	var screen_scroll := UiKit.scroll()
+	screen_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	content.add_child(screen_scroll)
+
 	var columns := UiKit.hbox(Design.SPACE_HUGE)
-	columns.set_anchors_preset(Control.PRESET_FULL_RECT)
+	columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	columns.alignment = BoxContainer.ALIGNMENT_CENTER
-	content.add_child(columns)
+	screen_scroll.add_child(columns)
 
 	columns.add_child(_build_brand_column())
 	columns.add_child(_build_form_column())

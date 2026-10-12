@@ -128,9 +128,14 @@ var font_mono: Font               ## Tabular numerals for timers and scores.
 func _ready() -> void:
 	_load_fonts()
 	theme = _build_theme()
+	var root_window := get_tree().root
+	if OS.has_feature("mobile"):
+		# The design grid is authored in desktop pixels; scale it up on dense
+		# phone screens so labels and 48 px touch targets are not physically tiny.
+		root_window.content_scale_factor = clampf(DisplayServer.screen_get_scale(), 1.25, 1.4)
 	# Assigning on the root Window makes every Control in the game inherit it,
 	# including Controls created later at runtime.
-	get_tree().root.theme = theme
+	root_window.theme = theme
 	# No `theme_type_variation` on the root Window on purpose: a named
 	# variation that nothing defines is dead configuration, and Godot already
 	# falls back to its built-in theme (and default font) for every item we do

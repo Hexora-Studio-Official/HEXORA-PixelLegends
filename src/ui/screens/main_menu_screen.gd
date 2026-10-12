@@ -166,12 +166,18 @@ func _build_nav_rail() -> Control:
 	rail.custom_minimum_size = Vector2(NAV_RAIL_WIDTH, 0)
 	rail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
+	var rail_scroll := UiKit.scroll()
+	rail.add_child(rail_scroll)
 	var column := UiKit.vbox(Design.SPACE_XS)
-	rail.add_child(column)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rail_scroll.add_child(column)
 
 	_nav_buttons.clear()
 	var last_section: StringName = &""
 	for entry: Dictionary in NAV_ENTRIES:
+		# Locked progression screens add clutter on a phone without being usable.
+		if OS.has_feature("mobile") and bool(entry.get("placeholder", false)):
+			continue
 		var section: StringName = entry["section"]
 		if section != last_section:
 			last_section = section

@@ -214,6 +214,8 @@ func inverted_y() -> bool:
 ## Short haptic pulse, respecting the player's setting. `strength` is
 ## millisecond duration on Android; 0 stops any ongoing vibration.
 func haptic(duration_ms: int = 25) -> void:
+	if not OS.has_feature("mobile") or duration_ms <= 0:
+		return
 	if not Settings.get_bool("game/vibration", true):
 		return
 	Input.vibrate_handheld(duration_ms)

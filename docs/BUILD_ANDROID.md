@@ -38,6 +38,7 @@ project has no native plugins.
 | Textures ▸ Texture Format | ETC2 + ASTC (already the project default) | Covers essentially every Android device from 2016 on. |
 | Permissions ▸ Internet | **On in this debug preset** | Android requires `INTERNET` for UDP/ENet sockets too; this permission does not mean a connection is needed. No backend or production online service is configured. Reassess the permission before a hotspot-only release. |
 | Permissions ▸ Access Network State / Access Wi-Fi State | On in the debug preset | The local room path reads network state/address information. |
+| Permissions ▸ Vibrate | **On in the debug preset** | `Controls.haptic()` calls Android's vibrator for button feedback; without the manifest permission, button taps can fail on device. |
 | Permissions ▸ Access Fine Location | Off | Not needed: LAN discovery is a UDP beacon, not a Wi-Fi scan. Google Play asks for a justification for this one; don't request it. |
 | Keystore ▸ Release | your keystore, alias `hexora` | Debug builds use the editor's debug key — fine for testing, rejected by Play. |
 | Architectures | `arm64-v8a` (+ `armeabi-v7a` only if you care about pre-2018 devices) | 64-bit is mandatory on Play; the 32-bit slice doubles the download for a small audience. |

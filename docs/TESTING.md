@@ -29,9 +29,10 @@ gdlint $(find src -name '*.gd' -print)
 | `python3 tools/check_refs.py` | **PASS** — 55 classes, 41 scripts, 4 scenes; no dangling references according to the checker. |
 | `gdlint $(find src -name '*.gd' -print)` | **PASS** — gdtoolkit 4.5.0; no lint problems. |
 | Fault-sensitivity check (isolated temporary copy) | **PASS** — the planted missing `res://` asset was reported as an error. |
-| Godot editor/import or headless launch | **BLOCKED / not run** — no `godot` or `godot4` binary is installed. |
-| Android export / phone install | **NOT RUN** — no Godot build, Android SDK test or device test was performed. |
-| LAN discovery/join on two clients | **NOT RUN** — the decoder fix is source-reviewed only. |
+| Godot editor import + headless launch | **PASS in GitHub Actions** — Android run `38198423167`, commit `8ceff13`; this is not a physical-device test. |
+| Android debug export/signature/ZIP validation | **PASS in GitHub Actions** — APK artifact uploaded by run `38198423167`. |
+| Physical-device launch and interaction | **FAIL (user-reported)** — the installed APK reportedly exits after about five seconds and on button presses; device model and Android crash log have not yet been collected. Do not treat the build as device-verified. |
+| LAN discovery/join on two clients | **NOT RUN** — no two-client device test has been performed. |
 | Gameplay, bot and 2–100-player load tests | **NOT RUN** — match gameplay/server are not implemented. |
 
 ## Godot checks (when the engine is available)

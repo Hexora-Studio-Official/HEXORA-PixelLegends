@@ -161,6 +161,10 @@ jobs:
           badging_log="$RUNNER_TEMP/aapt2-badging.log"
           if "$sdk_path/build-tools/34.0.0/aapt2" dump badging build/HEXORA-debug.apk >"$badging_log" 2>&1; then
             sed -n '1p' "$badging_log"
+            if ! grep -Fq "android.permission.VIBRATE" "$badging_log"; then
+              echo "::error file=export_presets.cfg,line=1,title=Android vibration permission missing::The exported manifest must include android.permission.VIBRATE because touch feedback invokes the device vibrator."
+              exit 1
+            fi
           else
             cat "$badging_log"
             escaped="$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$badging_log")"

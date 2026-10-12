@@ -403,7 +403,8 @@ func apply_graphics() -> void:
 
 func apply_game() -> void:
 	DisplayServer.screen_set_keep_on(get_bool("game/keep_screen_on"))
-	Input.vibrate_handheld(0)  # cancel any in-flight vibration on toggle
+	if OS.has_feature("mobile") and not get_bool("game/vibration", true):
+		Input.vibrate_handheld(0)  # Stop any pulse already in progress when vibration is disabled.
 
 
 ## Write a whole preset at once. `notify` is false during boot to avoid
