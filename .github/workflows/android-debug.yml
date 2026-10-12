@@ -77,11 +77,33 @@ jobs:
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
           set -euo pipefail
+          run_logged() {
+            local label="$1"
+            local log_name="$2"
+            shift 2
+            local log_file="$RUNNER_TEMP/godot-${log_name}.log"
+            if "$@" >"$log_file" 2>&1; then
+              cat "$log_file"
+            else
+              local status=$?
+              cat "$log_file"
+              {
+                echo "### ${label} failed (exit ${status})"
+                echo '```text'
+                tail -n 30 "$log_file"
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+              local annotation
+              annotation="$(tail -n 18 "$log_file" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+              echo "::error title=${label}::${annotation}"
+              return "$status"
+            fi
+          }
           godot --version
-          godot --headless --path . --editor --quit
-          godot --headless --path . --quit-after 10
+          run_logged "Godot editor import" editor-import godot --headless --path . --editor --quit
+          run_logged "Headless client boot" headless-boot godot --headless --path . --quit-after 10
           mkdir -p build
-          godot --headless --path . --export-debug "Android Debug" build/HEXORA-debug.apk
+          run_logged "Android APK export" android-export godot --headless --path . --export-debug "Android Debug" build/HEXORA-debug.apk
           test -s build/HEXORA-debug.apk
           sdk_path="${ANDROID_HOME:-${ANDROID_SDK_ROOT:?Android SDK path is not set}}"
           "$sdk_path/build-tools/34.0.0/apksigner" verify --verbose build/HEXORA-debug.apk
