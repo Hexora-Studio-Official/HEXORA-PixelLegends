@@ -142,10 +142,29 @@ jobs:
             echo "::error file=.github/workflows/android-debug.yml,line=1,title=Android debug export::${diagnostics}"
             exit "$status"
           fi
-          test -s build/HEXORA-debug.apk
+          if [ ! -s build/HEXORA-debug.apk ]; then
+            diagnostics="$(printf 'Godot exited with status %s, but build/HEXORA-debug.apk is missing or empty.\n' "$status"; tail -n 25 "$log_file")"
+            escaped="$(printf '%s' "$diagnostics" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            echo "::error file=.github/workflows/android-debug.yml,line=1,title=Missing APK after export::${escaped}"
+            exit 1
+          fi
           sdk_path="${ANDROID_HOME:-${ANDROID_SDK_ROOT:?Android SDK path is not set}}"
-          "$sdk_path/build-tools/34.0.0/apksigner" verify --verbose build/HEXORA-debug.apk
-          "$sdk_path/build-tools/34.0.0/aapt" dump badging build/HEXORA-debug.apk | sed -n '1p'
+          verify_log="$RUNNER_TEMP/apksigner-verify.log"
+          if ! "$sdk_path/build-tools/34.0.0/apksigner" verify --verbose build/HEXORA-debug.apk >"$verify_log" 2>&1; then
+            cat "$verify_log"
+            escaped="$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$verify_log")"
+            echo "::error file=.github/workflows/android-debug.yml,line=1,title=APK signature verification failed::${escaped}"
+            exit 1
+          fi
+          cat "$verify_log"
+          badging_log="$RUNNER_TEMP/aapt-badging.log"
+          if ! "$sdk_path/build-tools/34.0.0/aapt" dump badging build/HEXORA-debug.apk >"$badging_log" 2>&1; then
+            cat "$badging_log"
+            escaped="$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$badging_log")"
+            echo "::error file=.github/workflows/android-debug.yml,line=1,title=APK metadata inspection failed::${escaped}"
+            exit 1
+          fi
+          sed -n '1p' "$badging_log"
           sha256sum build/HEXORA-debug.apk
 
       - name: Upload debug APK
