@@ -88,8 +88,10 @@ GODOT_TYPES = {
 ## matching any CamelCase literal) is what makes the variation check sharp.
 NON_VARIATION_NAMES = {
     "XpBar", "RankBar", "ThinBar", "HealthBar", "AmmoBar", "ZoneTimerBar",
-    "Master", "Music", "SFX", "UI", "Voice",
 }
+# Note: audio bus names are deliberately *not* listed here — they are read from
+# default_bus_layout.tres below, so renaming a bus cannot leave a stale copy
+# behind that keeps validating the old name.
 
 # Members provided by Godot on every Node/Control/Resource, used when a class
 # of ours extends an engine type and therefore has no in-repo base members.
@@ -817,6 +819,34 @@ def main() -> int:
                     f"(not in this class, its repo bases, the engine globals, or the repo)"
                 )
 
+    # ---------------------------------------------------- audio bus names exist
+    # The bus names live in three places — the layout resource, the audio
+    # service, and the volume table in Settings. A rename in any one of them is
+    # silent at runtime: the player keeps "working", routed to Master, and the
+    # volume slider moves nothing. So the layout resource is the source of
+    # truth and every name in code is checked against it.
+    # Bus 0 is implicit: Godot's AudioBusLayout constructor seeds it as
+    # "Master" and the editor therefore never writes a `bus/0/name` line, which
+    # is why it is added here by hand.
+    bus_names: set[str] = {"Master"}
+    layout_path = REPO_ROOT / "default_bus_layout.tres"
+    if layout_path.exists():
+        bus_names |= set(re.findall(r'^bus/\d+/name\s*=\s*&"([^"]+)"',
+                                    layout_path.read_text(encoding="utf-8"), re.M))
+    if not bus_names:
+        problems.append("default_bus_layout.tres declares no named audio buses")
+    for path in gd_files:
+        rel = path.relative_to(REPO_ROOT)
+        for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            line = strip_comments(raw)
+            for bus in re.findall(r'\bbus\s*=\s*&"([^"]+)"', line) \
+                    + re.findall(r'"bus":\s*"([^"]+)"', line):
+                if bus not in bus_names:
+                    problems.append(
+                        f"{rel}:{lineno}: audio bus {bus!r} does not exist in "
+                        f"default_bus_layout.tres (found {sorted(bus_names)})"
+                    )
+
     # ------------------------------------------------- theme variations exist
     design_info = index.get("Design")
     defined_variations: set[str] = set()
@@ -844,7 +874,8 @@ def main() -> int:
                 name = match.group(1)
                 if not name[:1].isupper():
                     continue
-                if name in defined_variations or name in GODOT_TYPES or name in NON_VARIATION_NAMES:
+                if name in defined_variations or name in GODOT_TYPES \
+                        or name in NON_VARIATION_NAMES or name in bus_names:
                     continue
                 problems.append(
                     f"{rel}:{lineno}: {name!r} is neither a theme variation defined in "
