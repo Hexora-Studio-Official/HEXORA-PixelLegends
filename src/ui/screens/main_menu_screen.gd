@@ -71,12 +71,19 @@ func build() -> void:
 
 	root.add_child(_build_bottom_bar())
 
+	# The overlay is a sibling of the page host, not a child of it, so `rebuild()`
+	# does not free it: without this the second build stacks another overlay on
+	# top of the first, and the old one keeps its matchmaking subscriptions.
+	if _queue_overlay != null and is_instance_valid(_queue_overlay):
+		remove_child(_queue_overlay)
+		_queue_overlay.queue_free()
 	_queue_overlay = QueueOverlay.new()
 	add_child(_queue_overlay)
 
-	EventBus.profile_changed.connect(_on_profile_changed)
-	EventBus.friends_changed.connect(_on_friends_changed)
-	EventBus.room_invite_received.connect(_on_invite_received)
+	# Idempotent: `build()` runs again whenever the language changes.
+	UiKit.listen(EventBus.profile_changed, _on_profile_changed)
+	UiKit.listen(EventBus.friends_changed, _on_friends_changed)
+	UiKit.listen(EventBus.room_invite_received, _on_invite_received)
 
 	_show_page(active_page_id)
 

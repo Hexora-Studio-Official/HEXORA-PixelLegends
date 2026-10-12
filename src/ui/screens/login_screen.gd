@@ -30,9 +30,10 @@ func build() -> void:
 	columns.add_child(_build_brand_column())
 	columns.add_child(_build_form_column())
 
-	EventBus.auth_state_changed.connect(_on_auth_state_changed)
-	EventBus.auth_failed.connect(_on_auth_failed)
-	EventBus.auth_signed_in.connect(_on_signed_in)
+	# `build()` runs again on a language change, so these are idempotent.
+	UiKit.listen(EventBus.auth_state_changed, _on_auth_state_changed)
+	UiKit.listen(EventBus.auth_failed, _on_auth_failed)
+	UiKit.listen(EventBus.auth_signed_in, _on_signed_in)
 
 
 # ---------------------------------------------------------------- brand side

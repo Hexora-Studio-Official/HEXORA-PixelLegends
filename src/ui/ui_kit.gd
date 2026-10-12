@@ -428,6 +428,23 @@ static func close_modal(layer: Control) -> void:
 # -------------------------------------------------------------------- helpers
 
 ## Wire a button to a cue, a haptic tick and a callback in one line.
+## Subscribe to a long-lived (usually autoload) signal exactly once.
+##
+## Screens and pages rebuild themselves from scratch when the language changes,
+## and `build()` is where their widgets are wired up — so a plain `.connect()`
+## inside `build()` connects a second time on the second pass. Godot treats a
+## duplicate connection of the same callable as an error, which means switching
+## to Persian would spam the console and fire every handler twice.
+##
+## Everything that outlives one build goes through here; per-widget signals on
+## freshly created nodes can still be connected directly, because the widget
+## dies with the build it belongs to.
+static func listen(signal_ref: Signal, callback: Callable) -> void:
+	if signal_ref.is_connected(callback):
+		return
+	signal_ref.connect(callback)
+
+
 static func on_press(node: Button, callback: Callable, cue: String = "click") -> void:
 	node.pressed.connect(func() -> void:
 		Audio.play_ui(cue)

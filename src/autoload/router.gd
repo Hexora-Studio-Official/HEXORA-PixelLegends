@@ -163,7 +163,7 @@ func _build_loading_overlay() -> void:
 	_loading_label.layout_direction = Loc.layout_direction()
 	column.add_child(_loading_label)
 
-	EventBus.language_changed.connect(func(_locale: String) -> void:
+	UiKit.listen(EventBus.language_changed, func(_locale: String) -> void:
 		title.text = Loc.t(&"common.loading")
 		title.layout_direction = Loc.layout_direction()
 		_loading_label.layout_direction = Loc.layout_direction()

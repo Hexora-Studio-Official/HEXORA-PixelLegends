@@ -721,6 +721,16 @@ def main() -> int:
             for ref in RES_PATH_RE.findall(line):
                 if ref.startswith("res://") and not (REPO_ROOT / ref.replace("res://", "", 1)).exists():
                     problems.append(f"{rel}:{lineno}: references missing resource {ref}")
+            # A double-escaped control sequence is always a typo in a GDScript
+            # string: `"\\n"` is a backslash and an "n", not a newline. It reads
+            # correctly in the source and renders as literal junk at runtime, so
+            # nothing but a checker will ever catch it.
+            for escape in re.findall(r'\\\\[ntr]', raw):
+                problems.append(
+                    f"{rel}:{lineno}: the string contains {escape!r} (a literal "
+                    f"backslash and letter) — use a single backslash for a real "
+                    f"escape"
+                )
             for locale_key in LOC_KEY_RE.findall(line):
                 for locale, keys in i18n_tables.items():
                     if locale_key not in keys:
@@ -967,6 +977,36 @@ def main() -> int:
                 f"{rel}:{lineno}: field {name!r} is not declared by {owner} "
                 f"({index[owner].path.relative_to(REPO_ROOT)})"
             )
+
+    # ---------------------------------------- autoload subscriptions are once
+    # A signal on an autoload outlives every widget, and `build()` runs again
+    # on each language change — so a raw `.connect()` there subscribes twice,
+    # which Godot reports as an error and which fires every handler twice. The
+    # only places a raw autoload `.connect()` is correct are the lifecycle
+    # callbacks that run exactly once; everything else must go through the
+    # idempotent helper. Enforced rather than documented, because the symptom
+    # (duplicate handlers) only shows up after a language switch.
+    LIFECYCLE_FUNCS = {"_ready", "_init", "_enter_tree"}
+    for path in gd_files:
+        rel = path.relative_to(REPO_ROOT)
+        owner = ""
+        for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if re.match(r"^class\s", raw):
+                owner = ""          # inside an inner class: don't attribute
+                continue
+            declaration = re.match(r"^func\s+([A-Za-z_]\w*)", raw)
+            if declaration:
+                owner = declaration.group(1)
+                continue
+            line = strip_literals(raw)
+            for outer, member in re.findall(r"\b([A-Z]\w*)\.(\w+)\.connect\(", line):
+                if outer not in autoload_paths or owner in LIFECYCLE_FUNCS:
+                    continue
+                problems.append(
+                    f"{rel}:{lineno}: {outer}.{member}.connect() inside {owner or 'top level'}() "
+                    f"— a rebuild would subscribe twice; use UiKit.listen({outer}.{member}, ...) "
+                    f"or move it into _ready()"
+                )
 
     # ------------------------------------------------------------------ report
     unique = sorted(set(problems))

@@ -118,7 +118,7 @@ func invite_text() -> String:
 		lines.append(Loc.t(&"rooms.hotspot.step2"))
 	if room.password_protected:
 		lines.append(Loc.t(&"rooms.password"))
-	return "\\n".join(lines)
+	return "\n".join(lines)
 
 
 func lan_rooms() -> Array[RoomInfo]:
