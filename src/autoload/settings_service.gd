@@ -75,7 +75,7 @@ func _build_defaults() -> Dictionary:
 		"game/vibration": true,
 		"game/allow_party_invites": true,
 		"game/auto_requeue": false,
-		"game/keep_screen_awake": true,
+		"game/keep_screen_on": true,
 		"game/streamer_mode": false,
 		"game/terms_version": 1,
 		"game/tutorial_complete": false,
@@ -122,6 +122,14 @@ func _build_defaults() -> Dictionary:
 		"controls/button_opacity": 0.85,
 		"controls/hud_layout": {},            # control name -> Vector2 offset
 		"controls/gamepad_deadzone": 0.18,
+
+		# ------------------------------------------------------------- net
+		# Both of these are about what happens when there are not enough humans.
+		# The defaults follow what the game actually wants (a small room should
+		# still be playable); a player who would rather wait than play with bots
+		# can turn them off.
+		"net/allow_bots": true,
+		"net/bot_difficulty": 1,
 
 		# ----------------------------------------------------- developer
 		# Empty by default: an unconfigured build stays fully offline and never

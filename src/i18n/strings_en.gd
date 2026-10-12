@@ -179,7 +179,7 @@ const TABLE := {
 	"play.ranked.hint": "Ranked matches award or deduct rank points.",
 	"play.region": "Region",
 	"play.squad_fill": "Fill squad with players",
-	"play.bots": "Allow bots if the queue is slow",
+	"settings.allow_bots": "Allow bots if the queue is slow",
 	"play.search": "Find match",
 	"play.search.count": "Searching {count} mode(s)",
 	"play.search.need_mode": "Select at least one mode.",

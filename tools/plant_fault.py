@@ -13,6 +13,10 @@ by hand while debugging a checker:
     python3 tools/plant_fault.py project.godot 'icon.svg>>>>missing.svg'
     python3 tools/check_refs.py          # expect a FAIL naming missing.svg
     git checkout -- project.godot
+
+Restoring is `git checkout --`, so **commit first**: it throws away every
+uncommitted change in that file, not just the planted one. (Learned the hard
+way.)
 """
 
 from __future__ import annotations

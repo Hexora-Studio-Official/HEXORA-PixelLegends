@@ -1009,7 +1009,43 @@ def main() -> int:
                 f"({index[owner].path.relative_to(REPO_ROOT)})"
             )
 
-    # ---------------------------------------- autoload subscriptions are once
+    # -------------------------------------------------- settings keys exist
+    # `Settings.get_bool("game/keep_screen_on")` on a key that is not in the
+    # schema returns the fallback silently: the toggle saves, nothing reads it,
+    # and the value is forgotten on the next launch. Two real bugs of exactly
+    # that shape (`game/keep_screen_awake` declared but never read,
+    # `net/allow_bots` read but never declared) are why this check exists.
+    settings_info = index.get("Settings")
+    declared_settings: set[str] = set()
+    if settings_info is not None:
+        declared_settings = set(re.findall(
+            r'"([a-z][a-z0-9_]*/[a-z0-9_]+)"',
+            settings_info.path.read_text(encoding="utf-8"),
+        ))
+    if not declared_settings:
+        problems.append("settings_service.gd declares no settings keys")
+    ROW_KEY_RE = re.compile(
+        r'_\w*_row\(\s*&?"[^"]+"\s*,\s*"([^"]+)"')
+    for path in gd_files:
+        rel = path.relative_to(REPO_ROOT)
+        for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            # strip_comments, not strip_literals: the key *is* a literal.
+            line = strip_comments(raw)
+            # The lookbehind matters: without it `ProjectSettings.get_setting`
+            # matches too, and every engine project setting is "undeclared".
+            keys = re.findall(r'(?<![A-Za-z_.])Settings\.\w+\(\s*&?"([^"]+)"', line)
+            if path.name == "settings_page.gd":
+                keys += ROW_KEY_RE.findall(line)
+            for key in keys:
+                if "/" not in key or key in declared_settings:
+                    continue
+                problems.append(
+                    f"{rel}:{lineno}: settings key {key!r} is not declared in "
+                    f"settings_service.gd (_build_defaults) — reading it returns "
+                    f"the fallback forever"
+                )
+
+
     # A signal on an autoload outlives every widget, and `build()` runs again
     # on each language change — so a raw `.connect()` there subscribes twice,
     # which Godot reports as an error and which fires every handler twice. The

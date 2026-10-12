@@ -175,7 +175,7 @@ const TABLE := {
 	"play.ranked.hint": "در بازی‌های رقابتی امتیاز رده کم یا زیاد می‌شود.",
 	"play.region": "منطقه",
 	"play.squad_fill": "تیم با بازیکن‌های تصادفی پر شود",
-	"play.bots": "در صورت طولانی‌شدن صف، بات اضافه شود",
+	"settings.allow_bots": "در صورت طولانی‌شدن صف، بات اضافه شود",
 	"play.search": "جست‌وجوی بازی",
 	"play.search.count": "جست‌وجو در {count} حالت",
 	"play.search.need_mode": "حداقل یک حالت انتخاب کن.",
