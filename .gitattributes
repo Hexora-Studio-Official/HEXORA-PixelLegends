@@ -1,0 +1,28 @@
+# Normalise line endings — this project targets Linux, Windows and macOS contributors.
+* text=auto eol=lf
+
+# Godot scene / resource files: keep diffs readable, never let git mangle them.
+*.tscn   text eol=lf
+*.tres   text eol=lf
+*.gd     text eol=lf
+*.godot  text eol=lf
+*.cfg    text eol=lf
+*.po     text eol=lf
+*.json   text eol=lf
+
+# Binary assets
+*.woff2  binary
+*.ttf    binary
+*.otf    binary
+*.png    binary
+*.jpg    binary
+*.webp   binary
+*.ogg    binary
+*.wav    binary
+*.mp3    binary
+*.glb    binary
+*.ktx2   binary
+
+# GitHub language statistics: this is a game, not a "pure GDScript" repo.
+docs/* linguist-documentation
+web/* linguist-documentation

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- HEXORA mark: hexagonal containment field + crossed targeting reticle.
+       Kept to plain shapes (no filters/masks) so ThorVG and every browser
+       render it identically. -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#070B11"/>
+  <rect x="8" y="8" width="496" height="496" rx="106" fill="#0C1219"/>
+  <path d="M256 52 L428 152 L428 360 L256 460 L84 360 L84 152 Z"
+        fill="none" stroke="#FF7A1A" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M256 108 L384 182 L384 330 L256 404 L128 330 L128 182 Z"
+        fill="#0F1A24"/>
+  <rect x="196" y="166" width="26" height="180" rx="10" fill="#FFA53D"/>
+  <rect x="290" y="166" width="26" height="180" rx="10" fill="#FFA53D"/>
+  <rect x="214" y="238" width="84" height="26" rx="10" fill="#18E0C8"/>
+  <circle cx="256" cy="256" r="118" fill="none" stroke="#18E0C8" stroke-width="4" opacity="0.35"/>
+  <rect x="238" y="24" width="36" height="34" rx="8" fill="#18E0C8"/>
+  <rect x="238" y="454" width="36" height="34" rx="8" fill="#18E0C8"/>
+  <rect x="24" y="238" width="34" height="36" rx="8" fill="#18E0C8"/>
+  <rect x="454" y="238" width="34" height="36" rx="8" fill="#18E0C8"/>
+</svg>

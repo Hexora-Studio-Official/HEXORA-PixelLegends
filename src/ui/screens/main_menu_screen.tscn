@@ -1,0 +1,16 @@
+[gd_resource type="PackedScene" load_steps=2 format=3]
+
+; Hand-authored scene: the root Control plus the screen script. Everything
+; inside is built in code (see main_menu_screen.gd), because a binary-ish .tscn diff is
+; unreadable in review and the layouts depend on the locale at runtime.
+
+[ext_resource type="Script" path="res://src/ui/screens/main_menu_screen.gd" id="1_screen"]
+
+[node name="MainMenuScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_screen")

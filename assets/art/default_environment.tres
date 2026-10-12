@@ -1,0 +1,57 @@
+[gd_resource type="Environment" load_steps=3 format=3]
+
+; Default 3D environment for every match scene.
+;
+; Art direction: "graphite and machined aluminium, lit by sodium orange and
+; instrument teal" — semi-realistic, deliberately *medium* fidelity: real
+; directional shadows, depth fog and a gentle ACES curve do most of the work,
+; while the expensive effects (SSAO, SSIL, SDFGI, screen-space reflections,
+; volumetric fog) stay off because the Mobile renderer cannot afford them on a
+; mid-range phone and they cost more quality than they add at our density.
+;
+; Colours are the Design palette in linear-ish sRGB, so a HUD element and a
+; wall lit by the same accent read as the same colour.
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
+sky_top_color = Color(0.043137, 0.066667, 0.101961, 1)
+sky_horizon_color = Color(0.152941, 0.196078, 0.254902, 1)
+sky_curve = 0.13
+ground_bottom_color = Color(0.027451, 0.043137, 0.066667, 1)
+ground_horizon_color = Color(0.113725, 0.145098, 0.184314, 1)
+ground_curve = 0.02
+sun_angle_max = 12.0
+sun_curve = 0.08
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_main")
+
+[resource]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 3
+ambient_light_color = Color(0.294118, 0.352941, 0.435294, 1)
+ambient_light_sky_contribution = 0.55
+ambient_light_energy = 0.9
+tonemap_mode = 3
+tonemap_exposure = 1.05
+tonemap_white = 6.0
+ssao_enabled = false
+ssil_enabled = false
+sdfgi_enabled = false
+ssr_enabled = false
+glow_enabled = true
+glow_intensity = 0.35
+glow_strength = 0.85
+glow_bloom = 0.04
+glow_hdr_threshold = 1.15
+fog_enabled = true
+fog_light_color = Color(0.176471, 0.223529, 0.290196, 1)
+fog_light_energy = 1.0
+fog_sun_scatter = 0.15
+fog_density = 0.006
+fog_aerial_perspective = 0.35
+fog_sky_affect = 0.4
+adjustment_enabled = true
+adjustment_brightness = 1.0
+adjustment_contrast = 1.06
+adjustment_saturation = 1.04

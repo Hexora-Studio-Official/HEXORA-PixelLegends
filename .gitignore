@@ -1,0 +1,43 @@
+# Godot 4 — generated / machine-local files
+.godot/
+/android/
+/build/
+/export/
+*.translation
+
+# Godot export artefacts
+*.apk
+*.aab
+*.apks
+*.pck
+*.zip
+
+# Native Android plugin build output (source is committed, binaries are not)
+*.aar
+*.jar
+.gradle/
+local.properties
+.idea/
+*.iml
+
+# Editors / OS
+.vscode/
+.DS_Store
+Thumbs.db
+*~
+*.swp
+
+# Python tooling used by tools/ scripts
+.venv/
+__pycache__/
+*.pyc
+
+# tools/mock_server.py keeps its fake accounts here
+tools/.mock_state.json
+
+# Local credentials — never commit these
+secrets/
+*.secret.json
+.env
+.env.*
+!env.sample
