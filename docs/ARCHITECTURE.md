@@ -101,14 +101,25 @@ with `"placeholder": true` gets the honest "not built yet" treatment from
 | Every `Class.member` exists; every call has the right argument count | `tools/check_refs.py` |
 | Every signal is emitted and connected with the right arity | `tools/check_refs.py` |
 | Every theme variation a screen asks for is defined in `design.gd` | `tools/check_refs.py` |
-| Every `res://` path in code, scene or `project.godot` exists | `tools/check_refs.py` |
+| Every `res://` path in code, scene, `.tres` or `project.godot` exists | `tools/check_refs.py` |
+| No `.tres` sets a field its script does not declare | `tools/check_refs.py` |
+| A scene starts with `[gd_scene` and its `load_steps` is right | `tools/check_refs.py` |
+| An autoload signal is subscribed once, not per rebuild | `tools/check_refs.py` |
+| No double-escaped control sequences (`"\\n"`) in a string | `tools/check_refs.py` |
 | Screens never build `StyleBoxFlat` | review — `design.gd` is the only place |
 
+All of it runs in CI on every push (`.github/workflows/checks.yml`), along with a
+step that plants a deliberate fault in the tree and *requires* the checkers to
+fail on it (`tools/plant_fault.py`). A checker that quietly stopped working
+looks exactly like a repository with no problems, so the checkers are tested too.
+
 `tools/check_refs.py` is the important one: without a Godot binary in CI, it is
-what stands in for the analyzer. It is a heuristic (it parses with regexes, not
-a real GDScript front end), and it was built by planting bugs — a typo'd method
-name, a wrong argument count, a mistyped theme variation, a missing translation
-key — and confirming each was caught.
+what stands in for the analyzer. It is a heuristic — it parses with regexes, not
+a real GDScript front end — so its blind spots are listed at the top of the file
+rather than left implicit. It was built by planting bugs (a typo'd method name, a
+wrong argument count, a mistyped theme variation, a missing translation key, a
+bad `.tres` field, a scene with the wrong header) and confirming each was caught;
+the same faults are what the CI step re-plants.
 
 ## 6. Two data flows worth understanding
 

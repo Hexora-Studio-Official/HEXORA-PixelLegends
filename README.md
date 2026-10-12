@@ -40,6 +40,10 @@ python3 tools/check_i18n.py     # string-table parity + placeholders
 python3 tools/check_refs.py     # cross-file references, arity, theme, scenes
 gdlint $(find src -name '*.gd') # style + syntax (pip install gdtoolkit)
 
+# All three also run in CI on every push (.github/workflows/checks.yml), together
+# with a step that plants a deliberate fault and requires the checkers to catch
+# it — `python3 tools/plant_fault.py <file> "<old>>>>new>"` does that by hand.
+
 # 3. Open the project, press F5. The boot screen runs the whole sign-in flow.
 
 # 4. Optional: a local backend so the online paths light up
@@ -48,6 +52,21 @@ python3 tools/mock_server.py    # then set Developer ▸ Backend base URL
 
 The game is fully playable *without* step 4: with no backend configured it runs
 offline, and it says so in the status strip rather than showing a spinner.
+
+### What the checkers are for
+
+They exist because this project was written on a machine with no Godot binary, so
+nothing could be compiled, imported or run. They are not style police; each rule
+is there because that exact mistake happened:
+
+| Rule | The bug it came from |
+| --- | --- |
+| `.tres` fields must exist on the script | a mistyped `title_key` became an unused property and the mode rendered its raw key |
+| Every `res://` path must resolve | a renamed icon in `project.godot` is a boot failure with an unrelated message |
+| A scene must open with `[gd_scene` | all four screens were written as `[gd_resource]`, which loads an *empty* PackedScene |
+| Autoload signals subscribe once | `build()` re-ran on every language change, doubling every handler |
+| No `"\\n"` in a string | the invite text joined its lines with a literal backslash and an "n" |
+| Every `Loc.t()` key exists in both tables | a missing key renders as `!key!` in debug and as the raw key in release |
 
 ## Repository layout
 
@@ -61,7 +80,7 @@ src/net/                 LAN discovery (UDP beacon) — the hotspot feature
 src/ui/                  screens, pages, components, and the design system
 src/i18n/                en + fa string tables (plain dictionaries, no import)
 assets/                  fonts, brand mark, art direction notes
-tools/                   CI-able checkers + a mock backend
+tools/                   checkers + fault planter + a mock backend (see below)
 docs/                    architecture, auth setup, roadmap, build steps
 ```
 
