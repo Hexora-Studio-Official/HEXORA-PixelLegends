@@ -208,7 +208,7 @@ func _render_searching() -> void:
 	_accept_countdown.visible = false
 	_simulated_pill.visible = not Api.is_configured()
 
-	var selected := Matchmaking.selected_modes()
+	var selected: Array[StringName] = Matchmaking.selected_modes.duplicate()
 	var names := PackedStringArray()
 	for mode_id in selected:
 		names.append(Loc.t(GameCatalog.resolve(mode_id).short_key))
