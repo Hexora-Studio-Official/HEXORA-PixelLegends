@@ -249,7 +249,7 @@ class _Swatch extends Control:
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
-		cursor_shape = Control.CURSOR_POINTING_HAND
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 	func _draw() -> void:
 		var side := minf(size.x, size.y)
