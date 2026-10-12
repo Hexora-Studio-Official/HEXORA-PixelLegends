@@ -328,7 +328,7 @@ func _slider_row(label_key: StringName, settings_key: String, minimum: float, ma
 
 	var value_label := UiKit.label("", &"NumericLabel")
 	value_label.custom_minimum_size = Vector2(76, 0)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_TRAILING
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if Loc.is_rtl() else HORIZONTAL_ALIGNMENT_RIGHT
 	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	var slider := HSlider.new()
@@ -367,7 +367,7 @@ func _int_slider_row(label_key: StringName, settings_key: String,
 
 	var value_label := UiKit.label("", &"NumericLabel")
 	value_label.custom_minimum_size = Vector2(76, 0)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_TRAILING
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if Loc.is_rtl() else HORIZONTAL_ALIGNMENT_RIGHT
 	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	var slider := HSlider.new()
