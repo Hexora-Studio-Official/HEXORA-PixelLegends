@@ -42,7 +42,11 @@ func _build_region_badge() -> Control:
 
 func _build_quick_card() -> Control:
 	var panel := UiKit.panel(&"BannerPanel")
-	var row := UiKit.hbox(Design.SPACE_LG)
+	var row: Container
+	if OS.has_feature("mobile"):
+		row = UiKit.vbox(Design.SPACE_MD)
+	else:
+		row = UiKit.hbox(Design.SPACE_LG)
 	panel.add_child(row)
 
 	var column := UiKit.vbox(Design.SPACE_XXS)
@@ -52,7 +56,10 @@ func _build_quick_card() -> Control:
 	row.add_child(column)
 
 	var button := UiKit.button(Loc.t(&"play.quick.button"), &"PrimaryButton", &"bolt")
-	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if OS.has_feature("mobile"):
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	else:
+		button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	UiKit.on_press(button, func() -> void: _start_queue(_quick_pool(), true), "confirm")
 	row.add_child(button)
 	return panel
@@ -83,7 +90,7 @@ func _build_modes() -> Control:
 	var online_only := UiKit.micro(Loc.t(&"play.online_only"))
 	column.add_child(online_only)
 
-	var grid := UiKit.grid(2, Design.SPACE_MD)
+	var grid := UiKit.grid(1 if OS.has_feature("mobile") else 2, Design.SPACE_MD)
 	_cards.clear()
 	for mode in GameCatalog.matchmaking_pool():
 		var available := _mode_available(mode)
@@ -104,7 +111,10 @@ func _build_options() -> Control:
 	var column := UiKit.vbox(Design.SPACE_MD)
 	column.add_child(UiKit.section_header(Loc.t(&"play.options")))
 
-	var row := UiKit.hbox(Design.SPACE_MD)
+	var row := HFlowContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("h_separation", Design.SPACE_SM)
+	row.add_theme_constant_override("v_separation", Design.SPACE_SM)
 	var ranked := UiKit.chip(Loc.t(&"play.ranked"), ranked_enabled)
 	UiKit.on_press(ranked, func() -> void:
 		ranked_enabled = not ranked_enabled
@@ -139,7 +149,10 @@ func _build_offline_card() -> Control:
 	var column := card(&"rooms.hotspot.title")
 	column.add_child(UiKit.paragraph(Loc.t(&"rooms.hotspot.desc"), 720.0, &"CaptionLabel"))
 
-	var row := UiKit.hbox(Design.SPACE_MD)
+	var row := HFlowContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("h_separation", Design.SPACE_SM)
+	row.add_theme_constant_override("v_separation", Design.SPACE_SM)
 	var host := UiKit.button(Loc.t(&"rooms.create"), &"OutlineButton", &"plus")
 	UiKit.on_press(host, func() -> void: _open_rooms_tab(0))
 	row.add_child(host)

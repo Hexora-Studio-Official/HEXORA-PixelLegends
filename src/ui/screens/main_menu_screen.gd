@@ -32,6 +32,7 @@ const NAV_ENTRIES := [
 ]
 
 const NAV_RAIL_WIDTH := 232
+const MOBILE_NAV_IDS: Array[StringName] = [&"play", &"rooms", &"squad", &"profile", &"settings"]
 
 var active_page_id: StringName = &"play"
 
@@ -55,21 +56,30 @@ func build() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	content.add_child(root)
 
-	root.add_child(_build_top_bar())
+	if OS.has_feature("mobile"):
+		root.add_child(_build_mobile_top_bar())
+		_page_host = Control.new()
+		_page_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_page_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_page_host.clip_contents = false
+		root.add_child(_page_host)
+		root.add_child(_build_mobile_nav())
+	else:
+		root.add_child(_build_top_bar())
 
-	var middle := UiKit.hbox(Design.SPACE_LG)
-	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(middle)
+		var middle := UiKit.hbox(Design.SPACE_LG)
+		middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		root.add_child(middle)
 
-	middle.add_child(_build_nav_rail())
+		middle.add_child(_build_nav_rail())
 
-	_page_host = Control.new()
-	_page_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_page_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_page_host.clip_contents = false
-	middle.add_child(_page_host)
+		_page_host = Control.new()
+		_page_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_page_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_page_host.clip_contents = false
+		middle.add_child(_page_host)
 
-	root.add_child(_build_bottom_bar())
+		root.add_child(_build_bottom_bar())
 
 	# The overlay is a sibling of the page host, not a child of it, so `rebuild()`
 	# does not free it: without this the second build stacks another overlay on
@@ -143,6 +153,78 @@ func _build_top_bar() -> Control:
 
 	_refresh_squad_badge()
 	return bar
+
+
+func _build_mobile_top_bar() -> Control:
+	var bar := UiKit.panel(&"TopBarPanel")
+	var content_column := UiKit.vbox(Design.SPACE_SM)
+	bar.add_child(content_column)
+
+	var identity_row := UiKit.hbox(Design.SPACE_MD)
+	content_column.add_child(identity_row)
+	_avatar = AvatarView.make(Session.profile, 48.0)
+	identity_row.add_child(_avatar)
+
+	var identity := UiKit.vbox(Design.SPACE_XXS)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.alignment = BoxContainer.ALIGNMENT_CENTER
+	_name_label = UiKit.label(Session.display_name(), &"SubheadingLabel")
+	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	identity.add_child(_name_label)
+	_level_label = UiKit.micro(Loc.t(&"common.level_short", {"level": Session.profile.level}))
+	identity.add_child(_level_label)
+	identity_row.add_child(identity)
+
+	_status_row = UiKit.hbox(Design.SPACE_MD)
+	content_column.add_child(_status_row)
+	_refresh_status()
+	return bar
+
+
+func _build_mobile_nav() -> Control:
+	var panel := UiKit.panel(&"RaisedPanel")
+	var row := UiKit.hbox(Design.SPACE_XS)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(row)
+	_nav_buttons.clear()
+
+	for entry: Dictionary in NAV_ENTRIES:
+		if not MOBILE_NAV_IDS.has(entry["id"]):
+			continue
+		var button := _build_mobile_nav_button(entry)
+		row.add_child(button)
+		_nav_buttons[entry["id"]] = button
+	return panel
+
+
+func _build_mobile_nav_button(entry: Dictionary) -> Button:
+	var button := Button.new()
+	button.theme_type_variation = &"NavButton"
+	button.custom_minimum_size = Vector2(0, 64)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.focus_mode = Control.FOCUS_NONE
+
+	var column := UiKit.vbox(Design.SPACE_XXS)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.set_anchors_preset(Control.PRESET_FULL_RECT)
+	button.add_child(column)
+
+	var icon := HexIcon.make(entry["icon"], Design.TEXT_MUTED, 20.0, 1.8)
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(icon)
+
+	var text := UiKit.label(Loc.t(entry["title"]), &"CaptionLabel")
+	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	text.add_theme_font_override("font", Design.font_label)
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(text)
+
+	button.set_meta(&"icon", icon)
+	button.set_meta(&"label", text)
+	button.set_meta(&"id", entry["id"])
+	UiKit.on_press(button, func() -> void: _show_page(entry["id"]))
+	return button
 
 
 func _format_number(value: int) -> String:
@@ -321,6 +403,9 @@ func _show_page(page_id: StringName) -> void:
 		if child != page:
 			child.visible = false
 	if page.get_parent() != _page_host:
+		var old_parent := page.get_parent()
+		if old_parent != null:
+			old_parent.remove_child(page)
 		_page_host.add_child(page)
 	page.visible = true
 	page.on_shown()
@@ -404,11 +489,13 @@ func _on_invite_received(invite: Dictionary) -> void:
 
 
 func _refresh_squad_badge() -> void:
-	if _squad_badge == null:
-		return
-	var online := Friends.online_count()
-	_squad_badge.text = str(online) if online > 0 else ""
-	_refresh_party_block(_build_party_lookup())
+	if _squad_badge != null:
+		var online := Friends.online_count()
+		_squad_badge.text = str(online) if online > 0 else ""
+
+	var party_block := _build_party_lookup()
+	if party_block.has_meta(&"party_label"):
+		_refresh_party_block(party_block)
 	_refresh_status()
 
 

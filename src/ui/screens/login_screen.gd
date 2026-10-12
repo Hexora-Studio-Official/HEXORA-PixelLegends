@@ -1,9 +1,8 @@
 extends HexScreen
 ## Sign-in: Google, or guest.
 ##
-## Layout is a two-column split that mirrors itself for RTL — brand on the
-## leading edge, form on the trailing edge. On a phone in landscape that reads
-## as a poster next to a card, which is exactly the intent.
+## Desktop uses a brand-and-form split; phones use a compact brand strip above
+## one full-width, scrollable sign-in card.
 ##
 ## Two things here are deliberate and worth keeping:
 ##   1. Settings is reachable before sign-in. The Google client ID has to be
@@ -22,18 +21,25 @@ var _busy: bool = false
 func build() -> void:
 	_busy = Auth.is_busy()
 
-	var screen_scroll := UiKit.scroll()
+	var screen_scroll := UiKit.scroll(true)
 	screen_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	content.add_child(screen_scroll)
 
-	var columns := UiKit.hbox(Design.SPACE_HUGE)
-	columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	columns.alignment = BoxContainer.ALIGNMENT_CENTER
-	screen_scroll.add_child(columns)
-
-	columns.add_child(_build_brand_column())
-	columns.add_child(_build_form_column())
+	if OS.has_feature("mobile"):
+		var stack := UiKit.vbox(Design.SPACE_MD)
+		stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		screen_scroll.add_child(stack)
+		stack.add_child(_build_mobile_brand_header())
+		stack.add_child(_build_form_column())
+	else:
+		var columns := UiKit.hbox(Design.SPACE_HUGE)
+		columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		columns.alignment = BoxContainer.ALIGNMENT_CENTER
+		screen_scroll.add_child(columns)
+		columns.add_child(_build_brand_column())
+		columns.add_child(_build_form_column())
 
 	# `build()` runs again on a language change, so these are idempotent.
 	UiKit.listen(EventBus.auth_state_changed, _on_auth_state_changed)
@@ -74,6 +80,30 @@ func _build_brand_column() -> Control:
 	return column
 
 
+func _build_mobile_brand_header() -> Control:
+	var row := UiKit.hbox(Design.SPACE_MD)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	var mark := _LoginMark.new()
+	mark.custom_minimum_size = Vector2(60, 60)
+	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(mark)
+
+	var identity := UiKit.vbox(Design.SPACE_XXS)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.alignment = BoxContainer.ALIGNMENT_CENTER
+	identity.add_child(UiKit.subheading(Loc.t(&"app.name")))
+	identity.add_child(UiKit.caption(Loc.t(&"app.tagline")))
+	row.add_child(identity)
+
+	var settings := UiKit.icon_button(&"settings", Design.TEXT_MUTED, 22.0,
+		Loc.t(&"menu.settings"))
+	UiKit.on_press(settings, _open_settings_modal)
+	row.add_child(settings)
+	return row
+
+
 func _build_bullet(icon_kind: StringName, title_key: StringName, desc_key: StringName) -> Control:
 	var row := UiKit.hbox(Design.SPACE_MD)
 	var icon := HexIcon.make(icon_kind, Design.TEAL, 26.0, 1.8, Design.ACCENT)
@@ -100,16 +130,12 @@ func _build_settings_shortcut() -> Control:
 # ----------------------------------------------------------------- form side
 
 func _build_form_column() -> Control:
-	var holder := Control.new()
-	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	holder.custom_minimum_size = Vector2(0, 0)
-
 	var card := UiKit.panel(&"CardPanel")
-	card.set_anchors_preset(Control.PRESET_FULL_RECT)
-	holder.add_child(card)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	var column := UiKit.vbox(Design.SPACE_LG)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_child(column)
 
 	column.add_child(UiKit.heading(Loc.t(&"auth.login.title")))
@@ -176,7 +202,7 @@ func _build_form_column() -> Control:
 	column.add_child(legal)
 
 	_apply_busy_state(_busy)
-	return holder
+	return card
 
 
 func _refresh_status() -> void:

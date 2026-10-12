@@ -78,14 +78,22 @@ func _on_language_changed(_locale: String) -> void:
 func header(title_key: StringName, subtitle_key: StringName = &"",
 		trailing: Control = null) -> VBoxContainer:
 	var column := UiKit.vbox(Design.SPACE_XS)
-	var row := UiKit.hbox(Design.SPACE_MD)
-	row.alignment = BoxContainer.ALIGNMENT_BEGIN
-
 	var titles := UiKit.vbox(Design.SPACE_XXS)
 	var title := UiKit.heading(Loc.t(title_key))
 	titles.add_child(title)
 	if subtitle_key != &"":
 		titles.add_child(UiKit.muted(Loc.t(subtitle_key)))
+
+	if OS.has_feature("mobile"):
+		# Keep page titles and trailing controls on separate rows so long Persian
+		# headings never compete for the same narrow horizontal space.
+		column.add_child(titles)
+		if trailing != null:
+			column.add_child(trailing)
+		return column
+
+	var row := UiKit.hbox(Design.SPACE_MD)
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	row.add_child(titles)
 	row.add_child(UiKit.spacer())
 	if trailing != null:

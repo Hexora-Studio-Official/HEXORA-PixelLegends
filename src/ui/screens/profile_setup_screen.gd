@@ -20,6 +20,7 @@ var _palette_index: int = 0
 var _region_chips: Array[Button] = []
 var _swatches: Array[Control] = []
 var _preview: AvatarView
+var _preview_name_label: Label
 var _regex := RegEx.new()
 
 
@@ -28,18 +29,27 @@ func build() -> void:
 	_region = Settings.get_int("game/region")
 	_palette_index = absi(Session.profile.uid.hash()) % AvatarView.PALETTE.size()
 
-	var screen_scroll := UiKit.scroll()
+	var screen_scroll := UiKit.scroll(true)
 	screen_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	content.add_child(screen_scroll)
 
-	var columns := UiKit.hbox(Design.SPACE_HUGE)
-	columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	columns.alignment = BoxContainer.ALIGNMENT_CENTER
-	screen_scroll.add_child(columns)
-
-	columns.add_child(_build_preview_column())
-	columns.add_child(_build_form_column())
+	if OS.has_feature("mobile"):
+		# A single column avoids the desktop preview/form split becoming a narrow
+		# two-up layout on phones. The outer scroll keeps every choice reachable.
+		var stack := UiKit.vbox(Design.SPACE_MD)
+		stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		screen_scroll.add_child(stack)
+		stack.add_child(_build_mobile_preview())
+		stack.add_child(_build_form_column())
+	else:
+		var columns := UiKit.hbox(Design.SPACE_HUGE)
+		columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		columns.alignment = BoxContainer.ALIGNMENT_CENTER
+		screen_scroll.add_child(columns)
+		columns.add_child(_build_preview_column())
+		columns.add_child(_build_form_column())
 
 	_validate()
 
@@ -60,8 +70,8 @@ func _build_preview_column() -> Control:
 	_preview.level = Session.profile.level
 	column.add_child(_preview)
 
-	var name_label := UiKit.heading(Session.profile.display_name)
-	column.add_child(name_label)
+	_preview_name_label = UiKit.heading(Session.profile.display_name)
+	column.add_child(_preview_name_label)
 
 	var meta := UiKit.hbox(Design.SPACE_SM)
 	meta.add_child(UiKit.pill(Loc.t(GameTypes.region_key(_region)), Design.TEAL, &"TealChipPanel"))
@@ -75,18 +85,45 @@ func _build_preview_column() -> Control:
 	return column
 
 
+func _build_mobile_preview() -> Control:
+	# Keep the identity preview compact and aligned with its text, rather than
+	# spending half the first screen on a decorative avatar.
+	var row := UiKit.hbox(Design.SPACE_MD)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+
+	_preview = AvatarView.new()
+	_preview.custom_minimum_size = Vector2(72, 72)
+	_preview.palette_index = _palette_index
+	_preview.initials = Session.profile.initials()
+	_preview.show_level = true
+	_preview.level = Session.profile.level
+	row.add_child(_preview)
+
+	var identity := UiKit.vbox(Design.SPACE_XS)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.alignment = BoxContainer.ALIGNMENT_CENTER
+	_preview_name_label = UiKit.subheading(Session.profile.display_name)
+	_preview_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	identity.add_child(_preview_name_label)
+	if Session.is_guest():
+		identity.add_child(UiKit.pill(Loc.t(&"auth.guest.badge"), Design.WARNING))
+	else:
+		identity.add_child(UiKit.pill(
+			Loc.t(GameTypes.region_key(_region)), Design.TEAL, &"TealChipPanel"))
+	row.add_child(identity)
+	return row
+
+
 # ---------------------------------------------------------------------- form
 
 func _build_form_column() -> Control:
-	var holder := Control.new()
-	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-
 	var card := UiKit.panel(&"CardPanel")
-	card.set_anchors_preset(Control.PRESET_FULL_RECT)
-	holder.add_child(card)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
-	var column := UiKit.vbox(Design.SPACE_LG)
+	var column := UiKit.vbox(Design.SPACE_MD)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_child(column)
 
 	column.add_child(UiKit.heading(Loc.t(&"auth.setup.title")))
@@ -111,8 +148,10 @@ func _build_form_column() -> Control:
 	# ---- region ------------------------------------------------------------
 	var region_block := UiKit.vbox(Design.SPACE_XS)
 	region_block.add_child(UiKit.label(Loc.t(&"auth.setup.region"), &"SectionLabel"))
-	var region_row := UiKit.hbox(Design.SPACE_SM)
-	region_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	var region_row := HFlowContainer.new()
+	region_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	region_row.add_theme_constant_override("h_separation", Design.SPACE_SM)
+	region_row.add_theme_constant_override("v_separation", Design.SPACE_SM)
 	_region_chips.clear()
 	for region in GameTypes.selectable_regions():
 		var chip := UiKit.chip(Loc.t(GameTypes.region_key(region)), region == _region)
@@ -127,7 +166,10 @@ func _build_form_column() -> Control:
 	# ---- accent colour -----------------------------------------------------
 	var colour_block := UiKit.vbox(Design.SPACE_XS)
 	colour_block.add_child(UiKit.label(Loc.t(&"auth.setup.avatar"), &"SectionLabel"))
-	var swatch_row := UiKit.hbox(Design.SPACE_SM)
+	var swatch_row := HFlowContainer.new()
+	swatch_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	swatch_row.add_theme_constant_override("h_separation", Design.SPACE_SM)
+	swatch_row.add_theme_constant_override("v_separation", Design.SPACE_SM)
 	_swatches.clear()
 	for index in AvatarView.PALETTE.size():
 		var swatch := _build_swatch(index)
@@ -145,7 +187,7 @@ func _build_form_column() -> Control:
 
 	if Session.is_guest():
 		column.add_child(UiKit.paragraph(Loc.t(&"auth.guest.upgrade"), 520.0, &"WarningLabel"))
-	return holder
+	return card
 
 
 ## A hexagonal swatch that mirrors the avatar, so the choice is what the player
@@ -171,9 +213,8 @@ func _on_callsign_changed(_text: String) -> void:
 	var preview := PlayerProfile.new()
 	preview.display_name = cleaned
 	_preview.initials = preview.initials()
-	for child in _preview.get_parent().get_children():
-		if child is Label and (child as Label).theme_type_variation == &"HeadingLabel":
-			(child as Label).text = cleaned if not cleaned.is_empty() else "—"
+	if _preview_name_label != null:
+		_preview_name_label.text = cleaned if not cleaned.is_empty() else "—"
 	_validate()
 
 

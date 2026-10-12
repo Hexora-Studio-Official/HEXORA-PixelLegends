@@ -130,9 +130,10 @@ func _ready() -> void:
 	theme = _build_theme()
 	var root_window := get_tree().root
 	if OS.has_feature("mobile"):
-		# The design grid is authored in desktop pixels; scale it up on dense
-		# phone screens so labels and 48 px touch targets are not physically tiny.
-		root_window.content_scale_factor = clampf(DisplayServer.screen_get_scale(), 1.25, 1.4)
+		# The design grid is authored in desktop pixels; phone controls need
+		# substantially more physical space and readable type. Scrollable mobile
+		# screens handle the extra height instead of shrinking the controls.
+		root_window.content_scale_factor = clampf(DisplayServer.screen_get_scale(), 1.6, 1.8)
 	# Assigning on the root Window makes every Control in the game inherit it,
 	# including Controls created later at runtime.
 	root_window.theme = theme
