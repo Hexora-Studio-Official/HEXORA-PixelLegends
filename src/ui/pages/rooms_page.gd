@@ -597,8 +597,9 @@ func _on_room_list_changed(entries: Array) -> void:
 	for entry in entries:
 		if entry is RoomInfo:
 			codes.append((entry as RoomInfo).code)
-	if codes.size() != _last_room_codes.size() or "|".join(codes) != _last_room_codes:
-		_last_room_codes = "|".join(codes)
+	var codes_signature := "|".join(codes)
+	if codes_signature != _last_room_codes:
+		_last_room_codes = codes_signature
 		rebuild()
 
 
