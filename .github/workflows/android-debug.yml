@@ -87,14 +87,21 @@ jobs:
               status=1
             fi
             if [ "$status" -ne 0 ]; then
+              local diagnostics
+              diagnostics="$(
+                {
+                  grep -nE 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script' "$log_file" || true
+                  echo '--- Godot log tail ---'
+                  tail -n 12 "$log_file"
+                } | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g'
+              )"
               {
                 echo "### ${label} failed (exit ${status})"
                 echo '```text'
-                tail -n 30 "$log_file"
+                printf '%s\n' "$diagnostics" | sed 's/%0A/\n/g; s/%0D/\r/g; s/%25/%/g'
                 echo '```'
               } >> "$GITHUB_STEP_SUMMARY"
-              local annotation
-              annotation="$(tail -n 18 "$log_file" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+              local annotation="$diagnostics"
               echo "::error file=.github/workflows/android-debug.yml,line=1,title=${label}::${annotation}"
               return "$status"
             fi
