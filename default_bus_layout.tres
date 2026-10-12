@@ -1,0 +1,33 @@
+[gd_resource type="AudioBusLayout" format=3]
+
+; Four-bus mix. Keeping Voice separate from SFX lets us duck the world mix
+; while somebody is talking without touching gunfire.
+;
+; Linear values are intentionally conservative defaults; the Settings screen
+; writes user volume on top of these at runtime (see src/autoload/audio_service.gd).
+
+[resource]
+bus/1/name = &"Music"
+bus/1/solo = false
+bus/1/mute = false
+bus/1/bypass_fx = false
+bus/1/volume_db = -8.0
+bus/1/send = &"Master"
+bus/2/name = &"SFX"
+bus/2/solo = false
+bus/2/mute = false
+bus/2/bypass_fx = false
+bus/2/volume_db = -4.0
+bus/2/send = &"Master"
+bus/3/name = &"UI"
+bus/3/solo = false
+bus/3/mute = false
+bus/3/bypass_fx = false
+bus/3/volume_db = -10.0
+bus/3/send = &"Master"
+bus/4/name = &"Voice"
+bus/4/solo = false
+bus/4/mute = false
+bus/4/bypass_fx = false
+bus/4/volume_db = 0.0
+bus/4/send = &"Master"
