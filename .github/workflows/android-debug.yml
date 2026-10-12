@@ -90,7 +90,7 @@ jobs:
               local diagnostics
               diagnostics="$(
                 {
-                  grep -nE 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script' "$log_file" || true
+                  grep -niE 'error|failed|warning|adb|daemon' "$log_file" || true
                   echo '--- Godot log tail ---'
                   tail -n 12 "$log_file"
                 } | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g'
