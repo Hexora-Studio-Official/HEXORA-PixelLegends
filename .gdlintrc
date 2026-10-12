@@ -1,0 +1,32 @@
+# gdtoolkit / gdlint configuration for HEXORA.
+#
+# Install once:  pip install gdtoolkit==4.*
+# Run:           gdlint $(find src -name '*.gd')
+#
+# Deviations from gdlint's defaults, and why:
+#   max-line-length 150 — UI code builds stylebox tables and translation
+#     tables on single lines on purpose; wrapping them hurts readability far
+#     more than a long line does.
+#   max-returns 8 — a couple of pure mapping functions (`ping_quality`,
+#     `team_color`) are clearer as an exhaustive match than as a lookup table.
+#   max-public-methods 34 — services are deliberately façade-shaped: RoomService
+#     exposes host/join/roster/discovery/invite as one coherent API so that no
+#     screen has to coordinate three objects. Splitting it would push the
+#     coordination into the UI, which is worse.
+class-definitions-order:
+  - tools
+  - classnames
+  - extends
+  - signals
+  - enums
+  - consts
+  - exports
+  - pubvars
+  - prvvars
+  - onready
+  - others
+
+max-line-length: 150
+max-returns: 8
+function-arguments-number: 8
+max-public-methods: 34  # service façades (RoomService, Matchmaking) expose a lot on purpose
