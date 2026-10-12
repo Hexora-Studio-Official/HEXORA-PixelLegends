@@ -384,7 +384,7 @@ func apply_graphics() -> void:
 	if not shadows_enabled:
 		RenderingServer.directional_shadow_atlas_set_size(1024, true)
 	else:
-		var atlas := [1024, 2048, 4096][shadow_quality]
+		var atlas: int = [1024, 2048, 4096][shadow_quality]
 		RenderingServer.directional_shadow_atlas_set_size(atlas, true)
 	var soft_quality := RenderingServer.SHADOW_QUALITY_HARD
 	if shadows_enabled:
