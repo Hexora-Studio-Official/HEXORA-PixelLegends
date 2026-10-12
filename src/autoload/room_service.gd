@@ -1,3 +1,4 @@
+class_name RoomService
 extends Node
 ## Custom rooms: create, browse, join — on a hotspot, on Wi-Fi, or online.
 ##
