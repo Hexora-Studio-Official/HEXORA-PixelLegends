@@ -96,7 +96,7 @@ func _build_host_tab() -> void:
 	slider_row.add_child(UiKit.label(Loc.t(&"rooms.max_players"), &"BodyLabel"))
 	var value := UiKit.label(str(_host_max), &"NumericLabel")
 	value.custom_minimum_size = Vector2(40, 0)
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_TRAILING
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if Loc.is_rtl() else HORIZONTAL_ALIGNMENT_RIGHT
 	slider_row.add_child(UiKit.spacer())
 	slider_row.add_child(value)
 
