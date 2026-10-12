@@ -551,32 +551,65 @@ def _lookup_signature(index: dict[str, TypeInfo], info: TypeInfo, member: str,
 
 
 def check_tscn(path: Path) -> list[str]:
+    """Structural checks for a hand-authored `.tscn` / `.tres`.
+
+    These files are invisible to the GDScript checks above, and the loader is
+    unforgiving in ways that give confusing errors: a PackedScene that opens
+    with `[gd_resource]` instead of `[gd_scene]` parses as an *empty* resource
+    and every `[node]` after it is rejected, so the game fails to boot with a
+    message pointing at a node rather than at the header.
+    """
     problems: list[str] = []
+    rel = path.relative_to(REPO_ROOT)
     text = path.read_text(encoding="utf-8")
-    if not text.startswith("[gd_scene") and not text.startswith("[gd_resource"):
-        problems.append(f"{path.relative_to(REPO_ROOT)}: does not start with a [gd_scene]/[gd_resource] header")
-    if "[node " not in text:
-        problems.append(f"{path.relative_to(REPO_ROOT)}: has no [node] heading")
+    is_scene = path.suffix == ".tscn"
+    header = next((line for line in text.splitlines() if line.startswith("[")), "")
+    expected = "[gd_scene" if is_scene else "[gd_resource"
+    if not header.startswith(expected):
+        problems.append(
+            f"{rel}: must open with {expected!r}, found {header[:40]!r} "
+            f"(a PackedScene written as [gd_resource] loads empty and rejects the "
+            f"[node] sections below it)"
+        )
+    if is_scene and "[node " not in text:
+        problems.append(f"{rel}: has no [node] heading")
+
+    # load_steps is ext + sub + 1; the editor writes it and the loader trusts it
+    # for progress reporting, so a hand edit that adds a resource without
+    # touching it is a real (if quiet) inconsistency.
+    steps = re.search(r"load_steps=(\d+)", header)
+    ext_total = len(re.findall(r"^\[ext_resource", text, re.M))
+    sub_total = len(re.findall(r"^\[sub_resource", text, re.M))
+    if steps and int(steps.group(1)) != ext_total + sub_total + 1:
+        problems.append(
+            f"{rel}: load_steps={steps.group(1)} but the file declares "
+            f"{ext_total} ext_resource + {sub_total} sub_resource (+1)"
+        )
+
     ids: set[str] = set()
     for lineno, raw in enumerate(text.splitlines(), 1):
-        match = TSCN_EXT_RE.match(raw)
-        if match:
-            target = match.group(1)
+        script_ref = TSCN_EXT_RE.match(raw)
+        if script_ref:
+            target = script_ref.group(1)
             if not (REPO_ROOT / target.replace("res://", "", 1)).exists():
-                problems.append(f"{path.relative_to(REPO_ROOT)}:{lineno}: missing ext_resource {target}")
-        match = re.match(r'^\[ext_resource[^\]]*id="([^"]+)"', raw)
-        if match:
-            if match.group(1) in ids:
-                problems.append(f"{path.relative_to(REPO_ROOT)}:{lineno}: duplicate ext_resource id")
-            ids.add(match.group(1))
-        match = TSCN_NODE_RE.match(raw)
-        if match and not match.group(2):
-            problems.append(f"{path.relative_to(REPO_ROOT)}:{lineno}: node without a type")
-    if text.count("[node ") != text.count("type=") - text.count("ext_resource"):
-        pass  # property lines also carry `type=`; not worth a heuristic.
+                problems.append(f"{rel}:{lineno}: missing ext_resource {target}")
+        identifier = re.match(r'^\[(?:ext|sub)_resource[^\]]*id="([^"]+)"', raw)
+        if identifier:
+            if identifier.group(1) in ids:
+                problems.append(f"{rel}:{lineno}: duplicate resource id "
+                                f"{identifier.group(1)!r}")
+            ids.add(identifier.group(1))
+        node = TSCN_NODE_RE.match(raw)
+        if node and not node.group(2):
+            problems.append(f"{rel}:{lineno}: node without a type")
+    for lineno, raw in enumerate(text.splitlines(), 1):
+        for identifier in re.findall(r'(?:Ext|Sub)Resource\(\s*&?"([^"]+)"\s*\)', raw):
+            if identifier not in ids:
+                problems.append(f"{rel}:{lineno}: references undefined resource "
+                                f"{identifier!r}")
     for ref in RES_PATH_RE.findall(text):
         if not (REPO_ROOT / ref.replace("res://", "", 1)).exists():
-            problems.append(f"{path.relative_to(REPO_ROOT)}: missing referenced resource {ref}")
+            problems.append(f"{rel}: missing referenced resource {ref}")
     return problems
 
 
@@ -865,6 +898,12 @@ def main() -> int:
     scenes = sorted((SRC_DIR / "ui").rglob("*.tscn"))
     for scene in scenes:
         problems.extend(check_tscn(scene))
+    # Data resources get the same header/load_steps/reference treatment; the
+    # field-name check further down assumes the file parsed at all.
+    for resource in sorted(REPO_ROOT.rglob("*.tres")):
+        if ".godot" in resource.parts or resource.parts[-1] == ".godot":
+            continue
+        problems.extend(check_tscn(resource))
 
     router_text = (SRC_DIR / "autoload" / "router.gd").read_text(encoding="utf-8")
     for ref in RES_PATH_RE.findall(router_text):
