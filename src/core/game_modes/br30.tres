@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="GameMode" load_steps=2 format=3]
 
-; 30 players, squads of 3. Short match, good for phones.
+; 30 players. The BR phase must support Solo and squads of 2, 3 or 5; 3 is the current default.
 ;
 ; Hand-authored data resource — safe to edit in the Godot inspector, but keep the
 ; localisation keys in sync with src/i18n/strings_*.gd.
@@ -43,4 +43,4 @@ drop_from_plane = true
 in_matchmaking = true
 ranked = true
 supports_lan = true
-max_squad = 3
+max_squad = 5

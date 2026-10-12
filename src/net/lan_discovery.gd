@@ -37,8 +37,8 @@ const DISCOVERY_PORT := 45710
 ## host shouts at both. Costs one extra packet per beacon.
 const DISCOVERY_FALLBACK_PORT := DISCOVERY_PORT + 1
 
-## Prefix so that an unrelated UDP packet on this port is rejected before we
-## spend a JSON parse on it. Bumped only if the beacon format breaks.
+## Payload marker so unrelated UDP packets are rejected after the bounded JSON
+## parse. Bump only if the beacon format breaks.
 const MAGIC := "HEXORA/1"
 
 const BEACON_INTERVAL_SEC := 0.8
@@ -287,13 +287,11 @@ func _decode(packet: PackedByteArray, sender_ip: String, sender_port: int) -> Ro
 	if packet.size() > 1400:
 		return null                      # bigger than a beacon can be
 	var text := packet.get_string_from_utf8()
-	if not text.begins_with(MAGIC):
-		return null
 	var json := JSON.new()
 	if json.parse(text) != OK or not (json.data is Dictionary):
 		return null
 	var data: Dictionary = json.data
-	if not data.has("code"):
+	if String(data.get("magic", "")) != MAGIC or not data.has("code"):
 		return null
 	var room := RoomInfo.from_beacon(data)
 	if room == null:

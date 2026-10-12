@@ -81,13 +81,13 @@ swapping this for the native Android SDK later touches no screen.
 - Google's current guidance for Android apps is the native *Google Sign-In SDK*
   with an **Android app** OAuth client (package name + SHA-1 signing
   fingerprint). That needs a Godot Android plugin.
-- The loopback flow used here needs a **Desktop app** client. It works on
-  Android today (Chrome hands a `127.0.0.1` redirect back to the app's own
-  socket, because it is the same device), and it is the only flow that also
-  works on desktop and in tests. It is what stage 1 ships.
+- The loopback flow used here needs a **Desktop app** client. It is the current
+  prototype flow and is intended to work on desktop; Android behaviour depends
+  on the browser/OEM and has not been device-validated in this checkout.
 - Google Play policy does not forbid it, but the native SDK gives you better
   UX (no browser switch) and Android's credential manager. Treat swapping it in
-  as a phase-2 task: `AuthService` is the seam, and no screen changes.
+  as a later, separately approved release-readiness task: `AuthService` is the
+  seam, and no screen changes should be needed.
 
 Whichever client type you use, `dev/google_client_id` is a per-install setting:
 a build for a friend needs it configured on their install or baked in as a
@@ -116,7 +116,14 @@ What HEXORA does about it today:
   JWKS, the `aud` claim, `iss`, `exp`, and that the account is not banned, before
   it returns anything.
 
-## 6. Backend contract (phase 2)
+**Stage 1 blocker for a real backend:** static review found that
+`src/autoload/auth_service.gd` currently saves the Google OAuth access token
+where the backend session token should be saved, and its remote-profile merge
+is overwritten by a newly created local profile. Do not treat the configured
+client flow as production-ready until both behaviours are fixed and tested
+against a verifying backend. No live credentials or backend are included here.
+
+## 6. Backend contract (future private-online/auth stages)
 
 ```
 POST /v1/auth/google

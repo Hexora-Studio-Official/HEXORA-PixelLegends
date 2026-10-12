@@ -1,87 +1,51 @@
-# Roadmap
+# Roadmap and phase gates
 
-Every feature that was asked for, mapped to the phase that delivers it and to
-the exact code that already exists for it. Nothing here is aspirational
-hand-waving: if a row says "done", the code is in this repository and passes
-`tools/check_refs.py`.
+This roadmap follows [`MASTER PROMPT.txt`](../MASTER%20PROMPT.txt). Finish and report one stage at a time; do not begin the next stage until the owner approves. A resource file or UI path is not a completed gameplay feature.
 
-Legend: **done** — ships and works · **built, needs backend** — client side
-complete, waiting on a server · **phase N** — not started.
+## Owner-approved product scope (2026-10-12)
 
----
+- **Wi-Fi / hotspot:** intended for friends' offline, casual and unranked play. No internet, account or public matchmaking is needed for this path. “Friends-only” is not account-based identity verification; the shared local network is the trust boundary. A local host may be authoritative only for this noncompetitive play.
+- **Battle Royale:** Solo plus Squads of **2, 3 and 5**. These choices must be represented by configuration and tested; each listed capacity is not automatically supported just because a number is configured.
+- **Hard Mode:** a Battle Royale variant in which weapons and supplies on the map are very scarce. It is **not** weaponless/melee-only. Loot rates remain configurable; exact numbers require balance tests.
 
-## Stage 1 — the shell ✅ (this delivery)
+## Current phase
 
-| Requirement | State | Where |
+| Stage | Status | Evidence / gate |
 | --- | --- | --- |
-| Engine + language chosen and justified | done | Godot 4.4 + GDScript, `project.godot` |
-| Android target, balanced graphics | done | `renderer/mobile`, `assets/art/README.md` budget |
-| Login screen with **Google sign-in** | done | `src/ui/screens/login_screen.gd`, `src/core/auth/google_signin.gd` |
-| Guest sign-in as a first-class option | done | login screen, no configuration required |
-| **Main menu and its options** | done | `src/ui/screens/main_menu_screen.gd` + 8 pages |
-| Settings reachable **before** sign-in | done | gear button → modal on the login screen |
-| English + Persian, full RTL | done | `src/i18n/`, `Loc.layout_direction()`, 510 keys |
-| **Hotspot room: create + invite friends** | done | `src/net/lan_discovery.gd`, `Rooms.host_room()` |
-| Hotspot room: find + join | done | Discover tab, code entry, manual address |
-| Honest UI about what is not built | done | `simulated` / `sample` / `phase_notice` flags |
+| 0 — Project audit | **Reported and owner-approved** | Baseline report and plan delivered in chat; owner authorized Stage 1. |
+| 1 — Technical foundation and structure | **In progress / runtime-blocked** | Docs and static checks are being aligned. No Godot executable is available in the current environment, so the import/boot/headless acceptance check cannot yet be claimed. See `DEVELOPMENT_PLAN.md` and `TESTING.md`. |
 
-## Stage 2 — the match (next)
+The current code is a client shell. It has no match scene, playable movement/combat, production backend, database or dedicated server.
 
-| Feature | Plan |
-| --- | --- |
-| Match scene, movement, shooting, hit registration | Authoritative host over the existing ENet peer; `GameMode.to_rules()` already carries the ruleset |
-| The four modes | `tdm.tres`, `snd.tres`, `ffa.tres`, `gunfight.tres` are already data-complete; the match script reads them |
-| Battle Royale 30 / 50 / 100 | `br30/50/100.tres` exist with zone phases, loot tier and squad sizes; needs the zone system + bigger maps |
-| Map greyboxes | `assets/art/maps/`, one per id in `GameMode.map_pool()` |
-| Touch controls | `Controls` already registers every action for three schemes; the on-screen layer reads its layout from the same table |
-| Roster, scoreboard, kill feed | `EventBus.match_*` signals + the existing `UiKit` primitives |
-| **Online backend** | `/v1/auth/google`, `/v1/profile`, `/v1/friends`, `/v1/rooms`, `/v1/matchmaking/tickets` — all call sites are written and typed in `src/autoload/api_client.gd` |
-| Online room browser + join | `Rooms` already routes `join_by_code` to the backend when configured |
-| Random competitive matchmaking | `Matchmaking` already enqueues, polls, ticks, and runs the ready check against the backend contract |
-| Ranked ladder | `PlayerProfile` already models rank points, tiers and the season |
+## Stages 1–13
 
-## Stage 3 — progression and content
+| Stage | Goal and scope | Acceptance gate |
+| --- | --- | --- |
+| **1 — Technical foundation** | Confirm module boundaries and configuration ownership; align documents; establish repeatable static checks; define client/server build approach; verify Godot import and headless behaviour. Fix only foundation blockers; no gameplay feature work. | Project imports/runs without new errors; basic commands and config are documented; headless/server approach is explicit. Stop and report. **Engine verification is currently blocked.** |
+| **2 — Initial Dedicated Server** | Add a Linux headless server bootstrap/export, port and capacity configuration, logs, and simple start/stop/health commands. No GPU or GUI dependency. | Server actually starts, stops and restarts; failures are visible in logs. Stop and report. |
+| **3 — First online match connection** | Connect at least two real clients to the dedicated host; synchronize initial player state and movement; handle join, leave and basic network loss. | Two clients visibly agree on player state; connect/disconnect tests pass. Stop and report. |
+| **4 — Combat and Team Deathmatch** | Server-validated shooting, hit registration, health/damage, death, respawn, team assignment, scoring and match end. | A complete TDM can be played; clients cannot authoritatively set hits or scores; mode tests pass. Stop and report. |
+| **5 — Friends-only LAN / hotspot** | Repair and test room discovery/manual join, ready state and room lifecycle on Wi-Fi and hotspot. Add supported offline modes only after each is playable. Keep the path unranked and local. | Target phones connect without internet; discovery/manual fallback, lobby state and disconnect behaviour are recorded. Document any Android/iOS network limits. Stop and report. |
+| **6 — Private internet lobbies** | Verified account/session flow, secure invite codes, backend-created private lobbies, ready state and assignment to an online match server. | Two clients on separate networks join through an invite; unauthorized joins fail. Stop and report. |
+| **7 — Public matchmaking** | Queue, cancellation, match allocation, ready check, duplicate-queue prevention and disconnect handling. | Multiple clients reach one assigned match; failures and cancellation are tested. Stop and report. |
+| **8 — Free for All and bots** | FFA scoring and respawns; bot controller, difficulty parameters and offline training. | FFA rules and bot behaviours are repeatably tested; bots do not use hidden information. Stop and report. |
+| **9 — Search and Destroy** | Bomb plant/defuse, attack/defend sides, round timer, side swap and server-validated round/match results. | A full match works and rule/security tests pass. Hard Mode is deliberately not here because it depends on BR. Stop and report. |
+| **10 — Battle Royale 30 and Hard Mode** | Base BR30 lifecycle, spawn/elimination/winner, map/configuration and Solo plus Squad sizes 2/3/5. Add Hard Mode as a scarce-loot BR variant after the base loop. | Each grouping choice and both loot profiles are tested; 30-player capacity is supported only after measured load/resource results. Stop and report. |
+| **11 — BR 50/100 capacity** | Profile bottlenecks; test 50 then 100 separately; tune CPU, memory, network and synchronization. | Each capacity has real or clearly labelled simulated load-test evidence with CPU/RAM/bandwidth/latency/error results. No unsupported capacity claim. Obtain owner approval before extra infrastructure spend. Stop and report. |
+| **12 — VPS deployment** | Reproducible Linux server output, sample configuration, install/run/status/log scripts, firewall/systemd guidance, backups and rollback notes. | Install on a clean VPS and verify start/stop/restart/health/logs; owner can follow the guide. Stop and report. |
+| **13 — Final QA and handoff** | Regression, security, mode, performance and documentation review; record known limitations. | Tests and remaining critical issues are documented; no untested feature is labelled release-ready. Stop and report. |
 
-| Feature | Plan |
-| --- | --- |
-| Loadout / arsenal (8 slots) | `PlaceholderPage` already draws the real slot list; needs the item tables and unlock rules |
-| Store (credits / cores) | Currency is modelled and displayed; needs the catalogue and receipt validation server-side |
-| Ranked seasons + rewards | `rank.*` keys, tier floors and ceilings already exist |
-| Cosmetics, battle pass | Later; the rarity ramp in `design.gd` is the hook |
-| Native Android Google Sign-In SDK | Replaces the loopback flow behind `AuthService`, no screen changes (`docs/AUTH_SETUP.md` §4) |
+## Requirements that remain open for a later gate
 
-## Stage 4 — launch readiness
+1. **Offline Battle Royale size:** the existing local room cap is eight. Decide whether friends play a reduced-cap BR, add bots to fill a small room, or defer BR offline. Do not claim a 30-player LAN match without evidence.
+2. **Loot tuning:** the owner has approved the Hard Mode concept, but exact weapon/supply spawn rates and the map loot table still need playtesting.
+3. **Release platforms:** the project is Android-first with desktop for development. Confirm iOS or other shipping platforms before platform-specific work.
+4. **Online budget/provider and target concurrency:** no VPS, backend host, database or paid service has been chosen. Estimate again using measured requirements before purchase.
 
-| Feature | Plan |
-| --- | --- |
-| Anti-cheat | Server-authoritative movement and firing, input sanity bounds, no client-trusted hits |
-| Android export + signing | `docs/BUILD_ANDROID.md` |
-| Store listing, age rating, privacy policy | Needs the account deletion path: `Session.clear_profile()` + the profile reset button already exist |
-| Localisation beyond en/fa | `tools/check_i18n.py` gates parity; add `strings_<locale>.gd` + one `Loc.LOCALES` entry |
-| Playtesting instrumentation | `dev/verbose_net_log`, `dev/simulated_latency_ms` already exist |
+## Definition of done for every stage
 
----
-
-## Deliberate non-goals for stage 1
-
-- **No fake matches, ever.** Matchmaking may simulate a lobby to exercise the
-  UI, and when it does the ticket carries `simulated: true` and the overlay
-  prints it. Same for the seeded sample friends (`sample: true`, badged) and the
-  seeded sample rooms.
-- **No gameplay.** Stage 1 is the shell; a shooting prototype bolted on would
-  have to be thrown away when the authoritative host lands.
-- **No monetisation.** `credits` and `cores` are modelled because the UI needs
-  them; nothing is purchasable and no store is wired to a payment provider.
-- **No `.tres` theme, no downloaded asset packs.** Everything visual is either
-  in `design.gd` or generated at runtime. It keeps the repository diffable and
-  the licensing unambiguous.
-
-## Definition of done for a phase
-
-1. `gdlint` clean on `src/**/*.gd`.
-2. `python3 tools/check_i18n.py` exit 0 — every locale has every key.
-3. `python3 tools/check_refs.py` exit 0 — no dangling reference, no arity
-   mismatch, every theme variation and every `res://` path real.
-4. Every new key present in **both** locales, including the Persian one.
-5. Any simulated or placeholder behaviour visible on screen, in the player's
-   language, without needing to read the code.
+- Run the checks appropriate to the stage and record the actual command/result.
+- List tests not run; never present simulated clients as real-device tests.
+- Record changed files, remaining risks, dependencies and costs.
+- Mark every acceptance criterion confirmed, failed or blocked.
+- Stop after the report and wait for the owner's next instruction.

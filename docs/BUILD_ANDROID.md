@@ -1,9 +1,13 @@
 # Building for Android
 
-Stage 1 ships no gameplay, but the project is configured for Android from the
-first commit — mobile renderer, ETC2/ASTC textures, landscape lock, touch
-input — so the export path is exercised before there is anything expensive to
-lose. This is how to get an APK/AAB out of this repository.
+The current client shell has no gameplay yet, but the project is configured for
+Android — mobile renderer, ETC2/ASTC textures, landscape orientation and touch
+input — so the export path can be validated before there is anything expensive
+to lose. `export_presets.cfg` contains a debug-only Android preset. The GitHub
+Actions workflow at `.github/workflows/android-debug.yml` is configured to
+import the project and produce a sideloadable APK; check the workflow run before
+assuming an artifact exists. A successful export still does not prove that the
+APK launches correctly on a physical phone.
 
 ---
 
@@ -11,9 +15,9 @@ lose. This is how to get an APK/AAB out of this repository.
 
 | Requirement | Notes |
 | --- | --- |
-| Godot **4.4 or newer** (4.7.2 is current stable) | Standard build; the .NET/C# build also works but nothing here uses C#. |
-| Android SDK + build-tools | Easiest path: Android Studio → SDK Manager → *Android SDK Platform 34*, *Build-Tools 34*, *NDK 23c* (Godot 4.4 wants 23c or newer). |
-| JDK 17 | Godot's Android export needs 17; 21 also works on 4.4+. |
+| Godot **4.4 or newer** (CI preset uses **4.4.1**) | Standard build; the .NET/C# build also works but nothing here uses C#. |
+| Android SDK + build-tools | Android Studio → SDK Manager → *Android SDK Platform 34* and *Build-Tools 34*. The committed preset uses Godot's prebuilt template (no Gradle build); install NDK 23c+ and CMake only if you later build custom Android templates or enable the Gradle path. |
+| JDK 17 | Godot's Android export needs 17; the CI workflow uses Temurin 17. |
 | A keystore | `keytool -genkey -v -keystore hexora-release.keystore -alias hexora -keyalg RSA -keysize 2048 -validity 10000` |
 
 Then in Godot: **Editor ▸ Editor Settings ▸ Export ▸ Android** and set *Android
@@ -32,13 +36,28 @@ project has no native plugins.
 | Graphics ▸ XR Mode | Regular | — |
 | Graphics ▸ Renderer | **Mobile** | Matches `project.godot`; Forward+ costs 30–40 % on a mid-range phone for no visual gain at our density. |
 | Textures ▸ Texture Format | ETC2 + ASTC (already the project default) | Covers essentially every Android device from 2016 on. |
-| Permissions ▸ Internet | **On** for online play, **off** if you ship a hotspot-only build | A shooter that asks for internet before it has a backend is a red flag in review. |
-| Permissions ▸ Access Network State / Access Wi-Fi State | On | Needed to read the local address for the hotspot lobby. |
+| Permissions ▸ Internet | **On in this debug preset** | Android requires `INTERNET` for UDP/ENet sockets too; this permission does not mean a connection is needed. No backend or production online service is configured. Reassess the permission before a hotspot-only release. |
+| Permissions ▸ Access Network State / Access Wi-Fi State | On in the debug preset | The local room path reads network state/address information. |
 | Permissions ▸ Access Fine Location | Off | Not needed: LAN discovery is a UDP beacon, not a Wi-Fi scan. Google Play asks for a justification for this one; don't request it. |
 | Keystore ▸ Release | your keystore, alias `hexora` | Debug builds use the editor's debug key — fine for testing, rejected by Play. |
 | Architectures | `arm64-v8a` (+ `armeabi-v7a` only if you care about pre-2018 devices) | 64-bit is mandatory on Play; the 32-bit slice doubles the download for a small audience. |
 
 Export **AAB** for Play, **APK** for sideloading to a test phone.
+
+## Debug APK from GitHub Actions
+
+`.github/workflows/android-debug.yml` runs on pushes to the session branch and
+can also be started with `workflow_dispatch`. It uses Godot 4.4.1, Java 17,
+Android SDK/build-tools 34, and the `Android Debug` preset. The runner creates
+a temporary debug keystore and uploads `hexora-debug-apk` for 14 days after a
+successful build. Download it from the workflow run's **Artifacts** section.
+
+This is a **debug/test build only**, signed with an ephemeral Android debug
+key. It is not a release package and must not be submitted to a store. It
+contains the current client shell (menus and profile flow), not a playable
+match; online sign-in/backend services and real-device behaviour are not
+verified by exporting it. The package ID is `com.hexorastudio.hexora`, and the
+preset currently includes arm64-v8a only.
 
 ## 3. Before every release build
 

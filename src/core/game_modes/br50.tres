@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="GameMode" load_steps=2 format=3]
 
-; 50 players, squads of 4. Our standard BR queue.
+; 50 players. The BR phase must support Solo and squads of 2, 3 or 5; 5 is the current default.
 ;
 ; Hand-authored data resource — safe to edit in the Godot inspector, but keep the
 ; localisation keys in sync with src/i18n/strings_*.gd.
@@ -36,11 +36,11 @@ warmup_sec = 30.0
 revive_enabled = true
 loadout_editable_ingame = false
 is_battle_royale = true
-squad_size = 4
+squad_size = 5
 zone_phases = 6
 loot_tier = 2
 drop_from_plane = true
 in_matchmaking = true
 ranked = true
 supports_lan = true
-max_squad = 4
+max_squad = 5

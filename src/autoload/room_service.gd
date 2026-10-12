@@ -161,8 +161,10 @@ func host_room(config: Dictionary) -> RoomInfo:
 	created.visibility = int(config.get("visibility", GameTypes.RoomVisibility.PRIVATE))
 	created.max_players = capacity
 	created.squad_size = mode.squad_size
-	created.ranked = bool(config.get("ranked", false)) and mode.ranked
 	created.is_lan = bool(config.get("local_only", true))
+	# A local friend room is always casual/unranked, regardless of a caller's
+	# configuration. Competitive results must come from the dedicated server.
+	created.ranked = bool(config.get("ranked", false)) and mode.ranked and not created.is_lan
 	created.transport = GameTypes.Transport.LAN_HOTSPOT if created.is_lan \
 		else GameTypes.Transport.P2P_HOST
 	created.state = GameTypes.RoomState.FORMING
