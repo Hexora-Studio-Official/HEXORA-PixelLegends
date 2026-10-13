@@ -79,15 +79,28 @@ LATEST VALIDATION SNAPSHOT
 - GDScript lint: PASS.
 - Python syntax checks for the project tools: PASS.
 - git diff --check: PASS.
-- Godot 4.4 editor import/startup, visual runtime, guest persistence in-engine,
-  Android export/install, and device checks: NOT RUN; Godot is unavailable in
-  the coding environment. Static checks do not substitute for these tests.
+- Godot 4.4.1 CI import and headless client startup: PASS.
+- Android Debug APK export, signing verification, archive integrity, and
+  manifest checks: PASS in GitHub Actions run 38343943699 at commit a95783e.
+  Artifact `pixellegends-debug-apk` contains `PixelLegends-debug.apk` and is
+  available at:
+  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38343943699/artifacts/11788271195
+  The run page is:
+  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38343943699
+  It is debug-signed with an ephemeral CI key, not a release APK. Artifact
+  retention expires 2026-10-27. The sandbox could not copy it locally
+  because GitHub redirects artifact downloads to a storage host outside the
+  allowed network destinations.
+- Physical/emulated-device installation, visual review, touch testing, and
+  guest persistence across app restarts: NOT RUN. Godot/Android tooling is not
+  installed in the local coding environment; CI checks do not replace device
+  testing.
 
 NEXT ACTIONS
 
-1. When Godot 4.4 is available, import the project and run the configured main
-   scene. Fix runtime/import issues before calling the client shell verified.
-2. Test loading, responsive layout, inactive controls, guest persistence/name
+1. Download the `pixellegends-debug-apk` artifact from the linked CI run and
+   install `PixelLegends-debug.apk` on an Android device or emulator.
+2. Verify loading, responsive layout, inactive controls, guest persistence/name
    editing, and the supplied icon at desktop and mobile aspect ratios.
 3. Record the results here. Do not advance a phase gate without its test
    evidence. Implement only the next scope explicitly approved by the user.
