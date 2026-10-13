@@ -34,9 +34,8 @@ func display_name() -> String:
 	if profile == null:
 		return Loc.t(&"common.unknown")
 	if Settings.get_bool("game/streamer_mode", false):
-		# Streamer mode hides real callsigns from the stream without changing
-		# what the server sees.
-		return "Operator-%03d" % (absi(profile.uid.hash()) % 1000)
+		# Streamer mode hides the saved player name without changing the profile.
+		return "Legend-%03d" % (absi(profile.uid.hash()) % 1000)
 	return profile.display_name
 
 
@@ -114,8 +113,9 @@ func add_currency(credits: int = 0, cores: int = 0) -> void:
 	EventBus.profile_changed.emit(profile)
 
 
-## Record the outcome of a match. Phase 2 calls this from the match scene; the
-## signature is already what the scoreboard will hand over.
+## Legacy match-result aggregation. No current PixelLegends MOBA match scene
+## calls this; fields such as headshots belong to the earlier prototype. Future
+## MOBA results must use server-authoritative data per docs/PROJECT_SPEC.txt.
 func record_match(summary: Dictionary) -> void:
 	if profile == null:
 		return

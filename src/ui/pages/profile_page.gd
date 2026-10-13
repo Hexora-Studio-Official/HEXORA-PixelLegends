@@ -32,7 +32,10 @@ func _build_identity_card(profile: PlayerProfile) -> Control:
 	var avatar := AvatarView.new()
 	avatar.custom_minimum_size = Vector2(96, 96)
 	avatar.size = Vector2(96, 96)
-	avatar.palette_index = absi(profile.uid.hash()) % AvatarView.PALETTE.size()
+	if profile.avatar_color >= 0:
+		avatar.palette_index = posmod(profile.avatar_color, AvatarView.PALETTE.size())
+	else:
+		avatar.palette_index = absi(profile.uid.hash()) % AvatarView.PALETTE.size()
 	avatar.initials = profile.initials()
 	avatar.show_level = true
 	avatar.level = profile.level
@@ -125,7 +128,7 @@ func _build_account_card(profile: PlayerProfile) -> Control:
 	UiKit.on_press(sign_out, func() -> void:
 		Auth.sign_out()
 		Router.clear_history()
-		Router.goto(&"login")
+		Router.goto(&"boot")
 	, "back")
 	actions.add_child(sign_out)
 
@@ -168,7 +171,7 @@ func _confirm_delete() -> void:
 		UiKit.close_modal(layer)
 		EventBus.toast_requested.emit(Loc.t(&"profile.reset.done"), &"success")
 		Router.clear_history()
-		Router.goto(&"login")
+		Router.goto(&"boot")
 	)
 
 

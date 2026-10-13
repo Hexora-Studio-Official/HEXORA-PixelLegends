@@ -13,8 +13,6 @@ extends Node
 
 const SCREENS := {
 	&"boot": "res://src/ui/screens/boot_screen.tscn",
-	&"login": "res://src/ui/screens/login_screen.tscn",
-	&"setup": "res://src/ui/screens/profile_setup_screen.tscn",
 	&"menu": "res://src/ui/screens/main_menu_screen.tscn",
 }
 
@@ -107,18 +105,11 @@ func history_depth() -> int:
 	return _history.size()
 
 
-## Where a signed-in player should land, and where a signed-out one should go.
-## One place decides, so boot/login/menu never disagree.
+## Where an authenticated player should land. Sign-in and profile setup remain
+## deliberately simple in this UI milestone: guests enter the visual hub, while
+## signed-out players return to the guest-first boot screen.
 func route_for_auth_state() -> StringName:
-	match Auth.state:
-		GameTypes.AuthState.SIGNED_IN:
-			if not Settings.get_bool("game/first_run_complete", false):
-				return &"setup"
-			return &"menu"
-		GameTypes.AuthState.RESTORING, GameTypes.AuthState.UNKNOWN, GameTypes.AuthState.SIGNING_IN:
-			return &"boot"
-		_:
-			return &"login"
+	return &"menu" if Auth.state == GameTypes.AuthState.SIGNED_IN else &"boot"
 
 
 # ------------------------------------------------------------------ loading
@@ -176,6 +167,7 @@ func _loading_style() -> StyleBoxFlat:
 	box.set_corner_radius_all(Design.RADIUS_LG)
 	box.border_color = Design.LINE_STRONG
 	box.set_border_width_all(Design.BORDER_THIN)
+	box.anti_aliasing = false
 	box.content_margin_left = float(Design.SPACE_HUGE)
 	box.content_margin_right = float(Design.SPACE_HUGE)
 	box.content_margin_top = float(Design.SPACE_XL)

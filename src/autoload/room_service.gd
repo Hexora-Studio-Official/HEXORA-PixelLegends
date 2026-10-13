@@ -1,21 +1,10 @@
+class_name RoomService
 extends Node
-## Custom rooms: create, browse, join — on a hotspot, on Wi-Fi, or online.
-##
-## The local path is the one that has to work with no internet at all, so it is
-## the one implemented for real here:
-##
-##   host  ->  ENet server on this device  +  UDP beacon (LanDiscovery)
-##   guest ->  sees the beacon, connects to the host, sends an identity packet
-##   host  ->  keeps the roster, echoes it to everyone
-##
-## Nothing in that chain needs a router, a DNS name or an account.
-##
-## The online path talks to the backend through `Api`. When no backend is
-## configured the service says so instead of inventing rooms: an empty browser
-## is a truthful browser, and a fake lobby list is worse than no list.
-##
-## Both transports converge on the same `RoomInfo`, so the UI never asks which
-## one it is looking at — it just renders a room.
+## Legacy custom-room/LAN prototype retained from the earlier project.
+## It is not exposed by the current PixelLegends menu and is not the approved
+## MOBA lobby or dedicated-server design. Do not reactivate it through a
+## placeholder. Future account, lobby, matchmaking, and match-server work must
+## follow docs/PROJECT_SPEC.txt and its phase gates.
 
 const LAN_PORT_MIN := 45720
 const LAN_PORT_MAX := 45740
@@ -161,8 +150,10 @@ func host_room(config: Dictionary) -> RoomInfo:
 	created.visibility = int(config.get("visibility", GameTypes.RoomVisibility.PRIVATE))
 	created.max_players = capacity
 	created.squad_size = mode.squad_size
-	created.ranked = bool(config.get("ranked", false)) and mode.ranked
 	created.is_lan = bool(config.get("local_only", true))
+	# A local friend room is always casual/unranked, regardless of a caller's
+	# configuration. Competitive results must come from the dedicated server.
+	created.ranked = bool(config.get("ranked", false)) and mode.ranked and not created.is_lan
 	created.transport = GameTypes.Transport.LAN_HOTSPOT if created.is_lan \
 		else GameTypes.Transport.P2P_HOST
 	created.state = GameTypes.RoomState.FORMING
@@ -290,9 +281,9 @@ func listen_port() -> int:
 
 # ------------------------------------------------------------------ match start
 
-## Host-only. Phase 1 has no match scene, so this reports the truth rather than
-## pretending a match started: the check still runs, because the rules that
-## decide whether a match *may* start do not change in phase 2.
+## Legacy room-start stub. It does not create a PixelLegends MOBA match and is
+## not exposed by the current hub. Any future match start must follow the
+## server-authoritative design and phase gates in docs/PROJECT_SPEC.txt.
 func start_match() -> Dictionary:
 	if not is_in_room() or not _is_host:
 		return {"ok": false, "reason": "not_host"}
@@ -360,7 +351,7 @@ func _local_entry(is_host: bool) -> Dictionary:
 		"name": Session.display_name(),
 		"level": profile.level,
 		"rank_points": profile.rank_points,
-		"avatar_color": absi(profile.uid.hash()) % 8,
+		"avatar_color": posmod(profile.avatar_color, 8) if profile.avatar_color >= 0 else absi(profile.uid.hash()) % 8,
 		"is_host": is_host,
 		"is_local": true,
 		"is_bot": false,
@@ -533,9 +524,8 @@ func _sync_room_from_roster() -> void:
 
 
 func _join_online(code: String, _password: String) -> void:
-	# Phase 2: `Api.join_room(code, password)` then hand the returned ticket to
-	# the match scene. Until the backend exists this reports honestly instead of
-	# pretending to connect.
+	# Legacy online-room placeholder. Api is not the approved Nakama backend;
+	# this path must not be presented as an active PixelLegends lobby.
 	EventBus.toast_requested.emit(
 		Loc.t(&"toast.phase_notice", {"phase": Loc.t(&"common.phase_two")}), &"info")
 	push_warning("RoomService: online join requested for %s but no backend is wired." % code)

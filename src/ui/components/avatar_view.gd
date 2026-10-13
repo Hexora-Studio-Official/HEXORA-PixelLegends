@@ -1,15 +1,15 @@
 class_name AvatarView
 extends Control
-## Procedural operator avatar: a hexagon, an accent derived from the player's
-## uid, and their initials.
+## Procedural player avatar: a stepped pixel frame, an accent derived from
+## the player's uid, and their initials.
 ##
 ## There are no avatar images in phase 1 — and rather than showing a grey
 ## placeholder (which reads as "broken"), we generate something deterministic:
 ## the same account always gets the same colour and shape on every device.
 
 const PALETTE: Array[Color] = [
-	Color("ff7a1a"), Color("18e0c8"), Color("4da3ff"), Color("b48cff"),
-	Color("38e07b"), Color("ffb020"), Color("ff4d6d"), Color("7aa2ff"),
+	Color("ffd22a"), Color("49bdff"), Color("83d43d"), Color("ff9f28"),
+	Color("f4513c"), Color("42b7ff"), Color("d0e85a"), Color("ff6c31"),
 ]
 
 var initials: String = "??":
@@ -44,7 +44,8 @@ static func make(for_profile: PlayerProfile, pixel_size: float = 48.0) -> Avatar
 	var avatar := AvatarView.new()
 	avatar.custom_minimum_size = Vector2(pixel_size, pixel_size)
 	avatar.size = Vector2(pixel_size, pixel_size)
-	avatar.palette_index = absi(for_profile.uid.hash()) % PALETTE.size()
+	avatar.palette_index = posmod(for_profile.avatar_color, PALETTE.size()) \
+		if for_profile.avatar_color >= 0 else absi(for_profile.uid.hash()) % PALETTE.size()
 	avatar.initials = for_profile.initials()
 	avatar.level = for_profile.level
 	return avatar
@@ -101,24 +102,28 @@ func _draw() -> void:
 	var side := minf(size.x, size.y)
 	if side <= 2.0:
 		return
-	var centre := size * 0.5
-	var radius := side * 0.5 - 2.0
 	var accent := color_for_index(palette_index)
+	var cell := side / 10.0
+	var origin := (size - Vector2(side, side)) * 0.5
+	var row_widths: Array[int] = [4, 6, 8, 10, 10, 10, 10, 8, 6, 4]
+	var fill := Color(accent.r, accent.g, accent.b, 0.22)
 
-	var hexagon := PackedVector2Array()
-	for corner in 6:
-		var angle := PI / 3.0 * float(corner) - PI / 2.0
-		hexagon.append(centre + Vector2(cos(angle), sin(angle)) * radius)
+	# A stepped, square silhouette replaces the old smooth hex badge. The
+	# one-cell rim stays sharp at launcher/menu scale and the translucent core
+	# leaves the initials readable.
+	for row in row_widths.size():
+		var width_cells := row_widths[row]
+		var first_cell := int((10 - width_cells) / 2)
+		var row_origin := origin + Vector2(first_cell * cell, row * cell)
+		var row_size := Vector2(width_cells * cell, cell)
+		draw_rect(Rect2(row_origin, row_size), accent if row == 0 or row == 9 else fill)
+		if row > 0 and row < 9:
+			draw_rect(Rect2(row_origin, Vector2(cell, cell)), accent)
+			draw_rect(Rect2(row_origin + Vector2((width_cells - 1) * cell, 0),
+				Vector2(cell, cell)), accent)
 
-	# Fill: accent at low alpha so the initials stay legible, then a solid
-	# accent outline. Reads as a designed badge rather than a circle avatar.
-	draw_colored_polygon(hexagon, Color(accent.r, accent.g, accent.b, 0.20))
-	var outline := hexagon.duplicate()
-	outline.append(hexagon[0])
-	draw_polyline(outline, accent, maxf(1.5, side * 0.045), true)
 
-
-## Compact circular variant used in dense lists (kill feed, roster chips).
+## Compact-size variant used in dense lists (kill feed, roster chips).
 func set_compact(compact: bool) -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _label != null:

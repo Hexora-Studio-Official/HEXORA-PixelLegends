@@ -1,151 +1,57 @@
-# HEXORA
+# PixelLegends
 
-A tactical 3D online shooter for **Android** (and desktop, for development).
-Team Deathmatch, Search & Destroy, Free For All and Battle Royale 30/50/100 —
-online, in private rooms, or over a phone hotspot with **no internet at all**.
+**PixelLegends** is an original, mobile-first 5v5 MOBA built with **Godot 4.4**, with a fully 3D game target and a refined, high-resolution pixel-art identity.
 
-Built with **Godot 4.4 + GDScript**. The renderer is `mobile`, and the art
-direction is deliberately *medium*: semi-realistic, clean, readable — not pixel
-art, not low-poly, not a photoreal pipeline a small team cannot sustain on a
-phone.
+> **Single source of truth:** [`docs/PROJECT_SPEC.txt`](docs/PROJECT_SPEC.txt) contains the product requirements, architecture, visual direction, authentication/networking targets, phase gates, and the live implementation handoff. Read it before planning or changing project behavior. The status block at the top is the progress record.
 
-> **Current stage: 1 of 4 — the shell.** Sign-in (Google / guest), profile
-> setup, the full main menu, settings, and a *working* hotspot lobby. There is
-> no match yet; every screen that would need one says so out loud instead of
-> pretending. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what lands when.
+## Start here
 
----
+1. Read [`AGENTS.md`](AGENTS.md) for repository-specific agent rules.
+2. Read the full [`PROJECT_SPEC.txt`](docs/PROJECT_SPEC.txt), especially **LIVE PROJECT STATUS & AGENT HANDOFF** near the beginning.
+3. Check the current working tree before editing. Preserve existing user work and make only the next approved, testable change.
 
-## What actually works today
+## Current implementation snapshot
 
-| Area | State |
-| --- | --- |
-| Google Sign-In | Real OAuth 2.0 loopback + PKCE flow (`docs/AUTH_SETUP.md`). Guest mode is a first-class button, not a hidden fallback. |
-| Profile setup | Callsign, region, avatar colour, live preview. Reachable with **no account at all**. |
-| Main menu | Top bar (level, XP, currencies, presence), nav rail, eight pages, live status strip. |
-| Settings | Six tabs: game, graphics, audio, controls, language, developer. Writes straight through — no Apply button, nothing to forget. |
-| Language | English + Persian at runtime, full RTL mirroring, 510 keys verified for parity by CI. |
-| **Hotspot rooms** | **Real.** Host opens an ENet server and broadcasts a UDP discovery beacon; joiners find it, connect, and appear in a live roster with real ping. Works with no router and no account. |
-| Online rooms / matchmaking | Client, queue UI, ready check and all the plumbing are built; the backend does not exist yet, so these paths report that they are offline rather than inventing data. |
-| Match gameplay | Not started. Phase 2. |
+- The formal roadmap is at **Phase 0 — Foundation: in progress, not passed**. The exact status, completed work, blockers, and next steps are maintained in the project spec.
+- The active workstream is the branded entrance and menu shell, local guest profile flow, visual environment, documentation, and validation.
+- **Login As Guest** is the only active sign-in choice. **Play** and **Login With Google** are visible but inactive.
+- No playable 3D match, hero, arena, or MOBA simulation is implemented. Nakama-backed accounts, active MOBA matchmaking, and a dedicated match server are not connected to the current UI.
+- Inherited shooter-era scripts, data, and generic service autoloads remain in the repository. Do not treat them as active PixelLegends gameplay or reconnect them to the current UI without an approved task.
 
-## Quick start
+## Open and run
+
+1. Install the standard/GDScript **Godot 4.4** editor.
+2. Open `project.godot` and let Godot finish importing assets.
+3. Press **F5** to run the project from its configured main scene.
+
+The Android preset is a debug/testing configuration, not a store release. Godot import, runtime, Android export, and device validation status is recorded in the live handoff block inside [`docs/PROJECT_SPEC.txt`](docs/PROJECT_SPEC.txt).
+
+## Static checks
 
 ```bash
-# 1. Engine: Godot 4.4 or newer (4.7.2 is the current stable release)
-#    https://godotengine.org/download — no plugins, no native modules required.
-
-# 2. Verify the tree before you open the editor (no Godot binary needed):
-python3 tools/check_i18n.py     # string-table parity + placeholders
-python3 tools/check_refs.py     # cross-file references, arity, theme, scenes
-gdlint $(find src -name '*.gd') # style + syntax (pip install gdtoolkit)
-
-# All three also run in CI on every push (.github/workflows/checks.yml), together
-# with a step that plants a deliberate fault and requires the checkers to catch
-# it — `python3 tools/plant_fault.py <file> "<old>>>>new>"` does that by hand.
-
-# 3. Open the project, press F5. The boot screen runs the whole sign-in flow.
-
-# 4. Optional: a local backend so the online paths light up
-python3 tools/mock_server.py    # then set Developer ▸ Backend base URL
+python3 tools/check_i18n.py
+python3 tools/check_refs.py
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/gdlint $(find src -name '*.gd' -print)
+python3 -m py_compile tools/check_i18n.py tools/check_refs.py tools/mock_server.py tools/plant_fault.py
+git diff --check
 ```
 
-The game is fully playable *without* step 4: with no backend configured it runs
-offline, and it says so in the status strip rather than showing a spinner.
+Static checks do not replace opening the project in Godot 4.4 or testing the screens and guest flow on target aspect ratios/devices.
 
-### What the checkers are for
+## Repository map
 
-They exist because this project was written on a machine with no Godot binary, so
-nothing could be compiled, imported or run. They are not style police; each rule
-is there because that exact mistake happened:
-
-| Rule | The bug it came from |
-| --- | --- |
-| `.tres` fields must exist on the script | a mistyped `title_key` became an unused property and the mode rendered its raw key |
-| Every `res://` path must resolve | a renamed icon in `project.godot` is a boot failure with an unrelated message |
-| A scene must open with `[gd_scene` | all four screens were written as `[gd_resource]`, which loads an *empty* PackedScene |
-| Autoload signals subscribe once | `build()` re-ran on every language change, doubling every handler |
-| No `"\\n"` in a string | the invite text joined its lines with a literal backslash and an "n" |
-| Every `Loc.t()` key exists in both tables | a missing key renders as `!key!` in debug and as the raw key in release |
-
-## Repository layout
-
-```
-project.godot            engine config (autoloads, layers, renderer)
-src/autoload/            the 14 services — see docs/ARCHITECTURE.md
-src/core/                data types + the eight GameMode .tres resources
-src/core/game_modes/     one file per ruleset; tuning lives here, not in code
-src/audio/               procedural UI cue synthesis (no audio assets)
-src/net/                 LAN discovery (UDP beacon) — the hotspot feature
-src/ui/                  screens, pages, components, and the design system
-src/i18n/                en + fa string tables (plain dictionaries, no import)
-assets/                  fonts, brand mark, art direction notes
-tools/                   checkers + fault planter + a mock backend (see below)
-docs/                    architecture, auth setup, roadmap, build steps
+```text
+project.godot          Godot project configuration and main scene
+assets/                Supplied PixelLegends artwork, fonts, and project assets
+src/                   Current Godot source layout
+  autoload/             Shared app services and routing
+  core/                 Data models and retained legacy scaffolding
+  ui/                   Screens, pages, and reusable UI components
+tools/                 Static validation and development utilities
+docs/PROJECT_SPEC.txt  Canonical product, architecture, phase, and progress reference
+AGENTS.md              Instructions for coding agents
 ```
 
-Everything visual is generated at runtime from `src/autoload/design.gd`: there
-is no `.tres` theme to drift, and no UI image assets at all. Icons are drawn as
-vectors, the backdrop is a generated hex lattice, UI sounds are synthesised —
-which is why the whole repository is text.
-
-## Documentation
-
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — services, signals, conventions, and *why*.
-- [`docs/AUTH_SETUP.md`](docs/AUTH_SETUP.md) — make the Gmail button work, step by step.
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — every requested feature mapped to a phase.
-- [`docs/BUILD_ANDROID.md`](docs/BUILD_ANDROID.md) — export a signed APK / AAB, and the device-only gotchas.
-- [`assets/art/README.md`](assets/art/README.md) — the art direction and the performance budget.
-- [`assets/brand/README.md`](assets/brand/README.md) — logo files, palette, and the rules that keep them consistent.
-- [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — every font and tool that is not ours, and its licence.
-
-## Testing the hotspot feature
-
-Discovery uses a fixed UDP port, so the *first* thing to try is two copies of the
-game on one machine:
-
-```bash
-# 1. Run the project once, create a hotspot room, leave it open.
-# 2. Run a second instance — a different export or `godot --path .` twice.
-# 3. On the second instance: Rooms ▸ Browse ▸ Discover.
-```
-
-If both instances are browsing, the second one silently moves to the fallback
-port (`45711`) and the browse tab says so. A blank list on two *real* phones
-almost always means the hotspot is dropping broadcast packets — that is what the
-"No discovery?" copy and the manual address field in Rooms ▸ Join are for.
-
-## Credits
-
-Chakra Petch (display) and Vazirmatn (Persian UI + body) — both SIL Open Font
-License 1.1, full text in [`assets/fonts/OFL-NOTICE.txt`](assets/fonts/OFL-NOTICE.txt).
-The complete list of third-party work is in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-
-## License
-
-The project code is © HEXORA Studio. No license is granted for redistribution
-yet — pick one (`LICENSE`) before publishing a build. Third-party assets carry
-their own licenses; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) and
-each asset folder's README.
-
----
-
-### خلاصهٔ فارسی
-
-**HEXORA** یک شوتر سه‌بعدی آنلاین برای اندروید است: تیم‌دث‌مچ، جست‌وجو و نابودی،
-همه‌دربرابرهمه و بتل‌رویال ۳۰/۵۰/۱۰۰ نفره — آنلاین، در روم خصوصی، یا با
-هات‌اسپات گوشی و **بدون نیاز به اینترنت**. با Godot 4.4 و زبان GDScript ساخته
-شده و گرافیک آن «متوسط و متعادل» است: نیمه‌واقع‌گرا و خوانا، نه پیکسلی و نه
-فوق‌واقع‌گرا.
-
-**مرحلهٔ فعلی: ۱ از ۴ — پوستهٔ بازی.** ورود با گوگل و حالت مهمان، صفحهٔ ساخت
-پروفایل، منوی اصلی کامل، تنظیمات (شش تب) و زبان فارسی با راست‌به‌چپ کامل. روم
-هات‌اسپات **واقعاً کار می‌کند**: میزبان سرور را روی گوشی بالا می‌آورد و بقیه از
-طریق شبکهٔ محلی پیدا می‌کنند و به فهرست بازیکنان اضافه می‌شوند. صف آنلاین و
-روم آنلاین ساخته شده‌اند اما چون هنوز سروری وجود ندارد، صادقانه می‌گویند
-«آفلاین» و داده‌ی الکی نشان نمی‌دهند. گیم‌پلی مرحلهٔ ۲ است.
-
-برای اجرا: پروژه را با Godot 4.4 یا بالاتر باز کن و F5 را بزن. برای بررسی
-سالم بودن کد بدون نصب گودو، `python3 tools/check_refs.py` و
-`python3 tools/check_i18n.py` را اجرا کن.
+The client/server/shared tree shown as a long-term logical target in the specification is **not** the current physical folder layout. Evolve toward it only through small, approved steps; do not reorganize the repository wholesale.

@@ -1,22 +1,15 @@
 class_name SettingsPage
 extends MenuPage
-## Every user-facing option, in six tabs.
+## Device preferences in three tabs: game, graphics and audio.
 ##
-## Reused in two places on purpose:
-##   * inside the main menu, as a normal page;
-##   * behind a modal on the login screen, because the Google client ID has to
-##     be reachable *before* anybody can sign in. A settings screen you can
-##     only reach after logging in is a settings screen that cannot be used to
-##     fix logging in.
-##
-## Every row writes straight to `Settings`, which applies the change and
-## persists it. There is no "apply" button and no unsaved state to lose.
+## The page is shown in a modal on the entrance and battle hub, so preferences
+## remain reachable before and after local guest sign-in. Each visible row
+## writes directly to `Settings`, which applies and persists the change.
 
-enum Tab { GAME, GRAPHICS, AUDIO, CONTROLS, LANGUAGE, DEVELOPER }
+enum Tab { GAME, GRAPHICS, AUDIO }
 
 const TAB_KEYS: Array[StringName] = [
 	&"settings.tab.game", &"settings.tab.graphics", &"settings.tab.audio",
-	&"settings.tab.controls", &"settings.tab.language", &"settings.tab.developer",
 ]
 
 var active_tab: int = Tab.GAME
@@ -45,9 +38,6 @@ func build() -> void:
 		Tab.GAME: _build_game()
 		Tab.GRAPHICS: _build_graphics()
 		Tab.AUDIO: _build_audio()
-		Tab.CONTROLS: _build_controls()
-		Tab.LANGUAGE: _build_language()
-		Tab.DEVELOPER: _build_developer()
 
 
 func _select_tab(index: int) -> void:
@@ -63,24 +53,11 @@ func _select_tab(index: int) -> void:
 
 func _build_game() -> void:
 	var general := card(&"settings.tab.game")
-	general.add_child(_option_row(&"settings.region", "game/region",
-		_build_region_options(), &"settings.region.auto"))
 	general.add_child(_toggle_row(&"settings.show_ping", "game/show_ping"))
 	general.add_child(_toggle_row(&"settings.show_fps", "game/show_fps"))
 	general.add_child(_toggle_row(&"settings.vibration", "game/vibration"))
 	general.add_child(_toggle_row(&"settings.keep_screen_on", "game/keep_screen_on"))
 	general.add_child(_toggle_row(&"settings.streamer_mode", "game/streamer_mode"))
-
-	var social := card(&"menu.section.social")
-	social.add_child(_toggle_row(&"settings.party_invites", "game/allow_party_invites"))
-	social.add_child(_toggle_row(&"settings.auto_queue", "game/auto_requeue"))
-
-
-func _build_region_options() -> Array:
-	var options: Array = []
-	for region in GameTypes.selectable_regions():
-		options.append({"value": region, "key": GameTypes.region_key(region)})
-	return options
 
 
 # -------------------------------------------------------------- graphics tab
@@ -214,27 +191,6 @@ func _build_controls() -> void:
 	hud.add_child(reset)
 
 
-# -------------------------------------------------------------- language tab
-
-func _build_language() -> void:
-	var card_node := card(&"settings.language")
-	card_node.add_child(UiKit.paragraph(Loc.t(&"settings.language.hint"), 720.0))
-
-	var row := UiKit.hbox(Design.SPACE_SM)
-	var active := Loc.locale()
-	for entry in Loc.LOCALES:
-		var code := String(entry["code"])
-		var native := String(entry["endonym"])
-		var chip := UiKit.chip(native, code == active)
-		UiKit.on_press(chip, func() -> void:
-			Loc.set_locale(code)
-			EventBus.toast_requested.emit(Loc.t(&"toast.language_changed"), &"success")
-		)
-		row.add_child(chip)
-	card_node.add_child(row)
-	card_node.add_child(UiKit.paragraph(Loc.t(&"settings.language.restart_note"), 720.0))
-
-
 # ------------------------------------------------------------- developer tab
 
 func _build_developer() -> void:
@@ -281,7 +237,7 @@ func _build_developer() -> void:
 		UiKit.on_press(sign_out, func() -> void:
 			Auth.sign_out()
 			Router.clear_history()
-			Router.goto(&"login")
+			Router.goto(&"boot")
 		)
 		actions.add_child(sign_out)
 	dev.add_child(actions)
@@ -328,7 +284,7 @@ func _slider_row(label_key: StringName, settings_key: String, minimum: float, ma
 
 	var value_label := UiKit.label("", &"NumericLabel")
 	value_label.custom_minimum_size = Vector2(76, 0)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_TRAILING
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	var slider := HSlider.new()
@@ -344,8 +300,7 @@ func _slider_row(label_key: StringName, settings_key: String, minimum: float, ma
 		if display != "percent":
 			return str(int(round(value)))
 		var percent := int(round(value * 100.0))
-		# The Persian percent sign is its own glyph, not "%".
-		return "%d٪" % percent if Loc.is_rtl() else "%d%%" % percent
+		return "%d%%" % percent
 
 	value_label.text = format.call(slider.value)
 	slider.value_changed.connect(func(value: float) -> void:
@@ -367,7 +322,7 @@ func _int_slider_row(label_key: StringName, settings_key: String,
 
 	var value_label := UiKit.label("", &"NumericLabel")
 	value_label.custom_minimum_size = Vector2(76, 0)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_TRAILING
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	var slider := HSlider.new()

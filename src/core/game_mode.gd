@@ -1,14 +1,10 @@
 class_name GameMode
 extends Resource
-## Data-driven definition of one ruleset.
-##
-## A mode is *data*, not code: designers tune these `.tres` files without
-## touching gameplay scripts, and the lobby / matchmaking / room browser all
-## read from the same object. If a number appears in two places, it is a bug.
-##
-## Phase 1 uses this to build the mode-select UI and the matchmaking pool.
-## Phase 2 will hand `to_rules()` to the authoritative match script, which is
-## why every gameplay-relevant value is already declared here.
+## Legacy shooter-era mode/ruleset schema retained in the source tree.
+## Its Battle Royale, FFA, round, and loadout fields are not the data model for
+## the PixelLegends MOBA. Do not connect these resources to the current menu or
+## use their old phase labels as the roadmap. Create approved MOBA data models
+## from docs/PROJECT_SPEC.txt only when their development phase is authorized.
 
 @export var id: StringName = &""
 @export var category: StringName = &"core"   ## core | battle_royale | training
@@ -23,7 +19,7 @@ extends Resource
 
 @export_group("Presentation")
 @export var icon_kind: StringName = &"mode_tdm"
-@export var accent: Color = Color("ff7a1a")
+@export var accent: Color = Color("ffd22a")
 @export var sort_index: int = 0
 
 @export_group("Lobby")
@@ -78,8 +74,8 @@ func format_tag() -> String:
 	return "FFA %d" % max_players
 
 
-## Suggested map rotation. Phase 2 replaces this with a map table keyed by
-## mode; for now it gives the lobby something concrete to display.
+## Legacy map rotation for the earlier mode/lobby prototype; not a PixelLegends
+## MOBA map definition.
 func map_pool() -> PackedStringArray:
 	if is_battle_royale:
 		return PackedStringArray(["island_kestrel", "island_vortex"])

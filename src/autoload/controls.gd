@@ -11,8 +11,9 @@ extends Node
 ## build is a silent input failure that is very hard to debug. A table plus a
 ## boot-time assertion is far more reliable.
 ##
-## Phase 2 adds the on-screen touch controls; this service is already the
-## single place they will read their layout and sensitivity from.
+## This input map contains legacy first-person actions. It is not the approved
+## MOBA touch-control implementation; build those controls from
+## docs/PROJECT_SPEC.txt only in an authorized gameplay phase.
 
 const ACTION_PREFIX := "hex_"
 
@@ -214,6 +215,8 @@ func inverted_y() -> bool:
 ## Short haptic pulse, respecting the player's setting. `strength` is
 ## millisecond duration on Android; 0 stops any ongoing vibration.
 func haptic(duration_ms: int = 25) -> void:
+	if not OS.has_feature("mobile") or duration_ms <= 0:
+		return
 	if not Settings.get_bool("game/vibration", true):
 		return
 	Input.vibrate_handheld(duration_ms)

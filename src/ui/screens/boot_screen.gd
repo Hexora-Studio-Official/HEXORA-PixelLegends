@@ -1,258 +1,283 @@
 extends HexScreen
-## Boot: brand reveal, service warm-up, then hand off to the right screen.
-##
-## Deliberately shows what is happening rather than a spinner: three named
-## steps that tick off as they complete. On a cold Android start this is the
-## difference between "it is working" and "it is frozen".
+## PixelLegends entrance: a brief service/session load, followed by the
+## guest-first sign-in panel. The other sign-in choices remain visible but are
+## intentionally unavailable in this visual-only phase.
 
-enum Step { SERVICES, SESSION, READY }
+const BACKGROUND_PATH := "res://assets/Pixel Legends_ 5v5 Fantasy Showdown.png"
+const MIN_DISPLAY_SEC := 1.35
 
-const MIN_DISPLAY_SEC := 1.5
+var _background: TextureRect
+var _background_shade: ColorRect
+var _action_panel: PanelContainer
+var _play_button: Button
+var _google_button: Button
+var _guest_button: Button
+var _settings_button: Button
+var _progress: ProgressBar
+var _error_label: Label
+var _elapsed := 0.0
+var _session_done := false
+var _actions_revealed := false
+var _busy := false
 
-var _logo: Control
-var _wordmark: Label
-var _tagline: Label
-var _step_rows: Array[Dictionary] = []
-var _status_label: Label
-var _elapsed: float = 0.0
-var _services_done: bool = false
-var _session_done: bool = false
-var _finished: bool = false
+
+func _init() -> void:
+	backdrop_enabled = false
+	safe_padding = Design.SPACE_LG
 
 
 func build() -> void:
-	var root := UiKit.vbox(Design.SPACE_XL)
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.alignment = BoxContainer.ALIGNMENT_CENTER
-	content.add_child(root)
+	if _background == null or not is_instance_valid(_background):
+		_background = TextureRect.new()
+		_background.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_background.texture = load(BACKGROUND_PATH) as Texture2D
+		_background.z_index = -2
+		add_child(_background)
 
-	# ---- brand block -------------------------------------------------------
-	_logo = _build_logo()
-	root.add_child(_logo)
+	if _background_shade == null or not is_instance_valid(_background_shade):
+		_background_shade = ColorRect.new()
+		_background_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_background_shade.color = Color(0.025, 0.045, 0.10, 0.20)
+		_background_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_background_shade.z_index = -1
+		add_child(_background_shade)
 
-	_wordmark = UiKit.display(Loc.t(&"app.name"))
-	_wordmark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_wordmark.add_theme_color_override("font_color", Design.TEXT)
-	root.add_child(_wordmark)
+	_settings_button = UiKit.button(Loc.t(&"menu.settings"), &"OutlineButton", &"settings")
+	_settings_button.custom_minimum_size = Vector2(156, 56)
+	_settings_button.visible = false
+	_settings_button.set_anchors_and_offsets_preset(
+		Control.PRESET_TOP_LEFT, Control.PRESET_MODE_KEEP_SIZE)
+	_settings_button.position = Vector2(Design.SPACE_LG, Design.SPACE_LG)
+	UiKit.on_hover(_settings_button)
+	UiKit.on_press(_settings_button, _open_settings_modal, "click")
+	content.add_child(_settings_button)
 
-	_tagline = UiKit.label(Loc.t(&"app.tagline"), &"SectionLabel")
-	_tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root.add_child(_tagline)
+	_action_panel = UiKit.panel(&"EntranceDockPanel")
+	_action_panel.anchor_left = 0.5
+	_action_panel.anchor_right = 0.5
+	_action_panel.anchor_top = 0.69
+	_action_panel.anchor_bottom = 0.69
+	_action_panel.offset_left = -365.0
+	_action_panel.offset_right = 365.0
+	_action_panel.offset_top = -118.0
+	_action_panel.offset_bottom = 118.0
+	_action_panel.visible = false
+	content.add_child(_action_panel)
 
-	root.add_child(UiKit.vertical_spacer(Design.SPACE_XXL))
+	var stack := UiKit.vbox(Design.SPACE_SM)
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_action_panel.add_child(stack)
 
-	# ---- progress steps ----------------------------------------------------
-	var steps := UiKit.vbox(Design.SPACE_SM)
-	steps.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	steps.custom_minimum_size = Vector2(340, 0)
-	root.add_child(steps)
-	_step_rows.clear()
-	_step_rows.append(_build_step_row(&"boot.loading_services"))
-	_step_rows.append(_build_step_row(&"boot.checking_session"))
-	_step_rows.append(_build_step_row(&"boot.ready"))
-	for row in _step_rows:
-		steps.add_child(row["root"])
+	var eyebrow := UiKit.micro(Loc.t(&"splash.choose_path").to_upper())
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	eyebrow.add_theme_color_override("font_color", Design.ACCENT_HI)
+	stack.add_child(eyebrow)
 
-	root.add_child(UiKit.vertical_spacer(Design.SPACE_XL))
+	var buttons := UiKit.vbox(Design.SPACE_SM)
+	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_child(buttons)
 
-	_status_label = UiKit.micro(_version_text())
-	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root.add_child(_status_label)
+	_play_button = UiKit.button(Loc.t(&"splash.play"), &"PrimaryButton", &"play")
+	_play_button.custom_minimum_size = Vector2(190, 66)
+	_play_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_play_button.disabled = true
+	_play_button.tooltip_text = Loc.t(&"common.soon")
+	buttons.add_child(_play_button)
 
-	# ---- wire the world ----------------------------------------------------
-	_services_done = true
-	_mark_step(Step.SERVICES, true)
-	_advance_status_visuals()
+	_google_button = UiKit.button(
+		Loc.t(&"splash.login.google"), &"SecondaryButton", &"google")
+	_google_button.custom_minimum_size = Vector2(210, 66)
+	_google_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_google_button.disabled = true
+	_google_button.tooltip_text = Loc.t(&"common.soon")
+	buttons.add_child(_google_button)
 
+	_guest_button = UiKit.button(
+		Loc.t(&"splash.login.guest"), &"OutlineButton", &"profile")
+	_guest_button.custom_minimum_size = Vector2(210, 66)
+	_guest_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiKit.on_hover(_guest_button, "hover")
+	UiKit.on_press(_guest_button, _on_guest_pressed, "confirm")
+	buttons.add_child(_guest_button)
 
-## Version line under the logo.
-func _version_text() -> String:
-	return Loc.t(&"app.version_label", {
-		"version": str(ProjectSettings.get_setting("application/config/version", "0.1.0")),
-	})
+	_error_label = UiKit.label("", &"DangerLabel")
+	_error_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_error_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_error_label.visible = false
+	stack.add_child(_error_label)
 
+	_progress = UiKit.progress(&"ThinBar", 0.0, 3)
+	_progress.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_progress.offset_left = 0.0
+	_progress.offset_right = 0.0
+	_progress.offset_top = -3.0
+	_progress.offset_bottom = 0.0
+	_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_progress)
 
-## The HEXORA mark, drawn rather than loaded: a hexagonal containment field with
-## the crossed reticle, exactly like icon.svg but as live geometry so it can
-## animate.
-func _build_logo() -> Control:
-	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(148, 148)
-	holder.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	var mark := _LogoMark.new()
-	mark.set_anchors_preset(Control.PRESET_FULL_RECT)
-	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(mark)
-
-	holder.modulate.a = 0.0
-	holder.scale = Vector2(0.86, 0.86)
-	holder.pivot_offset = Vector2(74, 74)
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(holder, "modulate:a", 1.0, 0.55)
-	tween.tween_property(holder, "scale", Vector2.ONE, 0.7) \
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	return holder
-
-
-func _build_step_row(key: StringName) -> Dictionary:
-	var row := UiKit.hbox(Design.SPACE_MD)
-	row.alignment = BoxContainer.ALIGNMENT_BEGIN
-
-	var dot := Panel.new()
-	dot.custom_minimum_size = Vector2(12, 12)
-	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var style := StyleBoxFlat.new()
-	style.bg_color = Design.SURFACE_HI
-	style.set_corner_radius_all(Design.RADIUS_PILL)
-	style.border_color = Design.LINE_STRONG
-	style.set_border_width_all(1)
-	dot.add_theme_stylebox_override("panel", style)
-	row.add_child(dot)
-
-	var text := UiKit.label(Loc.t(key), &"BodyMutedLabel")
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(text)
-
-	var state := UiKit.micro("")
-	row.add_child(state)
-	return {"root": row, "dot": dot, "dot_style": style, "label": text, "state": state, "key": key}
-
-
-func _mark_step(step: int, done: bool) -> void:
-	if step < 0 or step >= _step_rows.size():
-		return
-	var row := _step_rows[step]
-	var style: StyleBoxFlat = row["dot_style"]
-	style.bg_color = Design.SUCCESS if done else Design.SURFACE_HI
-	style.border_color = Design.SUCCESS if done else Design.LINE_STRONG
-	var text: Label = row["label"]
-	text.add_theme_color_override("font_color", Design.TEXT if done else Design.TEXT_MUTED)
-	var state: Label = row["state"]
-	state.text = Loc.t(&"common.ok") if done else "…"
-	state.add_theme_color_override("font_color", Design.SUCCESS if done else Design.TEXT_DIM)
-
-
-func _set_step_active(step: int) -> void:
-	if step < 0 or step >= _step_rows.size():
-		return
-	var row := _step_rows[step]
-	var style: StyleBoxFlat = row["dot_style"]
-	style.bg_color = Design.ACCENT
-	style.border_color = Design.ACCENT_HI
-	(row["label"] as Label).add_theme_color_override("font_color", Design.TEXT)
-
-
-func _advance_status_visuals() -> void:
-	if _status_label != null:
-		_status_label.text = _version_text()
+	UiKit.listen(EventBus.auth_state_changed, _on_auth_state_changed)
+	UiKit.listen(EventBus.auth_signed_in, _on_signed_in)
+	UiKit.listen(EventBus.auth_failed, _on_auth_failed)
+	_layout_actions()
 
 
 func _ready() -> void:
 	super._ready()
-	# `build()` has already run by now (the base class calls it), so the step
-	# rows exist and we can drive the sequence.
-	_set_step_active(Step.SESSION)
 	_restore_session()
+	_animate_background()
+
+
+func _animate_background() -> void:
+	if _background == null:
+		return
+	_background.pivot_offset = get_viewport_rect().size * 0.5
+	var tween := create_tween().set_loops()
+	tween.tween_property(_background, "scale", Vector2(1.035, 1.035), 15.0) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_background, "scale", Vector2.ONE, 15.0) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _layout_actions() -> void:
+	if _action_panel == null:
+		return
+	var viewport := get_viewport_rect().size
+	var half_width := minf(365.0, maxf(160.0, (viewport.x - 32.0) * 0.5))
+	_action_panel.offset_left = -half_width
+	_action_panel.offset_right = half_width
+	var compact := viewport.y < 650.0
+	var anchor_y := 0.69
+	var half_height := 142.0
+	if compact:
+		anchor_y = 0.53
+		half_height = 140.0
+	elif viewport.x < 760.0:
+		anchor_y = 0.68
+	_action_panel.anchor_top = anchor_y
+	_action_panel.anchor_bottom = anchor_y
+	_action_panel.offset_top = -half_height
+	_action_panel.offset_bottom = half_height
+	if _guest_button != null:
+		_guest_button.custom_minimum_size.y = 58.0 if compact else 66.0
+	if _play_button != null:
+		_play_button.custom_minimum_size.y = 58.0 if compact else 66.0
+	if _google_button != null:
+		_google_button.custom_minimum_size.y = 58.0 if compact else 66.0
+
+
+func on_screen_resized() -> void:
+	_layout_actions()
+	if _background != null:
+		_background.pivot_offset = get_viewport_rect().size * 0.5
 
 
 func _restore_session() -> void:
-	# Awaiting inside a screen is safe here: the node is freed by the Router
-	# only after the transition, and the callback checks `is_inside_tree`.
 	await Auth.restore_session()
 	if not is_inside_tree():
 		return
 	_session_done = true
-	_mark_step(Step.SESSION, true)
-	_mark_step(Step.READY, true)
 
 
 func _process(delta: float) -> void:
-	if _finished:
-		return
 	_elapsed += delta
-	if not _services_done or not _session_done:
+	if _progress == null or not is_instance_valid(_progress):
 		return
-	# Hold the logo on screen for a beat even when everything resolves
-	# instantly — a one-frame boot screen looks like a bug.
+	if not _session_done:
+		_progress.value = minf(0.92, _elapsed / MIN_DISPLAY_SEC * 0.92)
+		return
 	if _elapsed < MIN_DISPLAY_SEC:
+		_progress.value = minf(0.98, _elapsed / MIN_DISPLAY_SEC * 0.98)
 		return
-	_finished = true
-	_finish()
-
-
-func _finish() -> void:
-	var destination := Router.route_for_auth_state()
+	_progress.value = 1.0
+	if _actions_revealed:
+		return
+	_actions_revealed = true
+	_settings_button.visible = true
+	_action_panel.visible = true
+	_action_panel.modulate.a = 0.0
 	var tween := create_tween()
-	tween.tween_property(content, "modulate:a", 0.0, 0.22)
-	tween.tween_callback(func() -> void:
-		Router.clear_history()
-		Router.goto(destination)
-	)
+	tween.tween_property(_action_panel, "modulate:a", 1.0, 0.30) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_progress.visible = false
+
+
+func _set_busy(busy: bool) -> void:
+	_busy = busy
+	if _guest_button != null:
+		_guest_button.disabled = busy
+	if _settings_button != null:
+		_settings_button.disabled = busy
+	if busy:
+		Router.set_loading_label(Loc.t(&"auth.state.signing_in"))
+		Router.show_loading()
+	else:
+		Router.hide_loading()
+
+
+func _on_auth_state_changed(state: int) -> void:
+	if state == GameTypes.AuthState.RESTORING:
+		return
+	_set_busy(state == GameTypes.AuthState.SIGNING_IN)
+
+
+func _on_auth_failed(message: String) -> void:
+	_set_busy(false)
+	if _error_label != null:
+		_error_label.text = message
+		_error_label.visible = true
+
+
+func _on_signed_in(_profile: PlayerProfile) -> void:
+	_set_busy(false)
+	call_deferred("_route_after_sign_in")
+
+
+func _route_after_sign_in() -> void:
+	if not is_inside_tree():
+		return
+	Router.clear_history()
+	Router.goto(Router.route_for_auth_state())
+
+
+func _on_guest_pressed() -> void:
+	if _busy:
+		return
+	_error_label.visible = false
+	if Auth.is_signed_in():
+		if Session.is_guest():
+			Router.clear_history()
+			Router.goto(&"menu")
+		else:
+			_error_label.text = Loc.t(&"splash.saved_account_unavailable")
+			_error_label.visible = true
+		return
+	Auth.sign_in_as_guest()
+
+
+func _open_settings_modal() -> void:
+	var page := SettingsPage.new()
+	page.custom_minimum_size = Vector2(760, 560)
+
+	var wrapper := UiKit.panel(&"CardPanel")
+	var column := UiKit.vbox(Design.SPACE_MD)
+	wrapper.add_child(column)
+	var header := UiKit.hbox(Design.SPACE_MD)
+	header.add_child(UiKit.subheading(Loc.t(&"settings.title")))
+	header.add_child(UiKit.spacer())
+	var close := UiKit.icon_button(&"close", Design.TEXT_MUTED, 20.0)
+	header.add_child(close)
+	column.add_child(header)
+	column.add_child(UiKit.divider())
+	column.add_child(page)
+	var layer := UiKit.show_modal(self, wrapper, 800.0)
+	UiKit.on_press(close, func() -> void: UiKit.close_modal(layer), "back")
 
 
 func on_back_requested() -> void:
-	# Backing out of the boot screen should leave the app, not strand it.
+	if _busy:
+		Auth.cancel_google_sign_in()
+		return
 	Router.quit_game()
-
-
-## Inner class: the animated mark. Drawing it here keeps the boot screen
-## self-contained and lets the reticle spin up on entry.
-class _LogoMark extends Control:
-	var _progress: float = 0.0
-
-	func _init() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		set_anchors_preset(Control.PRESET_FULL_RECT)
-
-	func _ready() -> void:
-		var tween := create_tween()
-		tween.tween_method(_set_progress, 0.0, 1.0, 0.9).set_trans(Tween.TRANS_CUBIC)
-
-	func _set_progress(value: float) -> void:
-		_progress = value
-		queue_redraw()
-
-	func _draw() -> void:
-		var side := minf(size.x, size.y)
-		if side <= 4.0:
-			return
-		var centre := size * 0.5
-		var radius := side * 0.46
-		var thickness := maxf(2.0, side * 0.045)
-
-		# Containment hexagon, drawn progressively so it "closes".
-		var corners := PackedVector2Array()
-		for corner in 6:
-			var angle := PI / 3.0 * float(corner) - PI / 2.0
-			corners.append(centre + Vector2(cos(angle), sin(angle)) * radius)
-		var visible_corners := int(ceil(6.0 * _progress))
-		for corner in visible_corners:
-			var next := (corner + 1) % 6
-			if corner + 1 >= visible_corners and visible_corners < 6:
-				draw_line(corners[corner],
-					corners[corner].lerp(corners[next], fmod(6.0 * _progress, 1.0)),
-					Design.ACCENT, thickness, true)
-			else:
-				draw_line(corners[corner], corners[next], Design.ACCENT, thickness, true)
-
-		if _progress < 0.6:
-			return
-
-		# Inner "H" and the reticle, fading in after the frame closes.
-		var inner := (_progress - 0.6) / 0.4
-		var bar_color := Color(Design.ACCENT_HI.r, Design.ACCENT_HI.g, Design.ACCENT_HI.b, inner)
-		var bar_width := side * 0.075
-		var bar_height := side * 0.42
-		draw_rect(Rect2(centre.x - side * 0.17 - bar_width * 0.5,
-			centre.y - bar_height * 0.5, bar_width, bar_height), bar_color)
-		draw_rect(Rect2(centre.x + side * 0.17 - bar_width * 0.5,
-			centre.y - bar_height * 0.5, bar_width, bar_height), bar_color)
-		draw_rect(Rect2(centre.x - side * 0.10, centre.y - bar_width * 0.5,
-			side * 0.20, bar_width),
-			Color(Design.TEAL.r, Design.TEAL.g, Design.TEAL.b, inner))
-
-		var reticle_radius := radius * (1.0 + (1.0 - inner) * 0.4)
-		draw_arc(centre, reticle_radius, 0.0, TAU, 48,
-			Color(Design.TEAL.r, Design.TEAL.g, Design.TEAL.b, inner * 0.5), 2.0, true)

@@ -14,6 +14,8 @@ extends RefCounted
 
 const META_LABEL := &"hex_label"
 const META_ICON := &"hex_icon"
+const META_CHIP_INACTIVE := &"hex_chip_inactive"
+const META_CHIP_ACTIVE := &"hex_chip_active"
 
 
 # ------------------------------------------------------------------- labels
@@ -23,6 +25,7 @@ static func label(text: String, variation: StringName = &"BodyLabel") -> Label:
 	node.text = text
 	node.theme_type_variation = variation
 	node.layout_direction = Loc.layout_direction()
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return node
 
 
@@ -78,18 +81,21 @@ static func set_label_text(node: Control, text: String) -> void:
 
 static func vbox(separation: int = Design.SPACE_MD) -> VBoxContainer:
 	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	box.add_theme_constant_override("separation", separation)
 	return box
 
 
 static func hbox(separation: int = Design.SPACE_SM) -> HBoxContainer:
 	var box := HBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	box.add_theme_constant_override("separation", separation)
 	return box
 
 
 static func grid(columns: int, separation: int = Design.SPACE_MD) -> GridContainer:
 	var box := GridContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	box.columns = maxi(1, columns)
 	box.add_theme_constant_override("h_separation", separation)
 	box.add_theme_constant_override("v_separation", separation)
@@ -102,9 +108,24 @@ static func scroll(follow_focus: bool = false) -> ScrollContainer:
 	container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	container.follow_focus = follow_focus
+	container.scroll_deadzone = 8
+	container.clip_contents = true
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
 	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return container
+
+
+## Let touch drags started on buttons/labels bubble to the nearest scroll view.
+## Without this, a full-width grid can only be dragged from its tiny gaps.
+static func prepare_scroll_content(root: Control) -> void:
+	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	for child in root.get_children():
+		if child is ScrollContainer:
+			continue
+		if child is Control:
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_PASS
+			prepare_scroll_content(child as Control)
 
 
 ## Horizontal breathing room inside a scroll container.
@@ -138,6 +159,7 @@ static func divider(color: Color = Design.LINE, thickness: int = 1) -> ColorRect
 static func panel(variation: StringName = &"CardPanel") -> PanelContainer:
 	var node := PanelContainer.new()
 	node.theme_type_variation = variation
+	node.mouse_filter = Control.MOUSE_FILTER_PASS
 	return node
 
 
@@ -180,6 +202,7 @@ static func button(
 ) -> Button:
 	var node := Button.new()
 	node.theme_type_variation = variation
+	node.mouse_filter = Control.MOUSE_FILTER_PASS
 	node.custom_minimum_size = Vector2(0, Design.TOUCH_TARGET_MIN)
 	if not tooltip.is_empty():
 		node.tooltip_text = tooltip
@@ -237,39 +260,54 @@ static func icon_button(kind: StringName, color: Color = Design.TEXT_MUTED,
 ## here so the mode picker, the room browser and the lobby all agree on what a
 ## ruleset looks like.
 static func mode_card(mode: GameMode, selected: bool = false,
-		on_toggle: Callable = Callable()) -> Button:
+		on_toggle: Callable = Callable(), stacked: bool = false) -> Button:
 	var node := Button.new()
 	node.theme_type_variation = &"CardButtonActive" if selected else &"CardButton"
-	node.custom_minimum_size = Vector2(296, 128)
+	node.mouse_filter = Control.MOUSE_FILTER_PASS
+	node.custom_minimum_size = Vector2(0, 88 if not stacked else 108)
 	node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	node.focus_mode = Control.FOCUS_NONE
+	node.tooltip_text = Loc.t(mode.rules_key)
 
-	var row := hbox(Design.SPACE_MD)
+	var row: BoxContainer = vbox(Design.SPACE_SM) if stacked else hbox(Design.SPACE_SM)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	node.add_child(row)
 
-	var icon := HexIcon.make(mode.icon_kind, mode.accent, 36.0, 2.0, mode.accent)
+	var icon := HexIcon.make(mode.icon_kind, mode.accent, 28.0, 2.0, mode.accent)
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	row.add_child(icon)
 
 	var column := vbox(Design.SPACE_XXS)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(column)
 
-	var title := label(Loc.t(mode.title_key), &"SubheadingLabel")
+	var title := label(Loc.t(mode.title_key), &"SectionLabel")
+	title.custom_minimum_size.x = 0.0
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.clip_text = true
+	if stacked:
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(title)
-	column.add_child(paragraph(Loc.t(mode.rules_key), 220.0, &"CaptionLabel"))
 
-	var tags := hbox(Design.SPACE_XS)
-	tags.add_child(pill(mode.format_tag(), mode.accent))
+	var details := mode.format_tag()
 	if mode.ranked:
-		tags.add_child(pill(Loc.t(&"play.ranked"), Design.TEAL))
+		details += " · " + Loc.t(&"play.ranked").to_upper()
 	if not mode.supports_lan:
-		tags.add_child(pill(Loc.t(&"common.online"), Design.TEXT_MUTED))
-	column.add_child(tags)
+		details += " · " + Loc.t(&"common.online").to_upper()
+	var summary := label(details, &"CaptionLabel")
+	summary.custom_minimum_size.x = 0.0
+	summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	summary.clip_text = true
+	if stacked:
+		summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	summary.add_theme_color_override("font_color", Design.TEXT_MUTED)
+	summary.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	column.add_child(summary)
 
 	node.set_meta(META_LABEL, title)
 	node.set_meta(META_ICON, icon)
@@ -277,7 +315,6 @@ static func mode_card(mode: GameMode, selected: bool = false,
 	if on_toggle.is_valid():
 		node.pressed.connect(func() -> void: on_toggle.call(mode.id))
 	return node
-
 
 ## Restyle a mode card in place. Cheaper and less flickery than rebuilding the
 ## whole grid every time a mode is toggled.
@@ -293,18 +330,45 @@ static func set_card_active(node: Button, active: bool) -> void:
 
 
 ## Selectable chip, used for modes, regions and filters.
-static func chip(text: String, active: bool = false, icon_kind: StringName = &"") -> Button:
-	var node := button(text, &"ChipButtonActive" if active else &"ChipButton", icon_kind)
-	node.custom_minimum_size = Vector2(0, 40)
+static func chip(
+		text: String, active: bool = false, icon_kind: StringName = &"", compact: bool = false
+) -> Button:
+	var inactive_variation: StringName = &"RegionChipButton" if compact else &"ChipButton"
+	var active_variation: StringName = \
+		&"RegionChipButtonActive" if compact else &"ChipButtonActive"
+	var variation: StringName = active_variation if active else inactive_variation
+	var node: Button
+	if icon_kind == &"":
+		# Plain text buttons are more reliable than nested labels in tight grids:
+		# the button owns the text width, wrapping and clipping itself.
+		node = Button.new()
+		node.theme_type_variation = variation
+		node.text = text
+		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		node.clip_text = true
+		node.mouse_filter = Control.MOUSE_FILTER_PASS
+	else:
+		node = button(text, variation, icon_kind)
+	node.set_meta(META_CHIP_INACTIVE, inactive_variation)
+	node.set_meta(META_CHIP_ACTIVE, active_variation)
+	node.custom_minimum_size = Vector2(0, 56)
 	return node
 
 
 static func set_chip_active(node: Button, active: bool) -> void:
-	node.theme_type_variation = &"ChipButtonActive" if active else &"ChipButton"
+	var inactive_variation := StringName(
+		node.get_meta(META_CHIP_INACTIVE, &"ChipButton"))
+	var active_variation := StringName(
+		node.get_meta(META_CHIP_ACTIVE, &"ChipButtonActive"))
+	node.theme_type_variation = active_variation if active else inactive_variation
 	var inner := label_text(node)
 	if inner != null:
 		inner.add_theme_color_override("font_color",
 			Design.ACCENT_HI if active else Design.TEXT_MUTED)
+	else:
+		node.add_theme_color_override("font_color", Design.ACCENT_HI if active else Design.TEXT_MUTED)
 	var icon := node.get_meta(META_ICON, null) as HexIcon
 	if icon != null:
 		icon.color = Design.ACCENT_HI if active else Design.TEXT_MUTED
@@ -376,6 +440,7 @@ static func status_dot(text: String, tone: Color) -> HBoxContainer:
 	var style := StyleBoxFlat.new()
 	style.bg_color = tone
 	style.set_corner_radius_all(Design.RADIUS_PILL)
+	style.anti_aliasing = false
 	dot.add_theme_stylebox_override("panel", style)
 	row.add_child(dot)
 	var text_label := label(text, &"CaptionLabel")
@@ -430,11 +495,10 @@ static func close_modal(layer: Control) -> void:
 ## Wire a button to a cue, a haptic tick and a callback in one line.
 ## Subscribe to a long-lived (usually autoload) signal exactly once.
 ##
-## Screens and pages rebuild themselves from scratch when the language changes,
-## and `build()` is where their widgets are wired up — so a plain `.connect()`
-## inside `build()` connects a second time on the second pass. Godot treats a
-## duplicate connection of the same callable as an error, which means switching
-## to Persian would spam the console and fire every handler twice.
+## Screens and pages rebuild themselves when their text changes, and `build()`
+## is where their widgets are wired up — so a plain `.connect()` inside `build()`
+## could connect a second time on a rebuild. Godot treats duplicate connections
+## as errors, so long-lived signals use this idempotent helper.
 ##
 ## Everything that outlives one build goes through here; per-widget signals on
 ## freshly created nodes can still be connected directly, because the widget

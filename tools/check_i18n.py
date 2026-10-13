@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-"""Validate the HEXORA string tables.
+"""Validate PixelLegends' English-only UI string table.
 
 Runs without Godot, so it can gate every commit:
 
-  * every locale must define exactly the same key set as English
-  * no duplicate keys inside a table
-  * no empty or whitespace-only translations
-  * every `{placeholder}` used in a key must appear in *every* locale that
-    defines the key (a missing placeholder silently drops data at runtime)
-  * every placeholder named in a string must also exist in the English string,
-    so Persian cannot invent a token the callers never pass
+  * only the English source table is present
+  * no duplicate keys or empty values
+  * placeholders use the project's named-token format
 
 Usage:
     python3 tools/check_i18n.py            # check, exit non-zero on failure
@@ -73,6 +69,11 @@ def main() -> int:
     files = locale_files()
     if SOURCE_LOCALE not in files:
         print(f"FAIL: no source locale strings_{SOURCE_LOCALE}.gd in {I18N_DIR}")
+        return 1
+    extra_locales = sorted(set(files) - {SOURCE_LOCALE})
+    if extra_locales:
+        print("FAIL: PixelLegends UI is English-only; unexpected locale table(s): "
+              + ", ".join(extra_locales))
         return 1
 
     tables: dict[str, dict[str, str]] = {}

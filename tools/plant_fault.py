@@ -10,8 +10,8 @@ like a repository with no problems. Restore the file with `git checkout --`.
 Kept as a tool rather than an inline heredoc so the same fault can be planted
 by hand while debugging a checker:
 
-    python3 tools/plant_fault.py project.godot 'icon.svg>>>>missing.svg'
-    python3 tools/check_refs.py          # expect a FAIL naming missing.svg
+    python3 tools/plant_fault.py project.godot 'res://assets/Pixel Legends_ 5v5 Showdown.png>>>>missing.png'
+    python3 tools/check_refs.py          # expect a FAIL naming missing.png
     git checkout -- project.godot
 
 Restoring is `git checkout --`, so **commit first**: it throws away every

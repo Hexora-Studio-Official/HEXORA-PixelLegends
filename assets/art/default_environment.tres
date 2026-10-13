@@ -1,16 +1,13 @@
 [gd_resource type="Environment" load_steps=3 format=3]
 
-; Default 3D environment for every match scene.
+; Provisional environment baseline for a future match scene; no match scene
+; currently uses it. Any approved gameplay art must follow the fully 3D,
+; high-resolution micro-pixel direction in docs/PROJECT_SPEC.txt, especially
+; sections 2, 22, and 29. Avoid voxel/Minecraft-like geometry and coarse pixels.
 ;
-; Art direction: "graphite and machined aluminium, lit by sodium orange and
-; instrument teal" — semi-realistic, deliberately *medium* fidelity: real
-; directional shadows, depth fog and a gentle ACES curve do most of the work,
-; while the expensive effects (SSAO, SSIL, SDFGI, screen-space reflections,
-; volumetric fog) stay off because the Mobile renderer cannot afford them on a
-; mid-range phone and they cost more quality than they add at our density.
-;
-; Colours are the Design palette in linear-ish sRGB, so a HUD element and a
-; wall lit by the same accent read as the same colour.
+; Existing Mobile-renderer settings are only a starting point. Review lighting,
+; fog, and post-processing against the final visual target when a match scene
+; is explicitly approved; this resource does not authorize gameplay work.
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
 sky_top_color = Color(0.043137, 0.066667, 0.101961, 1)
@@ -39,7 +36,7 @@ ssao_enabled = false
 ssil_enabled = false
 sdfgi_enabled = false
 ssr_enabled = false
-glow_enabled = true
+glow_enabled = false
 glow_intensity = 0.35
 glow_strength = 0.85
 glow_bloom = 0.04

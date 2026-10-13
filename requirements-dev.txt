@@ -1,0 +1,2 @@
+# Static GDScript linting; Python checkers use only the standard library.
+gdtoolkit==4.5.0
