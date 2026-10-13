@@ -232,6 +232,9 @@ static func button(
 static func _button_text_color(variation: StringName) -> Color:
 	match variation:
 		&"PrimaryButton": return Design.TEXT_INVERSE
+		&"GlassButton": return Design.TEXT
+		&"GlassPrimaryButton": return Design.TEXT
+		&"GlassNavButton": return Design.TEXT_MUTED
 		&"DangerButton": return Design.DANGER
 		&"TealButton": return Design.TEAL
 		&"GhostButton": return Design.TEXT_MUTED
@@ -459,7 +462,7 @@ static func show_modal(host: Control, content: Control, width: float = 640.0) ->
 	layer.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	var dim := ColorRect.new()
-	dim.color = Color(Design.BG.r, Design.BG.g, Design.BG.b, 0.78)
+	dim.color = Color(Design.BG.r, Design.BG.g, Design.BG.b, 0.52)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(dim)
 

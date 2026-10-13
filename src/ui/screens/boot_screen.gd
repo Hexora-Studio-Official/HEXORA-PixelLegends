@@ -40,12 +40,12 @@ func build() -> void:
 	if _background_shade == null or not is_instance_valid(_background_shade):
 		_background_shade = ColorRect.new()
 		_background_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-		_background_shade.color = Color(0.025, 0.045, 0.10, 0.20)
+		_background_shade.color = Color(0.025, 0.045, 0.10, 0.09)
 		_background_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_background_shade.z_index = -1
 		add_child(_background_shade)
 
-	_settings_button = UiKit.button(Loc.t(&"menu.settings"), &"OutlineButton", &"settings")
+	_settings_button = UiKit.button(Loc.t(&"menu.settings"), &"GlassButton", &"settings")
 	_settings_button.custom_minimum_size = Vector2(156, 56)
 	_settings_button.visible = false
 	_settings_button.set_anchors_and_offsets_preset(
@@ -60,8 +60,8 @@ func build() -> void:
 	_action_panel.anchor_right = 0.5
 	_action_panel.anchor_top = 0.69
 	_action_panel.anchor_bottom = 0.69
-	_action_panel.offset_left = -365.0
-	_action_panel.offset_right = 365.0
+	_action_panel.offset_left = -320.0
+	_action_panel.offset_right = 320.0
 	_action_panel.offset_top = -118.0
 	_action_panel.offset_bottom = 118.0
 	_action_panel.visible = false
@@ -80,24 +80,26 @@ func build() -> void:
 	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stack.add_child(buttons)
 
-	_play_button = UiKit.button(Loc.t(&"splash.play"), &"PrimaryButton", &"play")
-	_play_button.custom_minimum_size = Vector2(190, 66)
+	_play_button = UiKit.button(Loc.t(&"splash.play"), &"GlassButton", &"play")
+	_play_button.custom_minimum_size = Vector2(190, 60)
 	_play_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_play_button.disabled = true
+	_play_button.modulate.a = 0.68
 	_play_button.tooltip_text = Loc.t(&"common.soon")
 	buttons.add_child(_play_button)
 
 	_google_button = UiKit.button(
-		Loc.t(&"splash.login.google"), &"SecondaryButton", &"google")
-	_google_button.custom_minimum_size = Vector2(210, 66)
+		Loc.t(&"splash.login.google"), &"GlassButton", &"google")
+	_google_button.custom_minimum_size = Vector2(210, 60)
 	_google_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_google_button.disabled = true
+	_google_button.modulate.a = 0.68
 	_google_button.tooltip_text = Loc.t(&"common.soon")
 	buttons.add_child(_google_button)
 
 	_guest_button = UiKit.button(
-		Loc.t(&"splash.login.guest"), &"OutlineButton", &"profile")
-	_guest_button.custom_minimum_size = Vector2(210, 66)
+		Loc.t(&"splash.login.guest"), &"GlassPrimaryButton", &"profile")
+	_guest_button.custom_minimum_size = Vector2(210, 60)
 	_guest_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiKit.on_hover(_guest_button, "hover")
 	UiKit.on_press(_guest_button, _on_guest_pressed, "confirm")
@@ -145,7 +147,7 @@ func _layout_actions() -> void:
 	if _action_panel == null:
 		return
 	var viewport := get_viewport_rect().size
-	var half_width := minf(365.0, maxf(160.0, (viewport.x - 32.0) * 0.5))
+	var half_width := minf(320.0, maxf(160.0, (viewport.x - 40.0) * 0.5))
 	_action_panel.offset_left = -half_width
 	_action_panel.offset_right = half_width
 	var compact := viewport.y < 650.0
@@ -161,11 +163,11 @@ func _layout_actions() -> void:
 	_action_panel.offset_top = -half_height
 	_action_panel.offset_bottom = half_height
 	if _guest_button != null:
-		_guest_button.custom_minimum_size.y = 58.0 if compact else 66.0
+		_guest_button.custom_minimum_size.y = 56.0 if compact else 60.0
 	if _play_button != null:
-		_play_button.custom_minimum_size.y = 58.0 if compact else 66.0
+		_play_button.custom_minimum_size.y = 56.0 if compact else 60.0
 	if _google_button != null:
-		_google_button.custom_minimum_size.y = 58.0 if compact else 66.0
+		_google_button.custom_minimum_size.y = 56.0 if compact else 60.0
 
 
 func on_screen_resized() -> void:
@@ -208,8 +210,10 @@ func _set_busy(busy: bool) -> void:
 	_busy = busy
 	if _guest_button != null:
 		_guest_button.disabled = busy
+		_guest_button.modulate.a = 0.68 if busy else 1.0
 	if _settings_button != null:
 		_settings_button.disabled = busy
+		_settings_button.modulate.a = 0.68 if busy else 1.0
 	if busy:
 		Router.set_loading_label(Loc.t(&"auth.state.signing_in"))
 		Router.show_loading()
@@ -261,7 +265,7 @@ func _open_settings_modal() -> void:
 	var page := SettingsPage.new()
 	page.custom_minimum_size = Vector2(760, 560)
 
-	var wrapper := UiKit.panel(&"CardPanel")
+	var wrapper := UiKit.panel(&"GlassModalPanel")
 	var column := UiKit.vbox(Design.SPACE_MD)
 	wrapper.add_child(column)
 	var header := UiKit.hbox(Design.SPACE_MD)

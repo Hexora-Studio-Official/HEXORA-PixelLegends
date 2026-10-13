@@ -50,7 +50,7 @@ func build() -> void:
 	if _background_shade == null or not is_instance_valid(_background_shade):
 		_background_shade = ColorRect.new()
 		_background_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-		_background_shade.color = Color(0.025, 0.045, 0.10, 0.24)
+		_background_shade.color = Color(0.025, 0.045, 0.10, 0.1)
 		_background_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_background_shade.z_index = -1
 		add_child(_background_shade)
@@ -142,7 +142,7 @@ func _build_profile_card() -> PanelContainer:
 	identity.add_child(_account_label)
 	row.add_child(identity)
 
-	_edit_name_button = UiKit.button(Loc.t(&"home.edit_name"), &"GhostButton", &"profile")
+	_edit_name_button = UiKit.button(Loc.t(&"home.edit_name"), &"GlassButton", &"profile")
 	_edit_name_button.custom_minimum_size = Vector2(132, 50)
 	UiKit.on_hover(_edit_name_button)
 	UiKit.on_press(_edit_name_button, _open_name_editor, "click")
@@ -166,11 +166,11 @@ func _build_left_rail() -> void:
 	var title := UiKit.micro(Loc.t(&"home.explore").to_upper())
 	title.add_theme_color_override("font_color", Design.ACCENT_HI)
 	column.add_child(title)
-	column.add_child(UiKit.divider(Design.LINE, 2))
+	column.add_child(UiKit.divider(Color(0.72, 0.9, 1.0, 0.28), 1))
 
 	for entry: Dictionary in NAV_ITEMS:
-		var button := UiKit.button(Loc.t(entry["text"]), &"SecondaryButton", entry["icon"])
-		button.custom_minimum_size = Vector2(0, 62)
+		var button := UiKit.button(Loc.t(entry["text"]), &"GlassNavButton", entry["icon"])
+		button.custom_minimum_size = Vector2(0, 58)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		UiKit.on_hover(button)
 		# Intentionally no pressed callback: these feature destinations are
@@ -213,7 +213,7 @@ func _build_spotlight() -> void:
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(description)
 
-	var heroes := UiKit.button(Loc.t(&"home.heroes"), &"OutlineButton", &"crown")
+	var heroes := UiKit.button(Loc.t(&"home.heroes"), &"GlassButton", &"crown")
 	heroes.custom_minimum_size = Vector2(0, 54)
 	heroes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiKit.on_hover(heroes)
@@ -253,7 +253,7 @@ func _build_battle_dock() -> void:
 	_battle_soon.add_theme_color_override("font_color", Design.ACCENT_HI)
 	_battle_row.add_child(_battle_soon)
 
-	_battle_play = UiKit.button(Loc.t(&"home.battle_button"), &"PrimaryButton", &"play")
+	_battle_play = UiKit.button(Loc.t(&"home.battle_button"), &"GlassPrimaryButton", &"play")
 	_battle_play.custom_minimum_size = Vector2(250, 72)
 	_battle_play.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	UiKit.on_hover(_battle_play)
@@ -359,7 +359,7 @@ func _refresh_profile_labels(profile: PlayerProfile) -> void:
 func _open_name_editor() -> void:
 	if Session.profile == null:
 		return
-	var wrapper := UiKit.panel(&"CardPanel")
+	var wrapper := UiKit.panel(&"GlassModalPanel")
 	wrapper.custom_minimum_size = Vector2(480.0, 0.0)
 	var column := UiKit.vbox(Design.SPACE_MD)
 	wrapper.add_child(column)
@@ -382,8 +382,8 @@ func _open_name_editor() -> void:
 
 	var actions := UiKit.hbox(Design.SPACE_SM)
 	actions.alignment = BoxContainer.ALIGNMENT_END
-	var cancel := UiKit.button(Loc.t(&"common.cancel"), &"OutlineButton")
-	var save := UiKit.button(Loc.t(&"home.edit_save"), &"PrimaryButton", &"check")
+	var cancel := UiKit.button(Loc.t(&"common.cancel"), &"GlassButton")
+	var save := UiKit.button(Loc.t(&"home.edit_save"), &"GlassPrimaryButton", &"check")
 	cancel.custom_minimum_size = Vector2(130.0, 56.0)
 	save.custom_minimum_size = Vector2(180.0, 56.0)
 	actions.add_child(cancel)
@@ -420,7 +420,7 @@ func _open_settings_modal() -> void:
 	var page := SettingsPage.new()
 	page.custom_minimum_size = Vector2(760.0, 560.0)
 
-	var wrapper := UiKit.panel(&"CardPanel")
+	var wrapper := UiKit.panel(&"GlassModalPanel")
 	var column := UiKit.vbox(Design.SPACE_MD)
 	wrapper.add_child(column)
 	var header := UiKit.hbox(Design.SPACE_MD)

@@ -46,6 +46,16 @@ const ACCENT_TINT: Color = Color(1.0, 0.824, 0.165, 0.16)
 const TEAL_TINT: Color = Color(0.286, 0.741, 1.0, 0.15)
 const DANGER_TINT: Color = Color(0.957, 0.318, 0.235, 0.16)
 
+# Frosted glass surfaces for the entrance and main hub. Keep the fill alpha low
+# so the supplied arena art remains visible through every menu surface.
+const GLASS_FILL: Color = Color(0.035, 0.105, 0.165, 0.36)
+const GLASS_HOVER: Color = Color(0.075, 0.22, 0.31, 0.54)
+const GLASS_PRESSED: Color = Color(0.025, 0.09, 0.15, 0.66)
+const GLASS_EDGE: Color = Color(0.72, 0.9, 1.0, 0.42)
+const GLASS_EDGE_HI: Color = Color(0.58, 0.86, 1.0, 0.78)
+const GLASS_GOLD: Color = Color(0.52, 0.32, 0.09, 0.46)
+const GLASS_GOLD_EDGE: Color = Color(1.0, 0.86, 0.5, 0.88)
+
 ## Currency / rarity ramp, reused by the store and reward popups later.
 const RARITY: Array[Color] = [
 	Color("9eb5bb"),  # common
@@ -281,6 +291,25 @@ func _add_buttons(built: Theme) -> void:
 		built.set_constant(&"h_separation", variation, SPACE_SM)
 		built.set_constant(&"outline_size", variation, 0)
 
+	# New entrance and hub controls use translucent surfaces rather than solid
+	# slabs, with a warm glass accent reserved for the active action.
+	_register_glass_button(
+		built, &"GlassButton", GLASS_FILL, GLASS_EDGE,
+		GLASS_HOVER, GLASS_EDGE_HI, GLASS_PRESSED, TEXT
+	)
+	_register_glass_button(
+		built, &"GlassPrimaryButton",
+		GLASS_GOLD, GLASS_GOLD_EDGE,
+		Color(0.68, 0.43, 0.1, 0.62), Color(1.0, 0.92, 0.64, 0.98),
+		Color(0.38, 0.22, 0.05, 0.72), TEXT
+	)
+	_register_glass_button(
+		built, &"GlassNavButton",
+		Color(0.04, 0.12, 0.18, 0.12), Color.TRANSPARENT,
+		Color(0.65, 0.87, 1.0, 0.15), Color(0.76, 0.92, 1.0, 0.36),
+		Color(0.04, 0.18, 0.26, 0.3), TEXT_MUTED
+	)
+
 	# Chips: compact toggle-ish buttons used for mode and region selection.
 	for state in [{"name": &"ChipButton", "active": false}, {"name": &"ChipButtonActive", "active": true}]:
 		var variation: StringName = state["name"]
@@ -371,14 +400,23 @@ func _add_buttons(built: Theme) -> void:
 		built.set_font_size(&"font_size", variation, FONT_BODY)
 		built.set_constant(&"h_separation", variation, SPACE_MD)
 
-	# Plain icon button: a square tap target with no chrome until hovered.
+	# Icon-only controls get the same quiet glass treatment and a bright focus ring.
 	built.set_type_variation(&"IconButton", &"Button")
-	built.set_stylebox(&"normal", &"IconButton", _button_box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color.TRANSPARENT, RADIUS_SM, 0, 8))
-	built.set_stylebox(&"hover", &"IconButton", _button_box(SURFACE_ALT, LINE, Color.TRANSPARENT, RADIUS_SM, 1, 8))
-	built.set_stylebox(&"pressed", &"IconButton", _button_box(SURFACE_HI, LINE_STRONG, Color.TRANSPARENT, RADIUS_SM, 1, 8))
-	built.set_stylebox(&"focus", &"IconButton", _button_box(Color(0, 0, 0, 0), TEAL, Color.TRANSPARENT, RADIUS_SM, 1, 8))
+	built.set_stylebox(&"normal", &"IconButton",
+		_glass_box(Color(0.035, 0.105, 0.165, 0.22),
+			Color(0.72, 0.9, 1.0, 0.3), 18, 8, 8, 4))
+	built.set_stylebox(&"hover", &"IconButton",
+		_glass_box(GLASS_HOVER, GLASS_EDGE_HI, 18, 8, 8, 10))
+	built.set_stylebox(&"pressed", &"IconButton",
+		_glass_box(GLASS_PRESSED, GLASS_EDGE_HI, 18, 8, 8, 4))
+	built.set_stylebox(&"focus", &"IconButton",
+		_glass_box(Color(0.035, 0.105, 0.165, 0.28), GLASS_EDGE_HI, 18, 8, 8, 8))
+	built.set_stylebox(&"disabled", &"IconButton",
+		_glass_box(Color(0.035, 0.08, 0.12, 0.16), Color(0.72, 0.86, 0.94, 0.14), 18, 8, 8, 0))
 	built.set_color(&"font_color", &"IconButton", TEXT_MUTED)
 	built.set_color(&"font_hover_color", &"IconButton", TEXT)
+	built.set_color(&"font_pressed_color", &"IconButton", TEXT)
+	built.set_color(&"font_disabled_color", &"IconButton", TEXT_DIM)
 
 
 ## Build a button stylebox.
@@ -411,6 +449,60 @@ func _button_box(
 	return box
 
 
+## Soft translucent surface used by the entrance and hub controls.
+func _glass_box(
+	fill: Color, edge: Color, radius: int, pad_x: int = 18, pad_y: int = 14,
+	shadow_size: int = 8
+) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = fill
+	box.set_corner_radius_all(radius)
+	box.set_content_margin_all(float(SPACE_SM))
+	box.content_margin_left = float(pad_x)
+	box.content_margin_right = float(pad_x)
+	box.content_margin_top = float(pad_y)
+	box.content_margin_bottom = float(pad_y)
+	if edge.a > 0.0:
+		box.border_color = edge
+		box.set_border_width_all(1)
+	box.anti_aliasing = true
+	if shadow_size > 0:
+		box.shadow_color = Color(0.01, 0.035, 0.09, 0.24)
+		box.shadow_size = shadow_size
+		box.shadow_offset = Vector2(0.0, 4.0)
+	return box
+
+
+func _register_glass_button(
+	built: Theme, variation: StringName, fill: Color, edge: Color,
+	hover_fill: Color, hover_edge: Color, pressed_fill: Color,
+	text_color: Color
+) -> void:
+	var radius := 18
+	built.set_type_variation(variation, &"Button")
+	built.set_stylebox(&"normal", variation,
+		_glass_box(fill, edge, radius, 20, 14, 8))
+	built.set_stylebox(&"hover", variation,
+		_glass_box(hover_fill, hover_edge, radius, 20, 14, 12))
+	built.set_stylebox(&"pressed", variation,
+		_glass_box(pressed_fill, hover_edge, radius, 20, 14, 4))
+	built.set_stylebox(&"focus", variation,
+		_glass_box(fill, GLASS_EDGE_HI, radius, 20, 14, 8))
+	built.set_stylebox(&"disabled", variation,
+		_glass_box(Color(0.035, 0.08, 0.12, 0.22),
+			Color(0.72, 0.86, 0.94, 0.2), radius, 20, 14, 0))
+	built.set_color(&"font_color", variation, text_color)
+	built.set_color(&"font_hover_color", variation, TEXT)
+	built.set_color(&"font_pressed_color", variation, TEXT)
+	built.set_color(&"font_focus_color", variation, TEXT)
+	built.set_color(&"font_disabled_color", variation,
+		Color(TEXT.r, TEXT.g, TEXT.b, 0.58))
+	built.set_font(&"font", variation, font_label)
+	built.set_font_size(&"font_size", variation, FONT_BODY)
+	built.set_constant(&"h_separation", variation, SPACE_SM)
+	built.set_constant(&"outline_size", variation, 0)
+
+
 ## Panels — the surfaces everything else is placed on.
 func _add_panels(built: Theme) -> void:
 	var panels := [
@@ -423,8 +515,13 @@ func _add_panels(built: Theme) -> void:
 		{"name": &"ActionDockPanel", "fill": BG_RAISED, "border": LINE, "radius": RADIUS_LG, "pad": SPACE_SM},
 		{
 			"name": &"EntranceDockPanel",
-			"fill": Color(BG_RAISED.r, BG_RAISED.g, BG_RAISED.b, 0.90),
-			"border": LINE, "radius": RADIUS_LG, "pad": SPACE_MD,
+			"fill": Color(0.025, 0.085, 0.145, 0.42),
+			"border": Color(0.72, 0.9, 1.0, 0.42), "radius": 24, "pad": SPACE_MD,
+		},
+		{
+			"name": &"GlassModalPanel",
+			"fill": Color(0.025, 0.075, 0.13, 0.58),
+			"border": Color(0.75, 0.91, 1.0, 0.5), "radius": 24, "pad": SPACE_XL,
 		},
 		{"name": &"BannerPanel", "fill": ACCENT_TINT, "border": ACCENT, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"InfoPanel", "fill": TEAL_TINT, "border": TEAL, "radius": RADIUS_MD, "pad": SPACE_LG},
@@ -444,6 +541,11 @@ func _add_panels(built: Theme) -> void:
 		if (panel["border"] as Color).a > 0.0:
 			box.border_color = panel["border"]
 			box.set_border_width_all(BORDER_THIN)
+		if variation == &"EntranceDockPanel" or variation == &"GlassModalPanel":
+			box.anti_aliasing = true
+			box.shadow_color = Color(0.01, 0.035, 0.09, 0.26)
+			box.shadow_size = 16 if variation == &"EntranceDockPanel" else 22
+			box.shadow_offset = Vector2(0.0, 7.0)
 		built.set_stylebox(&"panel", variation, box)
 
 
