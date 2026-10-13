@@ -97,14 +97,12 @@ KNOWN EXTERNAL / WORKSPACE BLOCKERS
 - The GitHub repository description still reads "Online Shooter". Attempts to
   update it returned HTTP 403 (integration lacks repository metadata write
   permission); no successful metadata change has been made.
-- Workspace sync note (2026-10-13): this local checkout is on
-  arena/22d75a58-hexora-pixelfield at 8d00c56, while the fetched origin branch
-  tip was d742c9a and contained the uploaded PROJECT_SPEC.txt. This file was
-  copied into the working tree from that remote history and is not yet part of
-  the local HEAD. The checkout contains substantial uncommitted project work;
-  do not reset or fast-forward it wholesale. Inspect and preserve changes before
-  any synchronization or push, and include this spec intentionally in any
-  future submission.
+- Workspace sync note (2026-10-13): the fetched origin history, including the
+  uploaded PROJECT_SPEC.txt, has now been integrated into the fixed session
+  branch while preserving the PixelLegends working tree. No branch switch or
+  reset was performed. Before future synchronization or publishing, inspect
+  git status and the current branch, preserve any user changes, and avoid
+  treating historical PixelField content as the current product.
 
 ============================================================
 END OF LIVE STATUS BLOCK
