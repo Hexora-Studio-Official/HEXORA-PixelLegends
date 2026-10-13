@@ -12,6 +12,7 @@ const MIN_DISPLAY_SEC := 1.5
 var _logo: Control
 var _wordmark: Label
 var _tagline: Label
+var _progress_panel: PanelContainer
 var _step_rows: Array[Dictionary] = []
 var _status_label: Label
 var _elapsed: float = 0.0
@@ -23,6 +24,8 @@ var _finished: bool = false
 func build() -> void:
 	var root := UiKit.vbox(Design.SPACE_LG)
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.alignment = BoxContainer.ALIGNMENT_CENTER
 	content.add_child(root)
 
@@ -40,12 +43,13 @@ func build() -> void:
 	root.add_child(_tagline)
 
 	# ---- progress steps ----------------------------------------------------
-	var progress_panel := UiKit.panel(&"RaisedPanel")
-	progress_panel.custom_minimum_size = Vector2(520, 0)
-	progress_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_progress_panel = UiKit.panel(&"RaisedPanel")
+	_progress_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var steps := UiKit.vbox(Design.SPACE_MD)
-	progress_panel.add_child(steps)
-	root.add_child(progress_panel)
+	_progress_panel.add_child(steps)
+	root.add_child(_progress_panel)
+	_fit_progress_width()
+	call_deferred("_fit_progress_width")
 	_step_rows.clear()
 	_step_rows.append(_build_step_row(&"boot.loading_services"))
 	_step_rows.append(_build_step_row(&"boot.checking_session"))
@@ -61,6 +65,23 @@ func build() -> void:
 	_services_done = true
 	_mark_step(Step.SERVICES, true)
 	_advance_status_visuals()
+
+
+func _fit_progress_width() -> void:
+	if _progress_panel == null or not is_instance_valid(_progress_panel):
+		return
+	var available_width := safe_content_width()
+	if available_width <= 0.0:
+		available_width = get_viewport_rect().size.x
+	if available_width <= 0.0:
+		return
+	var gutter := minf(float(Design.SPACE_MD), available_width * 0.04)
+	_progress_panel.custom_minimum_size.x = minf(520.0,
+		maxf(0.0, available_width - gutter * 2.0))
+
+
+func on_screen_resized() -> void:
+	_fit_progress_width()
 
 
 ## Version line under the logo.

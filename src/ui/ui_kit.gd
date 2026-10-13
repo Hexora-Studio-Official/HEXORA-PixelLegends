@@ -239,15 +239,15 @@ static func icon_button(kind: StringName, color: Color = Design.TEXT_MUTED,
 ## here so the mode picker, the room browser and the lobby all agree on what a
 ## ruleset looks like.
 static func mode_card(mode: GameMode, selected: bool = false,
-		on_toggle: Callable = Callable()) -> Button:
+		on_toggle: Callable = Callable(), stacked: bool = false) -> Button:
 	var node := Button.new()
 	node.theme_type_variation = &"CardButtonActive" if selected else &"CardButton"
-	node.custom_minimum_size = Vector2(0, 96)
+	node.custom_minimum_size = Vector2(0, 120 if stacked else 96)
 	node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	node.focus_mode = Control.FOCUS_NONE
 	node.tooltip_text = Loc.t(mode.rules_key)
 
-	var row := hbox(Design.SPACE_SM)
+	var row: BoxContainer = vbox(Design.SPACE_SM) if stacked else hbox(Design.SPACE_SM)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -255,6 +255,7 @@ static func mode_card(mode: GameMode, selected: bool = false,
 
 	var icon := HexIcon.make(mode.icon_kind, mode.accent, 28.0, 2.0, mode.accent)
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	row.add_child(icon)
 
 	var column := vbox(Design.SPACE_XXS)
@@ -263,6 +264,11 @@ static func mode_card(mode: GameMode, selected: bool = false,
 	row.add_child(column)
 
 	var title := label(Loc.t(mode.title_key), &"SectionLabel")
+	title.custom_minimum_size.x = 0.0
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.clip_text = true
+	if stacked:
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(title)
 
@@ -272,6 +278,11 @@ static func mode_card(mode: GameMode, selected: bool = false,
 	if not mode.supports_lan:
 		details += " · " + Loc.t(&"common.online").to_upper()
 	var summary := label(details, &"CaptionLabel")
+	summary.custom_minimum_size.x = 0.0
+	summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	summary.clip_text = true
+	if stacked:
+		summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	summary.add_theme_color_override("font_color", Design.TEXT_MUTED)
 	summary.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(summary)

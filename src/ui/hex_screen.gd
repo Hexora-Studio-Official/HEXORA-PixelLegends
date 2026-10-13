@@ -25,6 +25,7 @@ var safe_padding: int = Design.SPACE_XL
 var content: Control
 var _backdrop: HexBackdrop
 var _safe: MarginContainer
+var _horizontal_safe_inset: float = Design.SPACE_XL
 
 
 func _ready() -> void:
@@ -89,23 +90,43 @@ func _apply_direction() -> void:
 	layout_direction = direction
 
 
-## Notches and rounded corners: keep text out of the cut-out areas. Android
-## landscape puts the inset on the leading edge, right where a nav rail sits.
+## Notches and rounded corners: keep content in a symmetric safe viewport.
+## Mirroring the larger horizontal inset prevents a left-side camera cutout
+## from shifting every centered screen toward the right.
 func _apply_safe_padding() -> void:
-	var inset_left := safe_padding
-	var inset_right := safe_padding
+	var horizontal_inset := safe_padding
 	var safe := Design.safe_area()
 	var window_size := Vector2(DisplayServer.window_get_size())
 	if safe.size != Vector2i.ZERO and window_size.x > 0.0:
-		# Safe area is in physical pixels; convert to the UI's logical units.
+		# Safe-area measurements are physical pixels. Convert to the UI's logical
+		# units, then mirror the larger side on both edges. An asymmetric notch
+		# inset must not pull every centered screen toward the opposite edge.
 		var scale := window_size.x / maxf(1.0, size.x if size.x > 1.0 else window_size.x)
-		inset_left = maxi(safe_padding, int(float(safe.position.x) * scale))
-		inset_right = maxi(safe_padding,
-			int(float(window_size.x - (safe.position.x + safe.size.x)) * scale))
+		var physical_left := float(safe.position.x)
+		var physical_right := float(window_size.x - (safe.position.x + safe.size.x))
+		horizontal_inset = maxi(safe_padding,
+			int(round(maxf(physical_left, physical_right) * scale)))
+	_horizontal_safe_inset = float(horizontal_inset)
+
 	for side in ["left", "right", "top", "bottom"]:
 		_safe.add_theme_constant_override("margin_%s" % side, safe_padding)
-	_safe.add_theme_constant_override("margin_left", inset_left)
-	_safe.add_theme_constant_override("margin_right", inset_right)
+	_safe.add_theme_constant_override("margin_left", horizontal_inset)
+	_safe.add_theme_constant_override("margin_right", horizontal_inset)
+
+
+func safe_content_width() -> float:
+	return maxf(0.0, get_viewport_rect().size.x - _horizontal_safe_inset * 2.0)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and _safe != null:
+		_apply_safe_padding()
+		on_screen_resized()
+
+
+## Screens with width-constrained cards can update them when the device rotates.
+func on_screen_resized() -> void:
+	pass
 
 
 func _animate_entrance() -> void:

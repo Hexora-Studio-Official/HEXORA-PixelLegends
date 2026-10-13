@@ -1,8 +1,8 @@
 extends HexScreen
 ## Sign-in: Google, or guest.
 ##
-## Desktop uses a brand-and-form split; phones use a compact brand strip above
-## one full-width, scrollable sign-in card.
+## A responsive centered sign-in card; the viewport scrolls when the screen is
+## too short, and the card never exceeds the device's safe content width.
 ##
 ## Two things here are deliberate and worth keeping:
 ##   1. Settings is reachable before sign-in. The Google client ID has to be
@@ -16,38 +16,32 @@ var _error_banner: PanelContainer
 var _error_label: Label
 var _status_row: HBoxContainer
 var _busy: bool = false
+var _card: PanelContainer
 
 
 func build() -> void:
 	_busy = Auth.is_busy()
 
+	var scroll := UiKit.scroll(true)
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	content.add_child(scroll)
+
 	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scroll.add_child(center)
 
-	var viewport_width := get_viewport_rect().size.x
-	var minimum_width := 360.0 if OS.has_feature("mobile") else 420.0
-	var card_width := minf(900.0, maxf(minimum_width,
-		viewport_width - Design.SPACE_XXL * 2.0))
-	var card := UiKit.panel(&"CardPanel")
-	card.custom_minimum_size = Vector2(card_width, 0)
-	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-
-	if OS.has_feature("mobile"):
-		var scroll := UiKit.scroll(true)
-		scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-		content.add_child(scroll)
-		center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		scroll.add_child(center)
-	else:
-		center.set_anchors_preset(Control.PRESET_FULL_RECT)
-		content.add_child(center)
-	center.add_child(card)
+	_card = UiKit.panel(&"CardPanel")
+	_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	center.add_child(_card)
+	_fit_card_width()
+	call_deferred("_fit_card_width")
 
 	var column := UiKit.vbox(Design.SPACE_MD)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_child(column)
+	_card.add_child(column)
 	column.add_child(_build_brand_header())
 	column.add_child(UiKit.divider(Design.LINE_STRONG, 2))
 	column.add_child(_build_form_column())
@@ -56,6 +50,22 @@ func build() -> void:
 	UiKit.listen(EventBus.auth_state_changed, _on_auth_state_changed)
 	UiKit.listen(EventBus.auth_failed, _on_auth_failed)
 	UiKit.listen(EventBus.auth_signed_in, _on_signed_in)
+
+
+func _fit_card_width() -> void:
+	if _card == null or not is_instance_valid(_card):
+		return
+	var available_width := safe_content_width()
+	if available_width <= 0.0:
+		available_width = get_viewport_rect().size.x
+	if available_width <= 0.0:
+		return
+	var gutter := minf(float(Design.SPACE_MD), available_width * 0.04)
+	_card.custom_minimum_size.x = minf(900.0, maxf(0.0, available_width - gutter * 2.0))
+
+
+func on_screen_resized() -> void:
+	_fit_card_width()
 
 
 func _build_brand_header() -> Control:
@@ -138,6 +148,9 @@ func _build_form_column() -> VBoxContainer:
 	legal.bbcode_enabled = true
 	legal.fit_content = true
 	legal.scroll_active = false
+	legal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	legal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	legal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	legal.custom_minimum_size = Vector2(0, 28)
 	legal.add_theme_font_override("normal_font", Design.font_ui)
 	legal.add_theme_font_size_override("normal_font_size", Design.FONT_SMALL)

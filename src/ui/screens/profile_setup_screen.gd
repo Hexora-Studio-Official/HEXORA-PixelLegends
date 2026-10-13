@@ -1,6 +1,6 @@
 extends HexScreen
-## Two-step operator setup. Each step fits in a centered card so the player
-## never has to hunt for a clipped action or fight a nested scroll container.
+## Two-step operator setup. Each card stays centered when it fits and moves
+## inside one scroll viewport on short screens, keeping every action reachable.
 
 enum Step { IDENTITY, COLOUR }
 
@@ -21,6 +21,7 @@ var _region_values: Array[int] = []
 var _swatches: Array[Control] = []
 var _preview: AvatarView
 var _preview_name_label: Label
+var _setup_card: PanelContainer
 var _regex := RegEx.new()
 
 
@@ -39,22 +40,26 @@ func build() -> void:
 	_preview = null
 	_preview_name_label = null
 
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(center)
+	var scroll := UiKit.scroll(true)
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	content.add_child(scroll)
 
-	var viewport_width := get_viewport_rect().size.x
-	var card_width := minf(920.0, maxf(360.0, viewport_width - Design.SPACE_XXL * 2.0))
-	var card := UiKit.panel(&"CardPanel")
-	card.custom_minimum_size = Vector2(card_width, 0)
-	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	center.add_child(card)
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scroll.add_child(center)
+
+	_setup_card = UiKit.panel(&"CardPanel")
+	_setup_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_setup_card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	center.add_child(_setup_card)
+	_fit_card_width()
+	call_deferred("_fit_card_width")
 
 	var column := UiKit.vbox(Design.SPACE_MD)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_child(column)
+	_setup_card.add_child(column)
 	column.add_child(_build_brand_header())
 	column.add_child(UiKit.progress(&"ThinBar", 0.5 if _step == Step.IDENTITY else 1.0, 8))
 
@@ -64,6 +69,23 @@ func build() -> void:
 		column.add_child(_build_colour_step())
 
 	_validate()
+
+
+func _fit_card_width() -> void:
+	if _setup_card == null or not is_instance_valid(_setup_card):
+		return
+	var available_width := safe_content_width()
+	if available_width <= 0.0:
+		available_width = get_viewport_rect().size.x
+	if available_width <= 0.0:
+		return
+	var gutter := minf(float(Design.SPACE_MD), available_width * 0.04)
+	_setup_card.custom_minimum_size.x = minf(920.0,
+		maxf(0.0, available_width - gutter * 2.0))
+
+
+func on_screen_resized() -> void:
+	_fit_card_width()
 
 
 func _build_brand_header() -> Control:
@@ -110,14 +132,31 @@ func _build_identity_step() -> Control:
 	region_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(region_label)
 
-	var region_grid := UiKit.grid(3, Design.SPACE_SM)
+	const REGION_CHIP_HEIGHT := 60
+	var regions := GameTypes.selectable_regions()
+	# Preserve the 3-by-3 picker on tablet/landscape layouts; narrow phones get
+	# two columns so long translated region names have room instead of colliding.
+	var region_columns := 3 if _setup_card.custom_minimum_size.x >= 640.0 else 2
+	var region_grid := UiKit.grid(region_columns, Design.SPACE_SM)
 	region_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var region_rows := ceili(float(regions.size()) / float(region_columns))
+	region_grid.custom_minimum_size.y = region_rows * REGION_CHIP_HEIGHT \
+		+ maxi(0, region_rows - 1) * Design.SPACE_SM
 	_region_chips.clear()
 	_region_values.clear()
-	for region in GameTypes.selectable_regions():
+	for region in regions:
 		var chip := UiKit.chip(Loc.t(GameTypes.region_key(region)), region == _region)
-		chip.custom_minimum_size = Vector2(0, 60)
+		chip.custom_minimum_size = Vector2(0, REGION_CHIP_HEIGHT)
 		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		chip.clip_contents = true
+		var chip_label := UiKit.label_text(chip)
+		if chip_label != null:
+			chip_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			chip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			chip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			chip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			chip_label.max_lines_visible = 2
+			chip_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_region_values.append(region)
 		var captured_region := region
 		UiKit.on_press(chip, func() -> void: _on_region_selected(captured_region))
@@ -167,7 +206,9 @@ func _build_colour_step() -> Control:
 
 	var palette_center := CenterContainer.new()
 	palette_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var palette_grid := UiKit.grid(4, Design.SPACE_SM)
+	var inner_width := _setup_card.custom_minimum_size.x - Design.SPACE_XL * 2.0
+	var palette_columns := 4 if inner_width >= 372.0 else 3 if inner_width >= 240.0 else 2
+	var palette_grid := UiKit.grid(palette_columns, Design.SPACE_SM)
 	palette_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_swatches.clear()
 	for index in AvatarView.PALETTE.size():
@@ -177,7 +218,11 @@ func _build_colour_step() -> Control:
 	palette_center.add_child(palette_grid)
 	column.add_child(palette_center)
 
-	var actions := UiKit.hbox(Design.SPACE_MD)
+	var actions: BoxContainer
+	if _setup_card.custom_minimum_size.x >= 600.0:
+		actions = UiKit.hbox(Design.SPACE_MD)
+	else:
+		actions = UiKit.vbox(Design.SPACE_SM)
 	var enter := UiKit.button(Loc.t(&"auth.setup.enter"), &"PrimaryButton", &"check")
 	enter.custom_minimum_size = Vector2(0, 64)
 	enter.size_flags_horizontal = Control.SIZE_EXPAND_FILL

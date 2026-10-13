@@ -74,11 +74,17 @@ func _build_modes() -> Control:
 	column.add_child(UiKit.paragraph(Loc.t(&"play.modes.hint"), 1120.0, &"CaptionLabel"))
 	column.add_child(UiKit.micro(Loc.t(&"play.online_only")))
 
-	var grid := UiKit.grid(3, Design.SPACE_MD)
+	# Two columns on phones give each tile enough room for its title and rules;
+	# desktop keeps three without forcing the content beyond the scroll viewport.
+	var mode_columns := 2 if OS.has_feature("mobile") else 3
+	var grid := UiKit.grid(mode_columns, Design.SPACE_MD)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_cards.clear()
 	for mode in GameCatalog.matchmaking_pool():
 		var available := _mode_available(mode)
-		var card := UiKit.mode_card(mode, selected.has(mode.id))
+		var card := UiKit.mode_card(mode, selected.has(mode.id), Callable(),
+			OS.has_feature("mobile"))
+		card.clip_contents = true
 		card.disabled = not available
 		if not available:
 			card.tooltip_text = Loc.t(&"play.needs_online")

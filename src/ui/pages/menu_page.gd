@@ -14,6 +14,7 @@ extends Control
 var scroll: ScrollContainer
 var body: VBoxContainer
 
+var _body_center: CenterContainer
 var _built: bool = false
 
 
@@ -42,21 +43,36 @@ func _build_frame() -> void:
 	margin.add_theme_constant_override("margin_bottom", Design.SPACE_XL)
 	scroll.add_child(margin)
 
-	var center := CenterContainer.new()
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	margin.add_child(center)
+	_body_center = CenterContainer.new()
+	_body_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_body_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	margin.add_child(_body_center)
 
-	var viewport_width := get_viewport_rect().size.x
-	var horizontal_insets := float(Design.SPACE_XL * 4)
-	if not OS.has_feature("mobile"):
-		horizontal_insets += 232.0 + Design.SPACE_LG
-	var body_width := minf(1120.0, maxf(320.0, viewport_width - horizontal_insets))
 	body = UiKit.vbox(Design.SPACE_MD if OS.has_feature("mobile") else Design.SPACE_LG)
-	body.custom_minimum_size = Vector2(body_width, 0)
+	body.custom_minimum_size = Vector2(0, 0)
 	body.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	body.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	center.add_child(body)
+	_body_center.add_child(body)
+	_fit_body_width()
+	call_deferred("_fit_body_width")
+
+
+func _fit_body_width() -> void:
+	if body == null or _body_center == null:
+		return
+	var available_width := _body_center.size.x
+	if available_width <= 0.0 and get_parent() != null:
+		available_width = get_parent().size.x - Design.SPACE_XL * 2.0
+	if available_width <= 0.0:
+		available_width = get_viewport_rect().size.x - Design.SPACE_XL * 4.0
+	if available_width <= 0.0:
+		available_width = 320.0
+	body.custom_minimum_size.x = minf(1120.0, available_width)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_fit_body_width()
 
 
 ## Override: fill `body`.
