@@ -14,6 +14,8 @@ extends RefCounted
 
 const META_LABEL := &"hex_label"
 const META_ICON := &"hex_icon"
+const META_CHIP_INACTIVE := &"hex_chip_inactive"
+const META_CHIP_ACTIVE := &"hex_chip_active"
 
 
 # ------------------------------------------------------------------- labels
@@ -23,6 +25,7 @@ static func label(text: String, variation: StringName = &"BodyLabel") -> Label:
 	node.text = text
 	node.theme_type_variation = variation
 	node.layout_direction = Loc.layout_direction()
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return node
 
 
@@ -78,18 +81,21 @@ static func set_label_text(node: Control, text: String) -> void:
 
 static func vbox(separation: int = Design.SPACE_MD) -> VBoxContainer:
 	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	box.add_theme_constant_override("separation", separation)
 	return box
 
 
 static func hbox(separation: int = Design.SPACE_SM) -> HBoxContainer:
 	var box := HBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	box.add_theme_constant_override("separation", separation)
 	return box
 
 
 static func grid(columns: int, separation: int = Design.SPACE_MD) -> GridContainer:
 	var box := GridContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	box.columns = maxi(1, columns)
 	box.add_theme_constant_override("h_separation", separation)
 	box.add_theme_constant_override("v_separation", separation)
@@ -102,11 +108,24 @@ static func scroll(follow_focus: bool = false) -> ScrollContainer:
 	container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	container.follow_focus = follow_focus
+	container.scroll_deadzone = 8
 	container.clip_contents = true
 	container.mouse_filter = Control.MOUSE_FILTER_STOP
 	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return container
+
+
+## Let touch drags started on buttons/labels bubble to the nearest scroll view.
+## Without this, a full-width grid can only be dragged from its tiny gaps.
+static func prepare_scroll_content(root: Control) -> void:
+	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	for child in root.get_children():
+		if child is ScrollContainer:
+			continue
+		if child is Control:
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_PASS
+			prepare_scroll_content(child as Control)
 
 
 ## Horizontal breathing room inside a scroll container.
@@ -140,6 +159,7 @@ static func divider(color: Color = Design.LINE, thickness: int = 1) -> ColorRect
 static func panel(variation: StringName = &"CardPanel") -> PanelContainer:
 	var node := PanelContainer.new()
 	node.theme_type_variation = variation
+	node.mouse_filter = Control.MOUSE_FILTER_PASS
 	return node
 
 
@@ -182,6 +202,7 @@ static func button(
 ) -> Button:
 	var node := Button.new()
 	node.theme_type_variation = variation
+	node.mouse_filter = Control.MOUSE_FILTER_PASS
 	node.custom_minimum_size = Vector2(0, Design.TOUCH_TARGET_MIN)
 	if not tooltip.is_empty():
 		node.tooltip_text = tooltip
@@ -242,7 +263,8 @@ static func mode_card(mode: GameMode, selected: bool = false,
 		on_toggle: Callable = Callable(), stacked: bool = false) -> Button:
 	var node := Button.new()
 	node.theme_type_variation = &"CardButtonActive" if selected else &"CardButton"
-	node.custom_minimum_size = Vector2(0, 120 if stacked else 96)
+	node.mouse_filter = Control.MOUSE_FILTER_PASS
+	node.custom_minimum_size = Vector2(0, 88 if not stacked else 108)
 	node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	node.focus_mode = Control.FOCUS_NONE
 	node.tooltip_text = Loc.t(mode.rules_key)
@@ -308,18 +330,45 @@ static func set_card_active(node: Button, active: bool) -> void:
 
 
 ## Selectable chip, used for modes, regions and filters.
-static func chip(text: String, active: bool = false, icon_kind: StringName = &"") -> Button:
-	var node := button(text, &"ChipButtonActive" if active else &"ChipButton", icon_kind)
+static func chip(
+		text: String, active: bool = false, icon_kind: StringName = &"", compact: bool = false
+) -> Button:
+	var inactive_variation: StringName = &"RegionChipButton" if compact else &"ChipButton"
+	var active_variation: StringName = \
+		&"RegionChipButtonActive" if compact else &"ChipButtonActive"
+	var variation: StringName = active_variation if active else inactive_variation
+	var node: Button
+	if icon_kind == &"":
+		# Plain text buttons are more reliable than nested labels in tight grids:
+		# the button owns the text width, wrapping and clipping itself.
+		node = Button.new()
+		node.theme_type_variation = variation
+		node.text = text
+		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		node.clip_text = true
+		node.mouse_filter = Control.MOUSE_FILTER_PASS
+	else:
+		node = button(text, variation, icon_kind)
+	node.set_meta(META_CHIP_INACTIVE, inactive_variation)
+	node.set_meta(META_CHIP_ACTIVE, active_variation)
 	node.custom_minimum_size = Vector2(0, 56)
 	return node
 
 
 static func set_chip_active(node: Button, active: bool) -> void:
-	node.theme_type_variation = &"ChipButtonActive" if active else &"ChipButton"
+	var inactive_variation := StringName(
+		node.get_meta(META_CHIP_INACTIVE, &"ChipButton"))
+	var active_variation := StringName(
+		node.get_meta(META_CHIP_ACTIVE, &"ChipButtonActive"))
+	node.theme_type_variation = active_variation if active else inactive_variation
 	var inner := label_text(node)
 	if inner != null:
 		inner.add_theme_color_override("font_color",
 			Design.ACCENT_HI if active else Design.TEXT_MUTED)
+	else:
+		node.add_theme_color_override("font_color", Design.ACCENT_HI if active else Design.TEXT_MUTED)
 	var icon := node.get_meta(META_ICON, null) as HexIcon
 	if icon != null:
 		icon.color = Design.ACCENT_HI if active else Design.TEXT_MUTED

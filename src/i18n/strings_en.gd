@@ -178,6 +178,7 @@ const TABLE := {
 	"play.ranked": "Ranked",
 	"play.ranked.off": "Unranked",
 	"play.ranked.hint": "Ranked matches award or deduct rank points.",
+	"play.ranked.offline": "Ranked is online-only. LAN and offline matches stay casual.",
 	"play.region": "Region",
 	"play.squad_fill": "Fill squad with players",
 	"settings.allow_bots": "Allow bots if the queue is slow",

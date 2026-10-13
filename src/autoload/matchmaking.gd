@@ -130,7 +130,7 @@ func start_queue(modes: Array[StringName], queue_region: int, is_ranked: bool) -
 	selected_modes = modes.duplicate()
 	_drop_unknown_modes()
 	region = queue_region if queue_region != GameTypes.Region.AUTO else _best_region()
-	ranked = is_ranked
+	ranked = is_ranked and Api.is_configured()
 
 	if selected_modes.is_empty():
 		selected_modes = _ids_of(GameCatalog.matchmaking_pool())
@@ -285,6 +285,10 @@ func _fail_local_fallback() -> void:
 	if state != GameTypes.MatchmakingState.SEARCHING:
 		return
 	ticket["simulated"] = true
+	# Local simulation and LAN play are friendly-only. Never award rank for a
+	# queue that fell back after the online service became unreachable.
+	ranked = false
+	ticket["ranked"] = false
 	_target_wait = clampf(_target_wait * 0.6, 5.0, LOCAL_WAIT_CAP_SEC)
 	ticket["estimated_wait"] = _target_wait
 	EventBus.toast_requested.emit(Loc.t(&"toast.no_network"), &"warning")

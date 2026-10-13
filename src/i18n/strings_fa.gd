@@ -174,6 +174,7 @@ const TABLE := {
 	"play.ranked": "رقابتی",
 	"play.ranked.off": "غیررقابتی",
 	"play.ranked.hint": "در بازی‌های رقابتی امتیاز رده کم یا زیاد می‌شود.",
+	"play.ranked.offline": "رقابتی فقط آنلاین است؛ بازی‌های آفلاین و LAN دوستانه می‌مانند.",
 	"play.region": "منطقه",
 	"play.squad_fill": "تیم با بازیکن‌های تصادفی پر شود",
 	"settings.allow_bots": "در صورت طولانی‌شدن صف، بات اضافه شود",

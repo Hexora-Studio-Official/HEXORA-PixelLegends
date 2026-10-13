@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- PixelField: a bold block-built PF mark on a tactical indigo field. -->
-  <rect width="512" height="512" rx="112" fill="#080D1D"/>
-  <rect x="28" y="28" width="456" height="456" rx="96" fill="#141F38" stroke="#435D84" stroke-width="6"/>
+  <!-- PixelField: a block-built PF mark for the violet-and-mint arena palette. -->
+  <rect width="512" height="512" rx="112" fill="#090D19"/>
+  <rect x="28" y="28" width="456" height="456" rx="96" fill="#151E33" stroke="#4A5D7D" stroke-width="6"/>
   <path d="M70 114h32v32H70z M112 114h32v32h-32z M154 114h32v32h-32z
            M70 156h32v32H70z M196 156h32v32h-32z
            M70 198h32v32H70z M112 198h32v32h-32z M154 198h32v32h-32z
            M70 240h32v32H70z M70 282h32v32H70z M70 324h32v32H70z M70 366h32v32H70z"
-        fill="#47D9FF"/>
+        fill="#42E5C0"/>
   <path d="M280 114h32v32h-32z M322 114h32v32h-32z M364 114h32v32h-32z M406 114h32v32h-32z
            M280 156h32v32h-32z
            M280 198h32v32h-32z M322 198h32v32h-32z M364 198h32v32h-32z
            M280 240h32v32h-32z M280 282h32v32h-32z M280 324h32v32h-32z M280 366h32v32h-32z"
-        fill="#BAFF4A"/>
-  <rect x="98" y="438" width="18" height="18" rx="4" fill="#47D9FF" opacity=".7"/>
-  <rect x="396" y="62" width="18" height="18" rx="4" fill="#BAFF4A" opacity=".8"/>
+        fill="#A78BFA"/>
+  <rect x="98" y="438" width="18" height="18" rx="4" fill="#42E5C0" opacity=".7"/>
+  <rect x="396" y="62" width="18" height="18" rx="4" fill="#A78BFA" opacity=".8"/>
 </svg>

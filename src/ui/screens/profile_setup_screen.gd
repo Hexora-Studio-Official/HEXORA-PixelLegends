@@ -22,6 +22,8 @@ var _swatches: Array[Control] = []
 var _preview: AvatarView
 var _preview_name_label: Label
 var _setup_card: PanelContainer
+var _footer: PanelContainer
+var _footer_actions: Control
 var _regex := RegEx.new()
 
 
@@ -39,23 +41,42 @@ func build() -> void:
 	_continue_button = null
 	_preview = null
 	_preview_name_label = null
+	_setup_card = null
+	_footer = null
+	_footer_actions = null
+
+	var shell := UiKit.vbox(0)
+	shell.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(shell)
 
 	var scroll := UiKit.scroll(true)
-	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-	content.add_child(scroll)
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	shell.add_child(scroll)
+
+	var viewport_margin := MarginContainer.new()
+	viewport_margin.mouse_filter = Control.MOUSE_FILTER_PASS
+	viewport_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	viewport_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	viewport_margin.add_theme_constant_override("margin_left", Design.SPACE_XS)
+	viewport_margin.add_theme_constant_override("margin_right", Design.SPACE_XS)
+	viewport_margin.add_theme_constant_override("margin_top", Design.SPACE_MD)
+	viewport_margin.add_theme_constant_override("margin_bottom", Design.SPACE_MD)
+	scroll.add_child(viewport_margin)
 
 	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_PASS
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	scroll.add_child(center)
+	viewport_margin.add_child(center)
 
-	_setup_card = UiKit.panel(&"CardPanel")
+	_setup_card = UiKit.panel(&"SetupCardPanel")
 	_setup_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_setup_card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	center.add_child(_setup_card)
 	_fit_card_width()
-	call_deferred("_fit_card_width")
 
 	var column := UiKit.vbox(Design.SPACE_MD)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -68,6 +89,11 @@ func build() -> void:
 	else:
 		column.add_child(_build_colour_step())
 
+	_footer = _build_footer()
+	shell.add_child(_footer)
+	_fit_card_width()
+	call_deferred("_fit_card_width")
+	UiKit.prepare_scroll_content(viewport_margin)
 	_validate()
 
 
@@ -79,13 +105,70 @@ func _fit_card_width() -> void:
 		available_width = get_viewport_rect().size.x
 	if available_width <= 0.0:
 		return
-	var gutter := minf(float(Design.SPACE_MD), available_width * 0.04)
-	_setup_card.custom_minimum_size.x = minf(920.0,
-		maxf(0.0, available_width - gutter * 2.0))
+	var card_width := minf(920.0,
+		maxf(0.0, available_width - Design.SPACE_XS * 2.0))
+	_setup_card.custom_minimum_size.x = card_width
+	if _footer_actions != null and is_instance_valid(_footer_actions):
+		var action_width := minf(920.0,
+			maxf(0.0, available_width - Design.SPACE_XS * 2.0 - Design.SPACE_SM * 2.0))
+		_footer_actions.custom_minimum_size.x = action_width
+		if _footer_actions is HFlowContainer:
+			var flow_width := minf(560.0, action_width)
+			_footer_actions.custom_minimum_size.x = flow_width
+			var button_width := flow_width
+			if flow_width >= 360.0:
+				button_width = minf(260.0, (flow_width - Design.SPACE_SM) * 0.5)
+			for action in _footer_actions.get_children():
+				if action is Button:
+					(action as Button).custom_minimum_size.x = button_width
 
 
 func on_screen_resized() -> void:
 	_fit_card_width()
+
+
+func _build_footer() -> PanelContainer:
+	var footer := UiKit.panel(&"ActionDockPanel")
+	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.mouse_filter = Control.MOUSE_FILTER_PASS
+
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_PASS
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_child(center)
+
+	if _step == Step.IDENTITY:
+		var actions := UiKit.vbox(0)
+		actions.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		center.add_child(actions)
+		_footer_actions = actions
+
+		_continue_button = UiKit.button(Loc.t(&"common.next"), &"PrimaryButton", &"chevron")
+		_continue_button.custom_minimum_size = Vector2(0, 60)
+		_continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UiKit.on_press(_continue_button, _continue_to_colour, "confirm")
+		actions.add_child(_continue_button)
+	else:
+		var actions := HFlowContainer.new()
+		actions.mouse_filter = Control.MOUSE_FILTER_PASS
+		actions.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		actions.add_theme_constant_override("h_separation", Design.SPACE_SM)
+		actions.add_theme_constant_override("v_separation", Design.SPACE_SM)
+		center.add_child(actions)
+		_footer_actions = actions
+
+		var enter := UiKit.button(Loc.t(&"auth.setup.enter"), &"PrimaryButton", &"check")
+		enter.custom_minimum_size = Vector2(220, 60)
+		enter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UiKit.on_press(enter, _on_enter_pressed, "confirm")
+		actions.add_child(enter)
+
+		var back := UiKit.button(Loc.t(&"common.back"), &"OutlineButton", &"chevron")
+		back.custom_minimum_size = Vector2(220, 60)
+		back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UiKit.on_press(back, _back_to_identity, "back")
+		actions.add_child(back)
+	return footer
 
 
 func _build_brand_header() -> Control:
@@ -132,43 +215,34 @@ func _build_identity_step() -> Control:
 	region_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(region_label)
 
-	const REGION_CHIP_HEIGHT := 60
+	const REGION_CHIP_HEIGHT := 64
 	var regions := GameTypes.selectable_regions()
-	# Preserve the 3-by-3 picker on tablet/landscape layouts; narrow phones get
-	# two columns so long translated region names have room instead of colliding.
-	var region_columns := 3 if _setup_card.custom_minimum_size.x >= 640.0 else 2
-	var region_grid := UiKit.grid(region_columns, Design.SPACE_SM)
+	# Keep the requested three-column / three-row layout at every viewport size.
+	# Compact chips wrap longer names and expose the full label as a tooltip.
+	const REGION_COLUMNS := 3
+	var region_grid := UiKit.grid(REGION_COLUMNS, Design.SPACE_XS)
 	region_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var region_rows := ceili(float(regions.size()) / float(region_columns))
+	var region_rows := ceili(float(regions.size()) / float(REGION_COLUMNS))
 	region_grid.custom_minimum_size.y = region_rows * REGION_CHIP_HEIGHT \
-		+ maxi(0, region_rows - 1) * Design.SPACE_SM
+		+ maxi(0, region_rows - 1) * Design.SPACE_XS
 	_region_chips.clear()
 	_region_values.clear()
 	for region in regions:
-		var chip := UiKit.chip(Loc.t(GameTypes.region_key(region)), region == _region)
+		var region_name := Loc.t(GameTypes.region_key(region))
+		var chip := UiKit.chip(region_name, region == _region, &"", true)
 		chip.custom_minimum_size = Vector2(0, REGION_CHIP_HEIGHT)
 		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		chip.clip_contents = true
-		var chip_label := UiKit.label_text(chip)
-		if chip_label != null:
-			chip_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			chip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			chip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			chip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			chip_label.max_lines_visible = 2
-			chip_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		chip.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		chip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		chip.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		chip.clip_text = true
+		chip.tooltip_text = region_name
 		_region_values.append(region)
 		var captured_region := region
 		UiKit.on_press(chip, func() -> void: _on_region_selected(captured_region))
 		region_grid.add_child(chip)
 		_region_chips.append(chip)
 	column.add_child(region_grid)
-
-	_continue_button = UiKit.button(Loc.t(&"common.next"), &"PrimaryButton", &"chevron")
-	_continue_button.custom_minimum_size = Vector2(0, 64)
-	_continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiKit.on_press(_continue_button, _continue_to_colour, "confirm")
-	column.add_child(_continue_button)
 	return column
 
 
@@ -206,7 +280,7 @@ func _build_colour_step() -> Control:
 
 	var palette_center := CenterContainer.new()
 	palette_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var inner_width := _setup_card.custom_minimum_size.x - Design.SPACE_XL * 2.0
+	var inner_width := _setup_card.custom_minimum_size.x - Design.SPACE_SM * 2.0
 	var palette_columns := 4 if inner_width >= 372.0 else 3 if inner_width >= 240.0 else 2
 	var palette_grid := UiKit.grid(palette_columns, Design.SPACE_SM)
 	palette_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -218,25 +292,6 @@ func _build_colour_step() -> Control:
 	palette_center.add_child(palette_grid)
 	column.add_child(palette_center)
 
-	var actions: BoxContainer
-	if _setup_card.custom_minimum_size.x >= 600.0:
-		actions = UiKit.hbox(Design.SPACE_MD)
-	else:
-		actions = UiKit.vbox(Design.SPACE_SM)
-	var enter := UiKit.button(Loc.t(&"auth.setup.enter"), &"PrimaryButton", &"check")
-	enter.custom_minimum_size = Vector2(0, 64)
-	enter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiKit.on_press(enter, _on_enter_pressed, "confirm")
-
-	var back := UiKit.button(Loc.t(&"common.back"), &"OutlineButton", &"chevron")
-	back.custom_minimum_size = Vector2(0, 64)
-	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiKit.on_press(back, _back_to_identity, "back")
-
-	# Add the primary action first so it appears on the leading (right) side in RTL.
-	actions.add_child(enter)
-	actions.add_child(back)
-	column.add_child(actions)
 	return column
 
 

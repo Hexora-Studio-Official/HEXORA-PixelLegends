@@ -6,54 +6,54 @@ extends Node
 ## assembling their own StyleBoxFlats, which is what keeps the UI coherent as
 ## more screens land.
 ##
-## Art direction: a vivid tactical field at night — deep indigo surfaces, bright
-## pixel-grid accents, electric lime for actions and cyan for information. The
-## interface should feel energetic and unmistakably like PixelField, not a
-## generic black-and-orange military dashboard.
+## Art direction: a focused arena at dusk — graphite-blue surfaces, electric
+## violet for player intent, and cool mint for telemetry. Accents are reserved
+## for selected modes, live status and primary actions so the hierarchy stays
+## clear instead of turning every panel into a neon sign.
 
 # ------------------------------------------------------------------- palette
 
-const BG: Color = Color("080d1d")            ## Deep indigo canvas.
-const BG_RAISED: Color = Color("101a30")
-const SURFACE: Color = Color("141f38")       ## Cards, panels.
-const SURFACE_ALT: Color = Color("1c2b49")
-const SURFACE_HI: Color = Color("293d61")    ## Hover / selected surface.
-const SURFACE_SUNKEN: Color = Color("0b1327")## Inset fields, tracks.
+const BG: Color = Color("090d19")            ## Blue-black canvas.
+const BG_RAISED: Color = Color("101729")
+const SURFACE: Color = Color("151e33")       ## Cards, panels.
+const SURFACE_ALT: Color = Color("1c2941")
+const SURFACE_HI: Color = Color("293955")    ## Hover / selected surface.
+const SURFACE_SUNKEN: Color = Color("0d1425")## Inset fields, tracks.
 
-const LINE: Color = Color("2a3d5d")          ## Blue-steel hairline.
-const LINE_STRONG: Color = Color("435d84")
+const LINE: Color = Color("303f5a")          ## Muted blue-steel hairline.
+const LINE_STRONG: Color = Color("4a5d7d")
 
-const TEXT: Color = Color("f4f7ff")
-const TEXT_MUTED: Color = Color("c0cbe0")
-const TEXT_DIM: Color = Color("91a1bf")
-const TEXT_INVERSE: Color = Color("111a2b")
+const TEXT: Color = Color("f6f5ff")
+const TEXT_MUTED: Color = Color("c5c9dc")
+const TEXT_DIM: Color = Color("929bb4")
+const TEXT_INVERSE: Color = Color("17132a")
 
-const ACCENT: Color = Color("baff4a")        ## Electric lime: the player acts.
-const ACCENT_HI: Color = Color("d5ff83")
-const ACCENT_DEEP: Color = Color("78ad23")
-const TEAL: Color = Color("47d9ff")          ## Pixel cyan: the field informs.
-const TEAL_DEEP: Color = Color("168bb5")
+const ACCENT: Color = Color("a78bfa")        ## Electric violet: the player acts.
+const ACCENT_HI: Color = Color("c4b5fd")
+const ACCENT_DEEP: Color = Color("7656db")
+const TEAL: Color = Color("42e5c0")          ## Cool mint: the field informs.
+const TEAL_DEEP: Color = Color("168f83")
 
-const SUCCESS: Color = Color("50e3a4")
-const WARNING: Color = Color("ffc857")
-const DANGER: Color = Color("ff6480")
-const GOLD: Color = Color("ffd166")
+const SUCCESS: Color = Color("4cdda9")
+const WARNING: Color = Color("ffc66e")
+const DANGER: Color = Color("ff6b8a")
+const GOLD: Color = Color("ffc66e")
 
-const TEAM_ALPHA: Color = Color("59c7ff")
-const TEAM_BRAVO: Color = Color("ff846f")
+const TEAM_ALPHA: Color = Color("5db7ff")
+const TEAM_BRAVO: Color = Color("ff7f84")
 
 ## Soft tints, used for chips and highlighted rows.
-const ACCENT_TINT: Color = Color(0.729, 1.0, 0.29, 0.14)
-const TEAL_TINT: Color = Color(0.278, 0.851, 1.0, 0.14)
-const DANGER_TINT: Color = Color(1.0, 0.392, 0.502, 0.14)
+const ACCENT_TINT: Color = Color(0.655, 0.545, 0.98, 0.16)
+const TEAL_TINT: Color = Color(0.259, 0.898, 0.753, 0.14)
+const DANGER_TINT: Color = Color(1.0, 0.42, 0.54, 0.14)
 
 ## Currency / rarity ramp, reused by the store and reward popups later.
 const RARITY: Array[Color] = [
-	Color("91a1bf"),  # common
-	Color("50e3a4"),  # uncommon
-	Color("59c7ff"),  # rare
-	Color("b48cff"),  # epic
-	Color("ffc857"),  # legendary
+	Color("929bb4"),  # common
+	Color("4cdda9"),  # uncommon
+	Color("5db7ff"),  # rare
+	Color("a78bfa"),  # epic
+	Color("ffc66e"),  # legendary
 ]
 
 # ------------------------------------------------------------------- metrics
@@ -295,27 +295,6 @@ func _add_buttons(built: Theme) -> void:
 		built.set_constant(&"h_separation", variation, SPACE_SM)
 		built.set_constant(&"outline_size", variation, 0)
 
-	# Card buttons: the large selectable tiles used by the mode picker and the
-	# room browser. Same interaction model as a chip, far more room for content.
-	for variant in [{"name": &"CardButton", "active": false},
-			{"name": &"CardButtonActive", "active": true}]:
-		var card_variation: StringName = variant["name"]
-		var card_active: bool = variant["active"]
-		var card_fill := ACCENT_TINT if card_active else SURFACE
-		var card_border := ACCENT if card_active else LINE
-		built.set_type_variation(card_variation, &"Button")
-		built.set_stylebox(&"normal", card_variation,
-			_button_box(card_fill, card_border, Color.TRANSPARENT, RADIUS_LG, BORDER_THIN, 18, 16))
-		built.set_stylebox(&"hover", card_variation,
-			_button_box(card_fill, ACCENT_HI if card_active else LINE_STRONG,
-				Color.TRANSPARENT, RADIUS_LG, BORDER_THIN, 18, 16))
-		built.set_stylebox(&"pressed", card_variation,
-			_button_box(SURFACE_HI, card_border, Color.TRANSPARENT, RADIUS_LG, BORDER_THIN, 18, 16))
-		built.set_stylebox(&"focus", card_variation,
-			_button_box(card_fill, TEAL, Color.TRANSPARENT, RADIUS_LG, BORDER_ACCENT, 18, 16))
-		built.set_stylebox(&"disabled", card_variation,
-			_button_box(Color(1, 1, 1, 0.03), LINE, Color.TRANSPARENT, RADIUS_LG, BORDER_THIN, 18, 16))
-
 	# Chips: compact toggle-ish buttons used for mode and region selection.
 	for state in [{"name": &"ChipButton", "active": false}, {"name": &"ChipButtonActive", "active": true}]:
 		var variation: StringName = state["name"]
@@ -337,6 +316,34 @@ func _add_buttons(built: Theme) -> void:
 		built.set_font(&"font", variation, font_label)
 		built.set_font_size(&"font_size", variation, FONT_SMALL)
 		built.set_constant(&"h_separation", variation, SPACE_XS)
+
+	# Region chips keep the same state language with tighter padding and a
+	# smaller UI face so all seven choices remain readable in a 3-column grid.
+	for state in [{"name": &"RegionChipButton", "active": false},
+			{"name": &"RegionChipButtonActive", "active": true}]:
+		var variation: StringName = state["name"]
+		var active: bool = state["active"]
+		var fill := ACCENT_TINT if active else SURFACE_ALT
+		var border := ACCENT if active else LINE
+		built.set_type_variation(variation, &"Button")
+		built.set_stylebox(&"normal", variation,
+			_button_box(fill, border, Color.TRANSPARENT, RADIUS_SM, BORDER_THIN, 4, 4))
+		built.set_stylebox(&"hover", variation,
+			_button_box(ACCENT_TINT if not active else fill, ACCENT if active else LINE_STRONG,
+				Color.TRANSPARENT, RADIUS_SM, BORDER_THIN, 4, 4))
+		built.set_stylebox(&"pressed", variation,
+			_button_box(fill, border, Color.TRANSPARENT, RADIUS_SM, BORDER_THIN, 4, 4))
+		built.set_stylebox(&"focus", variation,
+			_button_box(Color(0, 0, 0, 0), TEAL, Color.TRANSPARENT, RADIUS_SM,
+				BORDER_ACCENT, 4, 4))
+		built.set_stylebox(&"disabled", variation,
+			_button_box(Color(1, 1, 1, 0.03), LINE, Color.TRANSPARENT, RADIUS_SM, 0, 4, 4))
+		built.set_color(&"font_color", variation, ACCENT_HI if active else TEXT_MUTED)
+		built.set_color(&"font_hover_color", variation, ACCENT_HI)
+		built.set_color(&"font_pressed_color", variation, TEXT)
+		built.set_color(&"font_disabled_color", variation, TEXT_DIM)
+		built.set_font(&"font", variation, font_ui)
+		built.set_font_size(&"font_size", variation, FONT_MICRO)
 
 	# Cards: large selectable tiles (mode picker, room browser). Same
 	# interaction model as a chip, with room for a title, a rule summary and a
@@ -422,10 +429,12 @@ func _button_box(
 func _add_panels(built: Theme) -> void:
 	var panels := [
 		{"name": &"CardPanel", "fill": SURFACE, "border": LINE, "radius": RADIUS_LG, "pad": SPACE_XL},
+		{"name": &"SetupCardPanel", "fill": SURFACE, "border": LINE, "radius": RADIUS_LG, "pad": SPACE_SM},
 		{"name": &"FlatPanel", "fill": Color(0, 0, 0, 0), "border": Color(0, 0, 0, 0), "radius": 0, "pad": 0},
 		{"name": &"InsetPanel", "fill": SURFACE_SUNKEN, "border": LINE, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"RaisedPanel", "fill": SURFACE_ALT, "border": LINE_STRONG, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"TopBarPanel", "fill": BG_RAISED, "border": LINE, "radius": 0, "pad": SPACE_LG},
+		{"name": &"ActionDockPanel", "fill": BG_RAISED, "border": LINE_STRONG, "radius": RADIUS_LG, "pad": SPACE_SM},
 		{"name": &"BannerPanel", "fill": ACCENT_TINT, "border": ACCENT, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"InfoPanel", "fill": TEAL_TINT, "border": TEAL, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"WarnPanel", "fill": DANGER_TINT, "border": DANGER, "radius": RADIUS_MD, "pad": SPACE_LG},

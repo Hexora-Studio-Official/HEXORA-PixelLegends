@@ -8,8 +8,8 @@ extends Control
 ## the same account always gets the same colour and shape on every device.
 
 const PALETTE: Array[Color] = [
-	Color("baff4a"), Color("47d9ff"), Color("648dff"), Color("b48cff"),
-	Color("50e3a4"), Color("ffc857"), Color("ff6480"), Color("7aa2ff"),
+	Color("a78bfa"), Color("42e5c0"), Color("5db7ff"), Color("ff8a70"),
+	Color("ffc66e"), Color("ff6b8a"), Color("72d6d0"), Color("7b8cff"),
 ]
 
 var initials: String = "??":

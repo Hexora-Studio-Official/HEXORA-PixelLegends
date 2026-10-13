@@ -50,6 +50,7 @@ func build() -> void:
 	UiKit.listen(EventBus.auth_state_changed, _on_auth_state_changed)
 	UiKit.listen(EventBus.auth_failed, _on_auth_failed)
 	UiKit.listen(EventBus.auth_signed_in, _on_signed_in)
+	UiKit.prepare_scroll_content(center)
 
 
 func _fit_card_width() -> void:

@@ -24,6 +24,7 @@ func _ready() -> void:
 	layout_direction = Loc.layout_direction()
 	_build_frame()
 	build()
+	UiKit.prepare_scroll_content(_body_center)
 	_built = true
 	EventBus.language_changed.connect(_on_language_changed)
 
@@ -68,6 +69,7 @@ func _fit_body_width() -> void:
 	if available_width <= 0.0:
 		available_width = 320.0
 	body.custom_minimum_size.x = minf(1120.0, available_width)
+	on_page_resized()
 
 
 func _notification(what: int) -> void:
@@ -90,6 +92,11 @@ func on_shown() -> void:
 	pass
 
 
+## Override for controls that need to reflow at a different viewport width.
+func on_page_resized() -> void:
+	pass
+
+
 func rebuild() -> void:
 	if not _built:
 		return
@@ -98,6 +105,7 @@ func rebuild() -> void:
 		child.queue_free()
 	layout_direction = Loc.layout_direction()
 	build()
+	UiKit.prepare_scroll_content(_body_center)
 
 
 func _on_language_changed(_locale: String) -> void:

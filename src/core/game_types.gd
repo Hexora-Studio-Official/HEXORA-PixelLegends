@@ -219,19 +219,19 @@ static func ping_quality(ping_ms: int) -> PingQuality:
 ## code — scoreboards, kill feed — also needs it and must not depend on UI.
 static func ping_color(quality: PingQuality) -> Color:
 	match quality:
-		PingQuality.EXCELLENT: return Color("50e3a4")
-		PingQuality.GOOD: return Color("baff4a")
-		PingQuality.FAIR: return Color("ffc857")
-		PingQuality.POOR: return Color("ff6480")
-		_: return Color("91a1bf")
+		PingQuality.EXCELLENT: return Color("4cdda9")
+		PingQuality.GOOD: return Color("42e5c0")
+		PingQuality.FAIR: return Color("ffc66e")
+		PingQuality.POOR: return Color("ff6b8a")
+		_: return Color("929bb4")
 
 
 ## Stable team accent colours shared by world markers and the HUD.
 static func team_color(team: Team) -> Color:
 	match team:
-		Team.ALPHA: return Color("59c7ff")
-		Team.BRAVO: return Color("ff846f")
-		_: return Color("f4f7ff")
+		Team.ALPHA: return Color("5db7ff")
+		Team.BRAVO: return Color("ff7f84")
+		_: return Color("f6f5ff")
 
 
 static func team_key(team: Team) -> StringName:
