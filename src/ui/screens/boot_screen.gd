@@ -5,6 +5,7 @@ extends HexScreen
 
 const BACKGROUND_PATH := "res://assets/Pixel Legends_ 5v5 Fantasy Showdown.png"
 const MIN_DISPLAY_SEC := 1.35
+const EDGE_MARGIN := 12.0
 
 var _background: TextureRect
 var _background_shade: ColorRect
@@ -23,7 +24,8 @@ var _busy := false
 
 func _init() -> void:
 	backdrop_enabled = false
-	safe_padding = Design.SPACE_LG
+	mirror_horizontal_safe_insets = false
+	safe_padding = Design.SPACE_XS
 
 
 func build() -> void:
@@ -50,7 +52,7 @@ func build() -> void:
 	_settings_button.visible = false
 	_settings_button.set_anchors_and_offsets_preset(
 		Control.PRESET_TOP_LEFT, Control.PRESET_MODE_KEEP_SIZE)
-	_settings_button.position = Vector2(Design.SPACE_LG, Design.SPACE_LG)
+	_settings_button.position = Vector2(EDGE_MARGIN, EDGE_MARGIN)
 	UiKit.on_hover(_settings_button)
 	UiKit.on_press(_settings_button, _open_settings_modal, "click")
 	content.add_child(_settings_button)
@@ -69,6 +71,8 @@ func build() -> void:
 
 	var stack := UiKit.vbox(Design.SPACE_SM)
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	_action_panel.add_child(stack)
 
 	var eyebrow := UiKit.micro(Loc.t(&"splash.choose_path").to_upper())
@@ -147,21 +151,32 @@ func _layout_actions() -> void:
 	if _action_panel == null:
 		return
 	var viewport := get_viewport_rect().size
-	var half_width := minf(320.0, maxf(160.0, (viewport.x - 40.0) * 0.5))
-	_action_panel.offset_left = -half_width
-	_action_panel.offset_right = half_width
+	var landscape := viewport.x >= viewport.y * 1.25
+	var width := minf(1120.0, viewport.x * 0.62)
+	var height := minf(430.0, maxf(280.0, viewport.y * 0.5))
+	var right_offset := -EDGE_MARGIN
+	var bottom_offset := -EDGE_MARGIN
+
+	if landscape:
+		_action_panel.anchor_left = 1.0
+		_action_panel.anchor_right = 1.0
+		_action_panel.anchor_top = 1.0
+		_action_panel.anchor_bottom = 1.0
+		_action_panel.offset_left = right_offset - width
+		_action_panel.offset_right = right_offset
+	else:
+		_action_panel.anchor_left = 0.0
+		_action_panel.anchor_right = 1.0
+		_action_panel.anchor_top = 1.0
+		_action_panel.anchor_bottom = 1.0
+		_action_panel.offset_left = EDGE_MARGIN
+		_action_panel.offset_right = right_offset
+	_action_panel.offset_top = bottom_offset - height
+	_action_panel.offset_bottom = bottom_offset
+
+	if _settings_button != null:
+		_settings_button.position = Vector2(EDGE_MARGIN, EDGE_MARGIN)
 	var compact := viewport.y < 650.0
-	var anchor_y := 0.69
-	var half_height := 142.0
-	if compact:
-		anchor_y = 0.53
-		half_height = 140.0
-	elif viewport.x < 760.0:
-		anchor_y = 0.68
-	_action_panel.anchor_top = anchor_y
-	_action_panel.anchor_bottom = anchor_y
-	_action_panel.offset_top = -half_height
-	_action_panel.offset_bottom = half_height
 	if _guest_button != null:
 		_guest_button.custom_minimum_size.y = 56.0 if compact else 60.0
 	if _play_button != null:

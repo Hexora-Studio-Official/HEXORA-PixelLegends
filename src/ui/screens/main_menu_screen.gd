@@ -4,6 +4,8 @@ extends HexScreen
 ## device settings panel have behaviour in this phase.
 
 const BACKGROUND_PATH := "res://assets/Pixel Legends_ 5v5 Fantasy Showdown.png"
+const EDGE_MARGIN := 12.0
+const BATTLE_DOCK_HEIGHT := 150.0
 
 const NAV_ITEMS: Array[Dictionary] = [
 	{"text": &"home.modes", "icon": &"play"},
@@ -33,7 +35,8 @@ var _avatar: AvatarView
 
 func _init() -> void:
 	backdrop_enabled = false
-	safe_padding = Design.SPACE_LG
+	mirror_horizontal_safe_insets = false
+	safe_padding = Design.SPACE_XS
 
 
 func build() -> void:
@@ -241,8 +244,11 @@ func _build_battle_dock() -> void:
 	var copy := UiKit.vbox(Design.SPACE_XXS)
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.alignment = BoxContainer.ALIGNMENT_CENTER
-	var title := UiKit.subheading(Loc.t(&"home.battle_title"))
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var title := UiKit.label(Loc.t(&"home.battle_title"), &"BodyLabel")
+	title.add_theme_font_size_override("font_size", Design.FONT_BODY)
+	title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.clip_text = true
 	copy.add_child(title)
 	var subtitle := UiKit.label(Loc.t(&"home.battle_subtitle"), &"BodyMutedLabel")
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -263,11 +269,17 @@ func _build_battle_dock() -> void:
 
 func _layout_menu() -> void:
 	var viewport := get_viewport_rect().size
+	var aspect_ratio := viewport.x / maxf(viewport.y, 1.0)
+	var left_edge := EDGE_MARGIN
+	var right_edge := -EDGE_MARGIN
+	var top_edge := EDGE_MARGIN
+	var bottom_edge := -EDGE_MARGIN
+
 	if _top_bar != null:
-		_top_bar.offset_left = Design.SPACE_MD
-		_top_bar.offset_right = -Design.SPACE_MD
-		_top_bar.offset_top = Design.SPACE_MD
-		_top_bar.offset_bottom = 112.0
+		_top_bar.offset_left = left_edge
+		_top_bar.offset_right = right_edge
+		_top_bar.offset_top = top_edge
+		_top_bar.offset_bottom = top_edge + 100.0
 	if _profile_card != null:
 		_profile_card.custom_minimum_size.x = minf(430.0, maxf(160.0, viewport.x - 162.0))
 	if _build_tag != null:
@@ -292,41 +304,35 @@ func _layout_menu() -> void:
 	if _settings_button != null:
 		_settings_button.custom_minimum_size = Vector2(58.0, 58.0)
 
-	var compact := viewport.x < 1040.0
+	var rail_visible := viewport.x >= 1040.0 and aspect_ratio >= 1.45 and viewport.y >= 620.0
 	if _left_rail != null:
-		_left_rail.visible = viewport.x >= 1040.0
-		_left_rail.offset_left = Design.SPACE_MD
-		_left_rail.offset_top = 148.0
-		_left_rail.offset_right = 284.0 if not compact else 244.0
-		_left_rail.offset_bottom = maxf(520.0, viewport.y - 192.0)
+		var rail_width := 284.0 if viewport.x >= 1280.0 else 244.0
+		_left_rail.visible = rail_visible
+		_left_rail.offset_left = left_edge
+		_left_rail.offset_top = 148.0 - safe_padding
+		_left_rail.offset_right = left_edge + rail_width
+		_left_rail.offset_bottom = viewport.y - EDGE_MARGIN - BATTLE_DOCK_HEIGHT - 20.0 - safe_padding
 	if _spotlight != null:
-		_spotlight.visible = viewport.x >= 1380.0
+		_spotlight.visible = viewport.x >= 1280.0 and aspect_ratio >= 1.7
 		_spotlight.anchor_left = 1.0
 		_spotlight.anchor_right = 1.0
 		_spotlight.anchor_top = 0.0
 		_spotlight.anchor_bottom = 0.0
-		_spotlight.offset_left = -352.0
-		_spotlight.offset_right = -Design.SPACE_MD
-		_spotlight.offset_top = 148.0
-		_spotlight.offset_bottom = 510.0
+		_spotlight.offset_left = right_edge - 352.0
+		_spotlight.offset_right = right_edge
+		_spotlight.offset_top = 148.0 - safe_padding
+		_spotlight.offset_bottom = 510.0 - safe_padding
 	if _battle_dock != null:
 		_battle_dock.anchor_left = 0.0
 		_battle_dock.anchor_right = 1.0
 		_battle_dock.anchor_top = 1.0
 		_battle_dock.anchor_bottom = 1.0
-		_battle_dock.offset_top = -150.0
-		_battle_dock.offset_bottom = -Design.SPACE_MD
-		if viewport.x < 1040.0:
-			_battle_dock.offset_left = Design.SPACE_SM
-			_battle_dock.offset_right = -Design.SPACE_SM
-		elif viewport.x < 1380.0:
-			_battle_dock.offset_left = 304.0
-			_battle_dock.offset_right = -Design.SPACE_MD
-		else:
-			_battle_dock.offset_left = 304.0
-			_battle_dock.offset_right = -368.0
+		_battle_dock.offset_left = left_edge
+		_battle_dock.offset_right = right_edge
+		_battle_dock.offset_bottom = bottom_edge
+		_battle_dock.offset_top = bottom_edge - BATTLE_DOCK_HEIGHT
 	if _battle_row != null:
-		var narrow := viewport.x < 760.0
+		var narrow := viewport.x < 980.0 or aspect_ratio < 1.55
 		_battle_row.add_theme_constant_override(
 			"separation", Design.SPACE_XS if narrow else Design.SPACE_LG)
 		if _battle_emblem != null:
