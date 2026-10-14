@@ -28,6 +28,37 @@ installation, visual review, and touch/persistence test results have not been
 reported in detail. The user explicitly approved merging this APK's source
 branch into main on 2026-10-14; this approval is not device-test evidence.
 
+ Legacy retirement and shell improvements (2026-10-14, user-approved): the user
+explicitly asked for every early-project (shooter-era) file to be deleted or
+fixed. On branch arena/6919bc8f-hexora-pixellegends, two commits:
+
+  1. "Retire the shooter-era client" — 30 files deleted (api_client,
+     friends_service, room_service, matchmaking, game_mode, game_catalog,
+     room_info, all 8 game_modes/*.tres, lan_discovery, google_signin, the
+     play/rooms/squad/profile/placeholder pages, queue_overlay, the
+     login_screen and profile_setup_screen scenes, and tools/mock_server.py)
+     and 11 files fixed rather than deleted: controls.gd keeps only the haptic
+     feedback the shell really uses; auth_service.gd is local guest only with
+     no unverified Google path; game_types.gd keeps AuthState/AuthProvider and
+     drops regions, transports, match phases, rooms, ping and keybindings;
+     settings_page.gd loses its dead controls/developer builders and gains a
+     real Account card with Sign out; and design.gd, ui_kit.gd, hex_icon.gd,
+     player_profile.gd, session.gd, event_bus.gd, settings_service.gd and
+     project.godot shed their legacy helpers, six shooter mode icons, the
+     headshots stat, the match aggregation, the matchmaking/room/friend/presence
+     signals, the legacy defaults and four autoloads.
+  2. "Improve the client shell" — the entrance dock now measures its own height
+     instead of pinning it to a constant; inactive entrance choices carry a
+     visible "coming soon" note (they previously relied on tooltip_text, which
+     Android never shows); the PixelLegends mark is reused above the dock; and
+     the hub's explore rail reflows into a bar on narrow screens instead of
+     disappearing below 1040px, which is every phone in portrait.
+
+  String table went from 538 to 138 keys. Static checks pass; Godot runtime and
+  device testing were NOT run (Godot cannot be installed in this sandbox — the
+  download redirects to a host outside the allowed network destinations), so
+  none of the layout changes above are visually verified yet.
+
 This is the live progress record for the implementation described below. The
 requirements and long-term target remain in the numbered specification. Agents
 must update this block only when verified project state changes; do not claim a
@@ -58,8 +89,11 @@ IMPLEMENTED CLIENT SHELL
   is deferred and not implemented in the current UI.
 - Guest profiles are local, receive a generated name, persist on the device,
   and can be renamed from the hub. No forced profile/operator setup is used.
+- Sign out is reachable from the Account card on the Settings → Game tab. It
+  clears the local guest profile and returns to the entrance.
 - The hub reuses the wide art with subtle motion. Feature destinations remain
-  placeholders.
+  placeholders; they now answer a tap with a short explanation instead of
+  doing nothing, because a touch screen shows neither tooltips nor hover.
 - The active UI and project documentation are English-only; Persian
   localization and language/region selection have been removed.
 - Detailed duplicate project documents are retired. README.md is a short
@@ -67,10 +101,10 @@ IMPLEMENTED CLIENT SHELL
 
 Current implementation touchpoints: `project.godot`, `export_presets.cfg`,
 `src/ui/screens/boot_screen.gd`, `src/ui/screens/main_menu_screen.gd`,
-`src/autoload/router.gd`, `src/autoload/auth_service.gd`,
-`src/autoload/session.gd`, `src/core/player_profile.gd`, and
-`src/i18n/strings_en.gd`. These are orientation hints; inspect actual code
-before changing behavior.
+`src/ui/pages/settings_page.gd`, `src/autoload/router.gd`,
+`src/autoload/auth_service.gd`, `src/autoload/session.gd`,
+`src/core/player_profile.gd`, and `src/i18n/strings_en.gd`. These are
+orientation hints; inspect actual code before changing behavior.
 
 NOT IMPLEMENTED / NOT PROVEN
 
@@ -78,10 +112,13 @@ NOT IMPLEMENTED / NOT PROVEN
   implemented. Nakama-backed accounts, active MOBA matchmaking, online Google
   authentication, and a dedicated match server are not connected to the
   current UI/workstream.
-- Legacy shooter-era scripts/data and generic service autoloads remain in the
-  repository. They are not evidence that PixelLegends MOBA systems are
-  implemented; do not activate or reuse them without an approved, tested
-  migration.
+- Legacy shooter-era scripts/data and generic service autoloads no longer sit
+  in the repository: they were retired on 2026-10-14 at the user's request (see
+  the entry above). Their absence is not evidence that PixelLegends MOBA
+  systems are implemented — the rooms, matchmaking, friends, LAN discovery,
+  mode catalogue and hand-rolled Google OAuth described in the numbered
+  sections below are all still unbuilt, and the code that used to stand in for
+  them is gone rather than waiting to be mistaken for it.
 - The recommended client/server/shared organization in section 4 is a logical
   target. The current physical project remains a Godot root project with source
   under src/; do not move the repository wholesale to the illustrative tree.
@@ -95,24 +132,31 @@ NOT IMPLEMENTED / NOT PROVEN
 
 LATEST VALIDATION SNAPSHOT
 
-- English-only string table check: PASS — locale en, 538 keys.
-- Static project-reference check: PASS — 55 classes, 41 scripts, 4 scenes,
-  538 localized keys, no dangling references.
+Snapshot taken 2026-10-14 on branch arena/6919bc8f-hexora-pixellegends, after
+the legacy retirement and shell improvements above.
+
+- English-only string table check: PASS — locale en, 138 keys (was 538; the
+  400 removed keys belonged to the deleted screens and services).
+- Static project-reference check: PASS — 34 classes, 24 scripts, 2 scenes,
+  138 localized keys, no dangling references (was 55 classes, 41 scripts,
+  4 scenes, 538 keys).
 - GDScript lint: PASS.
 - Python syntax checks for the project tools: PASS.
 - git diff --check: PASS.
-- Godot 4.4.1 CI import and headless client startup: PASS.
+- Reference-checker self-test: verified by planting a deliberately bogus
+  `Design.*` constant and a bogus `UiKit.*` call in the new code; both were
+  reported. This matters because no GDScript compiler runs in this sandbox.
+- Godot 4.4.1 CI import and headless client startup: last PASS was before
+  these changes (run 38504098509, commit 92d14c2) and does NOT cover them.
 - Android Debug APK export, signing verification, archive integrity, and
-  manifest checks: PASS in GitHub Actions run 38343943699 at commit a95783e.
-  Artifact `pixellegends-debug-apk` contains `PixelLegends-debug.apk` and is
-  available at:
-  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38343943699/artifacts/11788271195
-  The run page is:
-  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38343943699
-  It is debug-signed with an ephemeral CI key, not a release APK. Artifact
-  retention expires 2026-10-27. The sandbox could not copy it locally
+  manifest checks: last PASS in GitHub Actions run 38504098509 at commit
+  92d14c2 — BEFORE the 30 deleted files and the layout changes, so it does
+  not validate them. Both known artifacts are therefore out of date:
+  `pixellegends-debug-apk` from run 38504098509 (expires 2026-10-28) and from
+  run 38343943699 (expires 2026-10-27). They are debug-signed with an
+  ephemeral CI key, not a release key. The sandbox cannot copy them locally
   because GitHub redirects artifact downloads to a storage host outside the
-  allowed network destinations.
+  allowed network destinations; download from GitHub instead.
 - Physical/emulated-device installation, visual review, touch testing, and
   guest persistence across app restarts: NOT RUN. Godot/Android tooling is not
   installed in the local coding environment; CI checks do not replace device
@@ -120,18 +164,42 @@ LATEST VALIDATION SNAPSHOT
 
 NEXT ACTIONS
 
-1. Download the `pixellegends-debug-apk` artifact from the linked CI run and
-   install `PixelLegends-debug.apk` on an Android device or emulator.
-2. Verify loading, responsive layout, inactive controls, guest persistence/name
-   editing, and the supplied icon at desktop and mobile aspect ratios.
-3. Record the results here. Do not advance a phase gate without its test
+1. Open the project in Godot 4.4.1 on the developer's machine and confirm it
+   imports and starts with no errors: 30 files were deleted and four autoloads
+   removed, and no compiler runs in the coding sandbox, so this is the first
+   real check of that work.
+2. Re-enable an Android debug build for this branch (see KNOWN BLOCKERS) and
+   install the resulting APK on a phone or emulator.
+3. Verify, on a device, the things the recent changes actually touched: the
+   entrance dock at portrait/landscape and short-viewport sizes, the new
+   "coming soon" notes on Play and Google, the hub's explore bar on a narrow
+   screen, sign-out from Settings → Game, and guest persistence across an app
+   restart.
+4. Record the results here. Do not advance a phase gate without its test
    evidence. Implement only the next scope explicitly approved by the user.
 
 KNOWN EXTERNAL / WORKSPACE BLOCKERS
 
+- The Android debug workflow (`.github/workflows/android-debug.yml`) triggers
+  on push only for two hard-coded branches, `arena/22d75a58-hexora-pixelfield`
+  and `arena/3af02759-hexora-pixellegends`. The current branch,
+  `arena/6919bc8f-hexora-pixellegends`, is not in that list, so pushing here
+  will NOT produce an APK. It can still be run manually via
+  `workflow_dispatch`. Adding the current branch to the filter is a one-line
+  change and needs the user's go-ahead.
+- Godot cannot be installed in the coding sandbox: the release download
+  redirects from github.com to objects.githubusercontent.com, which is outside
+  the allowed network destinations. Runtime, export and device verification
+  therefore have to happen on the developer's machine.
 - The GitHub repository description still reads "Online Shooter". Attempts to
   update it returned HTTP 403 (integration lacks repository metadata write
   permission); no successful metadata change has been made.
+- `MASTER PROMPT.txt` is stored in the Windows-1256 codepage, not UTF-8, so it
+  is unreadable to tools that assume Unicode, and its content describes the
+  original online-shooter brief (13 phases, lobby, battle royale, bots) rather
+  than the MOBA in this document. This document is the canonical source; the
+  user has been asked how to handle that file and no change has been made to
+  it.
 - Workspace sync note (2026-10-13): the fetched origin history, including the
   uploaded PROJECT_SPEC.txt, has now been integrated into the fixed session
   branch while preserving the PixelLegends working tree. No branch switch or
