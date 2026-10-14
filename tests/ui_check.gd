@@ -31,8 +31,13 @@ const BUTTON_NAME := "EntranceSettingsButton"
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# The root control of a headless main scene is given no size at all, so
+	# stretching to the parent measures 0x0 and the whole tree collapses onto
+	# its minimums — every rectangle below would be fiction. Anchor to nothing
+	# and set the size by hand.
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	get_window().size = Vector2i(1920, 1080)
+	size = Vector2(1920, 1080)
 
 	var packed := load(SCREEN_PATH) as PackedScene
 	if packed == null:
