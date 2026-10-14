@@ -56,43 +56,53 @@ const TEAL_TINT: Color = Color(0.22, 0.878, 1.0, 0.15)
 const DANGER_TINT: Color = Color(1.0, 0.302, 0.369, 0.16)
 const VIOLET_TINT: Color = Color(0.69, 0.42, 1.0, 0.16)
 
-# Frosted glass surfaces for the entrance and main hub. Keep the fill alpha low
-# so the supplied arena art remains visible through every menu surface.
-const GLASS_FILL: Color = Color(0.02, 0.055, 0.105, 0.40)
-const GLASS_HOVER: Color = Color(0.06, 0.15, 0.25, 0.56)
-const GLASS_PRESSED: Color = Color(0.015, 0.04, 0.08, 0.68)
-const GLASS_EDGE: Color = Color(0.62, 0.83, 1.0, 0.32)
-const GLASS_EDGE_HI: Color = Color(0.55, 0.88, 1.0, 0.74)
-const GLASS_GOLD: Color = Color(0.56, 0.34, 0.06, 0.50)
-const GLASS_GOLD_EDGE: Color = Color(1.0, 0.88, 0.56, 0.92)
-const GLASS_GOLD_HOVER: Color = Color(0.72, 0.46, 0.10, 0.72)
-const GLASS_GOLD_HOVER_EDGE: Color = Color(1.0, 0.93, 0.68, 1.0)
-const GLASS_GOLD_PRESSED: Color = Color(0.40, 0.24, 0.05, 0.78)
+# Surfaces for the entrance and main hub.
+#
+# Every one of these used to sit at roughly 0.4 alpha so the supplied arena
+# art showed through it. The consequence was that all of them read as the same
+# washed-out blue film, and no amount of re-tuning the hue could ever be seen:
+# two fills that differ by a tenth of alpha, composited over art, differ by
+# less than one level out of 255. That is why an earlier pass could change
+# these numbers and produce a screen that looked byte-for-byte the same.
+#
+# So the surfaces are now assertive. Panels and buttons are near-solid slate
+# with a bright hairline edge; what separates one surface from another at
+# phone scale is opacity and edge, not hue. The artwork still shows, but
+# through the gaps between surfaces rather than through every surface.
+const GLASS_FILL: Color = Color(0.075, 0.105, 0.165, 0.86)
+const GLASS_HOVER: Color = Color(0.12, 0.20, 0.30, 0.92)
+const GLASS_PRESSED: Color = Color(0.045, 0.07, 0.12, 0.95)
+const GLASS_EDGE: Color = Color(0.52, 0.74, 1.0, 0.58)
+const GLASS_EDGE_HI: Color = Color(0.68, 0.90, 1.0, 0.92)
 
-# Panels floating over the key art. Deeper and more opaque than the button
-# glass, so a panel reads as a surface *behind* the controls sitting on it.
-# These used to be literals written directly into the panel table below, which
-# is why re-painting the palette once changed nothing on screen: the live
-# surfaces were not reading from here at all.
-const GLASS_PANEL: Color = Color(0.022, 0.062, 0.115, 0.52)
-const GLASS_PANEL_EDGE: Color = Color(0.58, 0.84, 1.0, 0.52)
+## The player's action: the one saturated surface on any screen.
+const GLASS_GOLD: Color = Color(0.80, 0.52, 0.09, 0.92)
+const GLASS_GOLD_EDGE: Color = Color(1.0, 0.92, 0.62, 1.0)
+const GLASS_GOLD_HOVER: Color = Color(0.90, 0.64, 0.16, 0.96)
+const GLASS_GOLD_HOVER_EDGE: Color = Color(1.0, 0.97, 0.78, 1.0)
+const GLASS_GOLD_PRESSED: Color = Color(0.58, 0.36, 0.05, 0.97)
+
+# Panels are the darkest, flattest surfaces in the set, so the controls lying
+# on top of them read forward instead of competing with the artwork behind.
+const GLASS_PANEL: Color = Color(0.035, 0.05, 0.085, 0.76)
+const GLASS_PANEL_EDGE: Color = Color(0.58, 0.80, 1.0, 0.72)
 ## Modals sit above everything, so they are the most opaque of the set.
-const GLASS_MODAL: Color = Color(0.015, 0.045, 0.09, 0.70)
-const GLASS_MODAL_EDGE: Color = Color(0.62, 0.88, 1.0, 0.62)
+const GLASS_MODAL: Color = Color(0.025, 0.038, 0.068, 0.88)
+const GLASS_MODAL_EDGE: Color = Color(0.66, 0.86, 1.0, 0.82)
 
-## Nav rail buttons: almost invisible at rest so the rail reads as a column of
-## labels, with a cyan wash appearing on hover.
-const GLASS_NAV: Color = Color(0.03, 0.085, 0.14, 0.10)
-const GLASS_NAV_HOVER: Color = Color(0.16, 0.42, 0.58, 0.42)
-const GLASS_NAV_HOVER_EDGE: Color = Color(0.45, 0.82, 1.0, 0.48)
-const GLASS_NAV_PRESSED: Color = Color(0.03, 0.16, 0.26, 0.55)
+## Nav rail buttons carry a cyan stripe on their leading edge, so the rail
+## reads as a column of destinations rather than as labels floating on art.
+const GLASS_NAV: Color = Color(0.05, 0.075, 0.125, 0.62)
+const GLASS_NAV_HOVER: Color = Color(0.13, 0.34, 0.50, 0.90)
+const GLASS_NAV_HOVER_EDGE: Color = Color(0.50, 0.86, 1.0, 0.85)
+const GLASS_NAV_PRESSED: Color = Color(0.07, 0.20, 0.32, 0.95)
 
 ## Quiet resting state for icon-only controls, and the off state everything
 ## disabled shares.
-const GLASS_QUIET: Color = Color(0.02, 0.06, 0.10, 0.22)
-const GLASS_QUIET_EDGE: Color = Color(0.60, 0.85, 1.0, 0.30)
-const GLASS_DISABLED: Color = Color(0.02, 0.05, 0.085, 0.18)
-const GLASS_DISABLED_EDGE: Color = Color(0.62, 0.82, 0.94, 0.16)
+const GLASS_QUIET: Color = Color(0.06, 0.085, 0.135, 0.55)
+const GLASS_QUIET_EDGE: Color = Color(0.55, 0.76, 1.0, 0.40)
+const GLASS_DISABLED: Color = Color(0.05, 0.07, 0.11, 0.45)
+const GLASS_DISABLED_EDGE: Color = Color(0.55, 0.70, 0.85, 0.22)
 
 ## Currency / rarity ramp, reused by the store and reward popups later.
 const RARITY: Array[Color] = [
@@ -129,6 +139,13 @@ const BORDER_STRIPE: int = 5    ## The accent stripe on primary buttons.
 ## would fight the pixel-art language; a short crisp edge reads as depth while
 ## staying square and clean at any resolution.
 const BORDER_DROP: int = 4
+## Panels carry a heavier rule than buttons: they are the largest surfaces on
+## screen and a hairline disappears against full-bleed artwork.
+const BORDER_PANEL: int = 3
+## Corner radius for the large floating panels.
+const RADIUS_PANEL: int = 16
+## Width of the leading-edge stripe on nav buttons.
+const NAV_STRIPE: int = 5
 
 # Type scale. Steps are spaced by roughly 1.2-1.35x so each rank is instantly
 # distinguishable from the next; the two smallest steps tighten and the largest
@@ -368,12 +385,30 @@ func _add_buttons(built: Theme) -> void:
 		GLASS_GOLD_HOVER, GLASS_GOLD_HOVER_EDGE,
 		GLASS_GOLD_PRESSED, TEXT
 	)
-	_register_glass_button(
-		built, &"GlassNavButton",
-		GLASS_NAV, Color.TRANSPARENT,
-		GLASS_NAV_HOVER, GLASS_NAV_HOVER_EDGE,
-		GLASS_NAV_PRESSED, TEXT_MUTED
-	)
+	# Nav rail entries are registered by hand rather than through
+	# _register_glass_button, because they carry a stripe on the leading edge
+	# and that helper has no parameter slot left for one. The stripe is what
+	# turns the rail from loose labels into a column of destinations.
+	built.set_type_variation(&"GlassNavButton", &"Button")
+	built.set_stylebox(&"normal", &"GlassNavButton",
+		_glass_box(GLASS_NAV, Color.TRANSPARENT, 12, 18, 14, 0, TEAL))
+	built.set_stylebox(&"hover", &"GlassNavButton",
+		_glass_box(GLASS_NAV_HOVER, Color.TRANSPARENT, 12, 18, 14, 6, TEAL))
+	built.set_stylebox(&"pressed", &"GlassNavButton",
+		_glass_box(GLASS_NAV_PRESSED, Color.TRANSPARENT, 12, 18, 14, 2, ACCENT_HI))
+	built.set_stylebox(&"focus", &"GlassNavButton",
+		_glass_box(GLASS_NAV_HOVER, Color.TRANSPARENT, 12, 18, 14, 6, ACCENT_HI))
+	built.set_stylebox(&"disabled", &"GlassNavButton",
+		_glass_box(GLASS_DISABLED, Color.TRANSPARENT, 12, 18, 14, 0, Color.TRANSPARENT))
+	built.set_color(&"font_color", &"GlassNavButton", TEXT_MUTED)
+	built.set_color(&"font_hover_color", &"GlassNavButton", TEXT)
+	built.set_color(&"font_pressed_color", &"GlassNavButton", TEXT)
+	built.set_color(&"font_focus_color", &"GlassNavButton", TEXT)
+	built.set_color(&"font_disabled_color", &"GlassNavButton", TEXT_DIM)
+	built.set_font(&"font", &"GlassNavButton", font_label)
+	built.set_font_size(&"font_size", &"GlassNavButton", FONT_BODY)
+	built.set_constant(&"h_separation", &"GlassNavButton", SPACE_SM)
+	built.set_constant(&"outline_size", &"GlassNavButton", 0)
 
 	# Chips: compact toggle-ish buttons used for mode and region selection.
 	for state in [{"name": &"ChipButton", "active": false}, {"name": &"ChipButtonActive", "active": true}]:
@@ -529,7 +564,7 @@ func _apply_drop_edge(box: StyleBoxFlat, thickness: int) -> void:
 ## Soft translucent surface used by the entrance and hub controls.
 func _glass_box(
 	fill: Color, edge: Color, radius: int, pad_x: int = 18, pad_y: int = 14,
-	shadow_size: int = 8
+	shadow_size: int = 8, stripe: Color = Color.TRANSPARENT
 ) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = fill
@@ -539,9 +574,16 @@ func _glass_box(
 	box.content_margin_right = float(pad_x)
 	box.content_margin_top = float(pad_y)
 	box.content_margin_bottom = float(pad_y)
-	if edge.a > 0.0:
+	if stripe.a > 0.0:
+		# A bar on the leading edge only. Three edges are suppressed because a
+		# StyleBoxFlat has one border colour for all four sides, so the only way
+		# to show a differently-coloured edge is to draw just that one.
+		box.border_color = stripe
+		box.set_border_width_all(0)
+		box.border_width_left = NAV_STRIPE
+	elif edge.a > 0.0:
 		box.border_color = edge
-		box.set_border_width_all(1)
+		box.set_border_width_all(BORDER_THIN)
 	box.anti_aliasing = true
 	if shadow_size > 0:
 		box.shadow_color = DROP_EDGE
@@ -592,12 +634,12 @@ func _add_panels(built: Theme) -> void:
 		{
 			"name": &"EntranceDockPanel",
 			"fill": GLASS_PANEL, "border": GLASS_PANEL_EDGE,
-			"radius": 24, "pad": SPACE_MD,
+			"radius": RADIUS_PANEL, "pad": SPACE_MD,
 		},
 		{
 			"name": &"GlassModalPanel",
 			"fill": GLASS_MODAL, "border": GLASS_MODAL_EDGE,
-			"radius": 24, "pad": SPACE_XL,
+			"radius": RADIUS_PANEL, "pad": SPACE_XL,
 		},
 		{"name": &"BannerPanel", "fill": ACCENT_TINT, "border": ACCENT, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"InfoPanel", "fill": TEAL_TINT, "border": TEAL, "radius": RADIUS_MD, "pad": SPACE_LG},
@@ -617,7 +659,7 @@ func _add_panels(built: Theme) -> void:
 		var fill: Color = panel["fill"]
 		if (panel["border"] as Color).a > 0.0:
 			box.border_color = panel["border"]
-			box.set_border_width_all(BORDER_THIN)
+			box.set_border_width_all(BORDER_PANEL)
 		if variation == &"EntranceDockPanel" or variation == &"GlassModalPanel":
 			# These float above the artwork, so they get a soft lift rather
 			# than a hard edge; a crisp edge here would read as a sticker.

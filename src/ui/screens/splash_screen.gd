@@ -26,8 +26,7 @@ const FADE_DURATION := 0.50
 
 const LETTER_STAGGER := 0.05
 const LETTER_DURATION := 0.32
-const SUBTITLE_STAGGER := 0.045
-const SUBTITLE_CHAR_DURATION := 0.30
+const SUBTITLE_DURATION := 0.62
 const SUBTITLE_RISE := 26.0
 
 # ------------------------------------------------------------------- layout
@@ -51,15 +50,27 @@ const TITLE_TEXT := "HEXORA-STUDIO"
 
 # ---------------------------------------------------------------- particles
 
-const FIRE_COUNT := 130
-const SMOKE_COUNT := 90
-const SPARK_COUNT := 44
+const FIRE_COUNT := 190
+const SMOKE_COUNT := 70
+const SPARK_COUNT := 40
+## Slow embers that outlive the burst and drift up through the whole sting.
+## Without them the explosion is over in a second and the rest is static.
+const EMBER_COUNT := 46
 
 const FIRE_GRAVITY := -120.0
 const FIRE_DRAG := 1.35
 const SMOKE_RISE := -30.0
 const SHOCKWAVE_DURATION := 0.85
 const SHOCKWAVE_REACH := 0.62
+## A second, slower ring. One ring reads as a graphic; two read as a blast.
+const SHOCKWAVE_2_DELAY := 0.16
+const SHOCKWAVE_2_DURATION := 1.25
+const SHOCKWAVE_2_REACH := 0.95
+
+## Warm bloom flaring out of the detonation, behind the wordmark. This is what
+## gives the type something to sit against in the first second.
+const BLOOM_DURATION := 1.5
+const BLOOM_REACH := 1.5
 
 ## Resolution of the procedurally generated soft puff used for smoke and fire.
 const PUFF_SIZE := 64
@@ -211,6 +222,17 @@ func _spawn_blast() -> void:
 			"size": _rng.randf_range(3.0, 6.0),
 			"seed": _rng.randf(),
 		})
+	for _i in EMBER_COUNT:
+		_particles.append({
+			"kind": "ember",
+			"pos": _centre + Vector2(_rng.randf_range(-1.0, 1.0) * reach * 0.55,
+				_rng.randf_range(-0.35, 0.35) * reach),
+			"vel": Vector2(_rng.randf_range(-14.0, 14.0), _rng.randf_range(-70.0, -26.0)),
+			"life": 0.0,
+			"span": _rng.randf_range(2.4, 4.2),
+			"size": _rng.randf_range(2.5, 5.5),
+			"seed": _rng.randf(),
+		})
 
 
 func _advance_particles(delta: float) -> void:
@@ -224,6 +246,14 @@ func _advance_particles(delta: float) -> void:
 		elif kind == "smoke":
 			vel.y += SMOKE_RISE * delta
 			vel *= maxf(0.0, 1.0 - 0.55 * delta)
+		elif kind == "ember":
+			# Embers keep rising for the whole sting, swaying gently. Their
+			# sideways drift is what stops the tail of the animation from
+			# looking frozen.
+			var sway := sin(_elapsed * 1.7 + float(particle["seed"]) * 6.28) * 16.0
+			vel.x = lerpf(vel.x, sway, minf(1.0, delta * 1.4))
+			vel.y += SMOKE_RISE * 0.85 * delta
+			vel *= maxf(0.0, 1.0 - 0.18 * delta)
 		else:
 			vel.y -= FIRE_GRAVITY * 1.7 * delta
 			vel *= maxf(0.0, 1.0 - 0.85 * delta)
@@ -241,8 +271,10 @@ func _draw() -> void:
 	if _particles.is_empty():
 		return
 	_draw_smoke()
+	_draw_bloom(viewport)
 	_draw_fire()
 	_draw_sparks()
+	_draw_embers()
 	_draw_shockwave(viewport)
 	_draw_flash(viewport)
 	_draw_title()
@@ -314,16 +346,66 @@ func _draw_sparks() -> void:
 			Color(colour.r, colour.g, colour.b, alpha))
 
 
+## Warm bloom out of the detonation, sitting behind the type. Without it the
+## first second is a few particles on black; with it there is light for the
+## wordmark to emerge from.
+func _draw_bloom(viewport: Vector2) -> void:
+	var since := _elapsed - TIME_EXPLOSION
+	if since < 0.0 or since > BLOOM_DURATION:
+		return
+	var t := since / BLOOM_DURATION
+	# Snaps to full, then decays — the shape of an actual flash.
+	var alpha := (1.0 - t) * (1.0 - t) * 0.85
+	var size := viewport.y * BLOOM_REACH * (0.45 + t * 0.85)
+	var hot := Design.ACCENT_HI.lerp(Design.DANGER, t * 0.55)
+	draw_texture_rect(_puff,
+		Rect2(_centre.x - size * 0.5, _centre.y - size * 0.5, size, size),
+		false, Color(hot.r, hot.g, hot.b, alpha))
+
+
+## Embers: a crisp core with a soft halo, so they read as burning rather than
+## as moving dots.
+func _draw_embers() -> void:
+	for particle in _particles:
+		if particle["kind"] != "ember":
+			continue
+		var t := float(particle["life"]) / float(particle["span"])
+		if t >= 1.0:
+			continue
+		var pos: Vector2 = particle["pos"]
+		var size := float(particle["size"])
+		# Fade in quickly, hold, then fade out over the last third.
+		var alpha := sin(t * PI) * 0.85
+		var warm := float(particle["seed"]) > 0.35
+		var colour := Design.ACCENT if warm else Design.TEAL
+		var halo := size * 7.0
+		draw_texture_rect(_puff,
+			Rect2(pos.x - halo * 0.5, pos.y - halo * 0.5, halo, halo),
+			false, Color(colour.r, colour.g, colour.b, alpha * 0.22))
+		draw_rect(Rect2(pos.x - size * 0.5, pos.y - size * 0.5, size, size),
+			Color(colour.r, colour.g, colour.b, alpha))
+
+
 func _draw_shockwave(viewport: Vector2) -> void:
 	var since := _elapsed - TIME_EXPLOSION
-	if since < 0.0 or since > SHOCKWAVE_DURATION:
-		return
-	var t := since / SHOCKWAVE_DURATION
-	var radius := t * viewport.y * SHOCKWAVE_REACH
-	var alpha := (1.0 - t) * (1.0 - t) * 0.5
-	draw_arc(_centre, radius, 0.0, TAU, 64,
-		Color(Design.ACCENT_HI.r, Design.ACCENT_HI.g, Design.ACCENT_HI.b, alpha),
-		maxf(2.0, 14.0 * (1.0 - t)), true)
+	# Leading ring: fast, thick, short-lived.
+	if since >= 0.0 and since <= SHOCKWAVE_DURATION:
+		var t := since / SHOCKWAVE_DURATION
+		var radius := t * viewport.y * SHOCKWAVE_REACH
+		var alpha := (1.0 - t) * (1.0 - t) * 0.55
+		draw_arc(_centre, radius, 0.0, TAU, 64,
+			Color(Design.ACCENT_HI.r, Design.ACCENT_HI.g, Design.ACCENT_HI.b, alpha),
+			maxf(2.0, 16.0 * (1.0 - t)), true)
+	# Trailing ring: slower, thinner, wider. Two rings read as a blast; one
+	# reads as a graphic.
+	var second := since - SHOCKWAVE_2_DELAY
+	if second >= 0.0 and second <= SHOCKWAVE_2_DURATION:
+		var t2 := second / SHOCKWAVE_2_DURATION
+		var radius2 := t2 * viewport.y * SHOCKWAVE_2_REACH
+		var alpha2 := (1.0 - t2) * (1.0 - t2) * 0.30
+		draw_arc(_centre, radius2, 0.0, TAU, 72,
+			Color(Design.TEAL.r, Design.TEAL.g, Design.TEAL.b, alpha2),
+			maxf(1.0, 7.0 * (1.0 - t2)), true)
 
 
 func _draw_flash(viewport: Vector2) -> void:
@@ -377,6 +459,19 @@ func _title_colour(index: int, total: int) -> Color:
 	return Design.TEAL.lerp(Design.VIOLET, (t - 0.5) / 0.5)
 
 
+## The line is drawn as ONE string, not a character at a time.
+##
+## The two previous attempts positioned each character by hand — first by
+## summing single-character widths, then by measuring running prefixes. Both
+## overlapped. A font's advance for a character inside a string is not
+## recoverable by measuring substrings, and any approximation accumulates: by
+## the end of the line the glyphs land on top of each other. Handing the whole
+## line to the engine in a single call cannot be wrong, and costs the per-
+## character gradient, which is a cheap price for a legible wordmark.
+##
+## The entrance is still distinct from the wordmark: the line rises and
+## brightens as one, with a glow behind it, instead of being punched in
+## letter by letter.
 func _draw_subtitle(viewport: Vector2) -> void:
 	var since := _elapsed - TIME_SUBTITLE
 	if since < 0.0:
@@ -386,38 +481,29 @@ func _draw_subtitle(viewport: Vector2) -> void:
 		font = ThemeDB.fallback_font
 	if font == null:
 		return
-	# Measure the running prefix rather than summing single-character widths.
-	# A font's advance for a character in context is not the same as its width
-	# in isolation; the difference accumulates and the glyphs end up drawn on
-	# top of each other. Measuring prefixes is how text layout actually works.
-	var offsets: Array[float] = []
-	for index in SUBTITLE_TEXT.length() + 1:
-		offsets.append(font.get_string_size(SUBTITLE_TEXT.substr(0, index), _subtitle_size).x)
-	var total_width: float = offsets[SUBTITLE_TEXT.length()]
+	var p := clampf(since / SUBTITLE_DURATION, 0.0, 1.0)
+	var eased := 1.0 - pow(1.0 - p, 3.0)
 
+	var width := font.get_string_size(SUBTITLE_TEXT, _subtitle_size).x
 	# `draw_string` places text by its baseline, so the visual top has to be
-	# derived from the font's ascent — otherwise the subtitle creeps up into
-	# the wordmark on fonts with a tall ascender.
+	# derived from the font's ascent — otherwise the line creeps up into the
+	# wordmark on fonts with a tall ascender.
 	var top := _centre.y + float(PixelFont.GLYPH_H) * _title_scale * 0.5 \
 		+ viewport.y * SUBTITLE_GAP
 	var baseline := top + font.get_ascent(_subtitle_size)
-	var x := viewport.x * 0.5 - total_width * 0.5
-	for index in SUBTITLE_TEXT.length():
-		var start := float(index) * SUBTITLE_STAGGER
-		var t := (since - start) / SUBTITLE_CHAR_DURATION
-		if t <= 0.0:
-			continue
-		var p := clampf(t, 0.0, 1.0)
-		var eased := 1.0 - pow(1.0 - p, 3.0)
-		var colour := _subtitle_colour(index, SUBTITLE_TEXT.length())
-		# A different entrance from the wordmark: each character drifts up into
-		# place rather than being punched in.
-		var pos := Vector2(x + offsets[index], baseline + (1.0 - eased) * SUBTITLE_RISE)
-		draw_string(font, pos, SUBTITLE_TEXT.substr(index, 1),
-			HORIZONTAL_ALIGNMENT_LEFT, -1.0, _subtitle_size,
-			Color(colour.r, colour.g, colour.b, eased))
+	var pos := Vector2(viewport.x * 0.5 - width * 0.5,
+		baseline + (1.0 - eased) * SUBTITLE_RISE)
 
+	# A warm bloom behind the line, brightest as it settles.
+	var glow_size := width * 1.9
+	var glow_alpha := 0.30 * eased
+	draw_texture_rect(_puff,
+		Rect2(pos.x + width * 0.5 - glow_size * 0.5,
+			baseline - float(_subtitle_size) * 0.5 - glow_size * 0.42,
+			glow_size, glow_size * 0.84),
+		false, Color(Design.TEAL.r, Design.TEAL.g, Design.TEAL.b, glow_alpha))
 
-func _subtitle_colour(index: int, total: int) -> Color:
-	var t := float(index) / float(maxi(1, total - 1))
-	return Design.TEXT_MUTED.lerp(Design.TEAL, t * 0.85)
+	# Brightens from muted to full as it arrives.
+	var tone := Design.TEXT_MUTED.lerp(Design.TEXT, eased)
+	draw_string(font, pos, SUBTITLE_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+		_subtitle_size, Color(tone.r, tone.g, tone.b, eased))
