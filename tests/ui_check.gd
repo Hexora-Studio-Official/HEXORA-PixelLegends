@@ -7,6 +7,17 @@ extends Control
 ## believed. This is where it is checked instead: it builds the real entrance
 ## scene, finds the real button, presses it, and reports what came up.
 ##
+## Two traps shaped this file, both of which produced confident nonsense
+## before they were understood:
+##
+##   - _ready() runs BEFORE the first layout pass. Measuring there reports
+##     every widget as its minimum size, which is why the first version of
+##     this check saw a 40x40 screen and an "overlap" that meant nothing.
+##     The entrance defers its own re-measure for exactly the same reason.
+##   - Headless ignores --resolution, so the window stays at its square
+##     default. A phone is not square and the entrance positions its dock
+##     from the viewport height, so the size is set here instead.
+##
 ## Run by CI on every push, as a scene rather than a --script, because a
 ## --script run does not register the project's autoloads as identifiers and
 ## every screen in this project is compiled against them:
@@ -21,9 +32,7 @@ const BUTTON_NAME := "EntranceSettingsButton"
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var problems: PackedStringArray = []
-
-	print("CHECK viewport=%s" % get_viewport_rect().size)
+	get_window().size = Vector2i(1920, 1080)
 
 	var packed := load(SCREEN_PATH) as PackedScene
 	if packed == null:
@@ -35,11 +44,16 @@ func _ready() -> void:
 		print("CHECK result=FAIL " + SCREEN_PATH + " is not a Control")
 		get_tree().quit(1)
 		return
-	# _ready() runs synchronously inside add_child, so the screen has already
-	# built itself by the next line and every widget it owns exists.
 	add_child(screen)
 
+	# Wait for layout. Nothing measured before this point means anything.
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	print("CHECK viewport=%s" % get_viewport_rect().size)
 	_dump_children(screen)
+
+	var problems: PackedStringArray = []
 
 	var button := screen.find_child(BUTTON_NAME, true, false) as Button
 	if button == null:
@@ -56,6 +70,8 @@ func _ready() -> void:
 	var rect := button.get_global_rect()
 	if rect.size.x <= 0.0 or rect.size.y <= 0.0:
 		problems.append("the button has no area: %s" % rect)
+	if not get_viewport_rect().encloses(rect):
+		problems.append("the button sits outside the screen: %s" % rect)
 
 	# A sibling added later is hit-tested first. If one of them covers the
 	# button, the player's tap never reaches it however correct the wiring.
@@ -65,6 +81,7 @@ func _ready() -> void:
 
 	var before := _count_descendants(screen)
 	button.pressed.emit()
+	await get_tree().process_frame
 	var dialog := _find_dialog(screen)
 
 	if dialog == null:
@@ -76,6 +93,8 @@ func _ready() -> void:
 		var area := dialog.get_global_rect()
 		if area.size.x <= 0.0 or area.size.y <= 0.0:
 			problems.append("the panel has no area: %s" % area)
+		if not get_viewport_rect().encloses(area):
+			problems.append("the panel does not fit on the screen: %s" % area)
 		if dialog.get_child_count() == 0:
 			problems.append("the panel opened but built nothing inside")
 		print("CHECK panel nodes=%d area=%s" % [_count_descendants(dialog), area.size])
@@ -94,8 +113,7 @@ func _ready() -> void:
 
 ## Print the entrance's widget tree with rectangles, so a layout mistake is
 ## visible in the log instead of being inferred from a failure. The entrance
-## nests the dock three levels down, which is why this walks rather than
-## listing two levels.
+## nests its dock three levels down, which is why this walks the tree.
 func _dump_children(screen: Node) -> void:
 	print("CHECK tree ----")
 	_dump(screen, 0)
