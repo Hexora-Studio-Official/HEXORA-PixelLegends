@@ -557,6 +557,26 @@ func _section(title_key: StringName) -> VBoxContainer:
 	return column
 
 
+## Label above its control, both at full width.
+##
+## Used for the option groups. Side by side they were a disaster: the label
+## took every pixel the row had, the chips were squeezed into a 20px column
+## — the width of their icon slot — and each one grew to 272px tall wrapping
+## its own text. One row of four options was costing 272px of scroll.
+func _stacked_row(label_key: StringName, control: Control, hint_key: StringName = &"",
+		disabled: bool = false) -> VBoxContainer:
+	var column := UiKit.vbox(Design.SPACE_XS)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(UiKit.label(Loc.t(label_key), &"BodyLabel"))
+	if hint_key != &"":
+		column.add_child(UiKit.paragraph(Loc.t(hint_key), 520.0, &"CaptionLabel"))
+	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(control)
+	if disabled and control is Button:
+		(control as Button).disabled = true
+	return column
+
+
 func _row(label_key: StringName, control: Control, hint_key: StringName = &"",
 		disabled: bool = false) -> HBoxContainer:
 	var row := UiKit.hbox(Design.SPACE_LG)
@@ -637,14 +657,10 @@ func _slider_row(label_key: StringName, settings_key: String, minimum: float,
 
 func _option_row(label_key: StringName, settings_key: String, options: Array,
 		disabled: bool = false) -> Control:
-	var wrap := options.size() > 4
-	var holder: Container = HFlowContainer.new() if wrap else UiKit.hbox(Design.SPACE_SM)
-	if holder is HFlowContainer:
-		(holder as HFlowContainer).add_theme_constant_override("h_separation", Design.SPACE_SM)
-		(holder as HFlowContainer).add_theme_constant_override("v_separation", Design.SPACE_SM)
-		(holder as HFlowContainer).custom_minimum_size = Vector2(400, 0)
-	else:
-		(holder as HBoxContainer).alignment = BoxContainer.ALIGNMENT_END
+	var holder := HFlowContainer.new()
+	holder.add_theme_constant_override("h_separation", Design.SPACE_SM)
+	holder.add_theme_constant_override("v_separation", Design.SPACE_SM)
+	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var chips: Array[Button] = []
 	var current: Variant = _shown(settings_key)
@@ -655,7 +671,12 @@ func _option_row(label_key: StringName, settings_key: String, options: Array,
 		var value: Variant = option["value"]
 		var chip := UiKit.chip(text, _same(value, current))
 		chip.disabled = disabled
-		chip.custom_minimum_size = Vector2(0, Design.TOUCH_TARGET_MIN)
+		# A chip reports a minimum width of 20px — its icon slot — and says
+		# nothing about the text it carries. Left to itself it collapses into
+		# that column and grows hundreds of pixels tall wrapping its own
+		# label, so give it a floor measured from the words it holds.
+		chip.custom_minimum_size = Vector2(
+			maxf(MIN_CHIP_WIDTH, float(text.length()) * 11.0 + 32.0), Design.TOUCH_TARGET_MIN)
 		if disabled:
 			chip.modulate.a = 0.55
 		UiKit.on_press(chip, func() -> void:
@@ -667,7 +688,7 @@ func _option_row(label_key: StringName, settings_key: String, options: Array,
 		)
 		holder.add_child(chip)
 		chips.append(chip)
-	return _row(label_key, holder, &"", disabled)
+	return _stacked_row(label_key, holder, &"", disabled)
 
 
 static func _same(left: Variant, right: Variant) -> bool:
