@@ -20,6 +20,7 @@ const BUTTON_NAME := "EntranceSettingsButton"
 
 
 func _ready() -> void:
+	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var problems: PackedStringArray = []
 
 	print("CHECK viewport=%s" % get_viewport_rect().size)
@@ -92,23 +93,27 @@ func _ready() -> void:
 
 
 ## Print the entrance's widget tree with rectangles, so a layout mistake is
-## visible in the log instead of being inferred from a failure.
+## visible in the log instead of being inferred from a failure. The entrance
+## nests the dock three levels down, which is why this walks rather than
+## listing two levels.
 func _dump_children(screen: Node) -> void:
 	print("CHECK tree ----")
-	for child in screen.get_children():
-		var control := child as Control
-		if control == null:
-			print("CHECK   %s [%s]" % [child.name, child.get_class()])
-			continue
-		print("CHECK   %s [%s] visible=%s %s"
-			% [control.name, control.get_class(), control.visible, control.get_global_rect()])
-		for grandchild in child.get_children():
-			var inner := grandchild as Control
-			if inner == null:
-				continue
-			print("CHECK     %s [%s] visible=%s %s"
-				% [inner.name, inner.get_class(), inner.visible, inner.get_global_rect()])
+	_dump(screen, 0)
 	print("CHECK tree ----")
+
+
+func _dump(from: Node, depth: int) -> void:
+	if depth > 4:
+		return
+	for child in from.get_children():
+		var control := child as Control
+		var pad := "  ".repeat(depth)
+		if control == null:
+			print("CHECK %s%s [%s]" % [pad, child.name, child.get_class()])
+		else:
+			print("CHECK %s%s [%s] visible=%s %s"
+				% [pad, control.name, control.get_class(), control.visible, control.get_global_rect()])
+		_dump(child, depth + 1)
 
 
 ## The name of any sibling added after `button` whose rectangle covers it.
