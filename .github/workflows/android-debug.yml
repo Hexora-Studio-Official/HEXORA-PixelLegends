@@ -5,6 +5,7 @@ on:
     branches:
       - arena/22d75a58-hexora-pixelfield
       - arena/3af02759-hexora-pixellegends
+      - arena/6919bc8f-hexora-pixellegends
     paths-ignore:
       - "**.md"
       - "docs/**"
