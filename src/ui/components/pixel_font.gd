@@ -17,7 +17,7 @@ const GLYPH_W := 5
 const GLYPH_H := 7
 
 ## Blank cell returned for characters the face does not carry.
-const BLANK: Array[String] = [
+const BLANK := [
 	".....",
 	".....",
 	".....",
@@ -75,8 +75,8 @@ const GLYPHS := {
 }
 
 
-static func glyph(character: String) -> Array[String]:
-	var rows: Array[String] = []
+static func glyph(character: String) -> Array:
+	var rows: Array = []
 	var found = GLYPHS.get(character.to_upper(), BLANK)
 	for row in found:
 		rows.append(String(row))
@@ -118,9 +118,9 @@ static func draw(
 	for index in text.length():
 		var rows := glyph(text.substr(index, 1))
 		for row_index in rows.size():
-			var row: String = rows[row_index]
+			var row := String(rows[row_index])
 			for column in row.length():
-				if row[column] != "#":
+				if row.substr(column, 1) != "#":
 					continue
 				var pixel := colour
 				if per_cell.is_valid():
@@ -148,9 +148,9 @@ static func draw_character(
 		return
 	var rows := glyph(character)
 	for row_index in rows.size():
-		var row: String = rows[row_index]
+		var row := String(rows[row_index])
 		for column in row.length():
-			if row[column] != "#":
+			if row.substr(column, 1) != "#":
 				continue
 			var px := floorf(origin.x + float(column) * scale)
 			var py := floorf(origin.y + float(row_index) * scale)

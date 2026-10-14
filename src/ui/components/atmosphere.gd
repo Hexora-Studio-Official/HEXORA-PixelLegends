@@ -110,7 +110,7 @@ func _draw_sweep() -> void:
 		var x := centre + strip_w * float(strip)
 		var t := float(strip) / float(strips - 1)
 		# Raised cosine so the band has no hard edges.
-		var falloff := sinf(t * PI)
+		var falloff := sin(t * PI)
 		var alpha := SWEEP_STRENGTH * falloff * falloff
 		if alpha <= 0.002:
 			continue
@@ -145,13 +145,13 @@ func _draw_embers() -> void:
 	for ember in _embers:
 		var risen := fmod(_elapsed * float(ember["speed"]) + float(ember["offset"]), span)
 		var y := size.y + 40.0 - risen
-		var sway := sinf(_elapsed * TAU / float(ember["period"]) + float(ember["phase"]))
+		var sway := sin(_elapsed * TAU / float(ember["period"]) + float(ember["phase"]))
 		var x := float(ember["lane"]) * size.x + sway * float(ember["sway"])
 
 		# Fade in from the bottom edge and out toward the top so embers never
 		# pop into or out of existence on screen.
 		var life := clampf(risen / span, 0.0, 1.0)
-		var fade := sinf(life * PI)
+		var fade := sin(life * PI)
 		var alpha := float(ember["alpha"]) * fade
 		if alpha <= 0.004:
 			continue

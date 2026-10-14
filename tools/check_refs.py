@@ -391,8 +391,11 @@ ENGINE_GLOBALS = {
     "push_error", "push_warning", "rad_to_deg", "rand_from_seed", "randf",
     "randf_range", "randfn", "randi", "randi_range", "randomize", "remap",
     "rotate_toward", "round", "roundf", "roundi", "seed", "sign", "signf",
-    "signi", "sin", "sinf", "sinh", "smoothstep", "snapped", "snappedf",
-    "snappedi", "cosf", "tanf",
+    # NOTE: only sin/cos/tan exist. Godot has no float-suffixed trig
+    # variants — the `f` suffix applies to abs/min/max/clamp/round/floor/ceil/
+    # sign/snapped/wrap/lerp, not to the trigonometric functions. Adding
+    # "sinf" here once let a real parse error pass this check.
+    "signi", "sin", "sinh", "smoothstep", "snapped", "snappedf", "snappedi",
     "sqrt", "step_decimals", "str", "str_to_var", "tan", "tanh", "type_convert",
     "type_string", "typeof", "var_to_bytes", "var_to_str", "weakref", "wrap",
     "wrapf", "wrapi", "len", "ord", "char", "range",

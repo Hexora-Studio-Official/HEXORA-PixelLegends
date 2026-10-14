@@ -220,8 +220,8 @@ func _draw_smoke() -> void:
 		# Smoke grows as it thins, and is held very faint so the type stays
 		# the brightest thing on screen.
 		var size := float(particle["size"]) * (1.0 + t * 2.4)
-		var alpha := sinf(t * PI) * 0.20
-		var drift := sinf(since * 1.4 + float(particle["seed"]) * 6.28) * 14.0 * t
+		var alpha := sin(t * PI) * 0.20
+		var drift := sin(since * 1.4 + float(particle["seed"]) * 6.28) * 14.0 * t
 		var pos: Vector2 = particle["pos"]
 		draw_rect(Rect2(pos.x - size * 0.5 + drift, pos.y - size * 0.5, size, size),
 			Color(0.36, 0.42, 0.52, alpha))
@@ -304,7 +304,7 @@ func _draw_title() -> void:
 		var p := clampf(t, 0.0, 1.0)
 		# Back-out ease: each letter overshoots and settles, which is what
 		# makes the word feel punched in rather than faded up.
-		var overshoot := 1.0 + 2.2 * pow(1.0 - p, 2.0) * sinf(p * PI * 1.5)
+		var overshoot := 1.0 + 2.2 * pow(1.0 - p, 2.0) * sin(p * PI * 1.5)
 		var letter_scale := _title_scale * (0.3 + 0.7 * p) * overshoot
 		var colour := _title_colour(index, TITLE_TEXT.length())
 		# Recentre the letter inside its cell as it scales, so it grows out of
