@@ -1,29 +1,11 @@
 class_name GoogleSignIn
 extends Node
-## Google Sign-In for a native app, implemented with the OAuth 2.0 loopback
-## redirect flow (RFC 8252, "appAuth" pattern) plus PKCE.
-##
-## How it works
-##   1. We bind a loopback TCP socket on this device (127.0.0.1:PORT).
-##   2. We open the system browser on Google's consent screen, with
-##      `redirect_uri = http://127.0.0.1:PORT/` and a PKCE code challenge.
-##   3. Google redirects the browser back to our own socket. Nothing leaves
-##      the device, and no secret is embedded in the app (PKCE replaces it).
-##   4. We exchange the one-time code for tokens, then ask Google who the user
-##      is, and hand the account to AuthService.
-##
-## Security notes that matter before shipping:
-##   * The `id_token` we obtain MUST be verified server-side (signature, `aud`,
-##     `iss`, `exp`) before any account is trusted. This class does not and
-##     cannot verify it — the client is not a trustworthy verifier.
-##   * PKCE means the app holds no client secret, which is correct for a public
-##     client. Do not "fix" this by embedding a secret in the APK.
-##   * Google's current guidance for *Android* apps is the native
-##     GoogleSignIn plugin with an "Android app" client (package name + SHA-1).
-##     This loopback flow needs a "Desktop app" client, works on Android today,
-##     and is the only flow that also works on desktop and in tests. See
-##     docs/AUTH_SETUP.md; the native plugin can replace this later without
-##     touching any screen, because screens only talk to AuthService.
+## Legacy, inactive Google OAuth prototype retained from an earlier client.
+## The current UI does not call this node. The approved future account flow,
+## backend boundary, and security requirements are specified in
+## docs/PROJECT_SPEC.txt. Do not activate or extend this direct OAuth/user-info
+## flow without an explicitly approved authentication phase; the game client
+## must not treat an unverified Google token as an authenticated player.
 
 signal progress(message_key: StringName)
 ## account: {sub, email, name, picture, id_token, access_token, expires_in}
@@ -259,7 +241,7 @@ func _maybe_handle_request() -> void:
 
 
 func _reject_oversized_request() -> void:
-	_respond("Request too large", "درخواست بسیار بزرگ", false)
+	_respond("Request too large", "The sign-in request exceeded the allowed size.", false)
 	_shutdown()
 	failed.emit(&"auth.error.generic", "Oversized request on the loopback socket.")
 
@@ -268,7 +250,7 @@ func _handle_request(raw_request: String) -> void:
 	var request_line := raw_request.split("\r\n", false)[0]
 	var parts := request_line.split(" ")
 	if parts.size() < 2 or not String(parts[0]).begins_with("GET"):
-		_respond("Bad request", "HEXORA", false)
+		_respond("Bad request", "PixelLegends", false)
 		return
 
 	var target := String(parts[1])
@@ -279,12 +261,12 @@ func _handle_request(raw_request: String) -> void:
 
 	# Ignore the browser's automatic /favicon.ico probe.
 	if query.is_empty() and not target.begins_with("/?") and target != "/":
-		_respond("Not found", "HEXORA", false)
+		_respond("Not found", "PixelLegends", false)
 		return
 
 	if query.has("error"):
 		var error_code := String(query["error"])
-		_respond("Sign-in cancelled", "ورود لغو شد", false)
+		_respond("Sign-in cancelled", "You can return to PixelLegends.", false)
 		_shutdown()
 		if error_code == "access_denied":
 			failed.emit(&"auth.error.cancelled", "Google returned access_denied.")
@@ -293,7 +275,7 @@ func _handle_request(raw_request: String) -> void:
 		return
 
 	if not query.has("code"):
-		_respond("Missing authorisation code", "کد مجوز دریافت نشد", false)
+		_respond("Missing authorisation code", "No authorization code was received. Please try again.", false)
 		_shutdown()
 		failed.emit(&"auth.error.generic", "Redirect carried no code parameter.")
 		return
@@ -301,7 +283,7 @@ func _handle_request(raw_request: String) -> void:
 	if String(query.get("state", "")) != _expected_state:
 		# A mismatch means somebody else answered our socket first. Never
 		# exchange the code in that case.
-		_respond("State mismatch", "عدم تطابق وضعیت", false)
+		_respond("State mismatch", "The sign-in response could not be verified.", false)
 		_shutdown()
 		failed.emit(&"auth.error.generic", "OAuth state did not match.")
 		return
@@ -337,7 +319,7 @@ func _exchange_code(code: String) -> void:
 	var form := _form_encode(fields)
 	var response := await _post_form(TOKEN_ENDPOINT, form)
 	if not bool(response["ok"]):
-		_respond("Could not complete sign-in", "تکمیل ورود ممکن نشد", false)
+		_respond("Could not complete sign-in", "Sign-in could not be completed. Please return to the app.", false)
 		var detail := String(response["detail"])
 		if detail.contains("redirect_uri_mismatch"):
 			_shutdown()
@@ -351,14 +333,14 @@ func _exchange_code(code: String) -> void:
 	var access_token := String(payload.get("access_token", ""))
 	var id_token := String(payload.get("id_token", ""))
 	if access_token.is_empty() or id_token.is_empty():
-		_respond("Google returned no token", "گوگل توکنی برنگرداند", false)
+		_respond("Google returned no token", "Google returned an incomplete token response.", false)
 		_shutdown()
 		failed.emit(&"auth.error.bad_token", "Token response missing id_token/access_token.")
 		return
 
 	var account := await _fetch_userinfo(access_token)
 	if account.is_empty():
-		_respond("Could not read your profile", "خواندن پروفایل ممکن نشد", false)
+		_respond("Could not read your profile", "The account profile could not be loaded.", false)
 		_shutdown()
 		failed.emit(&"auth.error.bad_token", "Userinfo request failed.")
 		return
@@ -367,7 +349,7 @@ func _exchange_code(code: String) -> void:
 	account["access_token"] = access_token
 	account["expires_in"] = int(payload.get("expires_in", 0))
 
-	_respond("Signed in — you can close this tab", "ورود موفق — این پنجره را ببند", true)
+	_respond("Signed in — you can close this tab", "You can close this tab and return to PixelLegends.", true)
 	_shutdown()
 	succeeded.emit(account)
 
@@ -440,18 +422,18 @@ func _form_encode(fields: Dictionary) -> String:
 func _respond(title: String, subtitle: String, success: bool) -> void:
 	if _peer == null:
 		return
-	var accent := "#38e07b" if success else "#ff4d6d"
+	var accent := "#50e3a4" if success else "#ff6480"
 	var body := """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HEXORA</title></head>
+<title>PixelLegends</title></head>
 <body style="margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
 background:#070b11;color:#e8eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
 <div style="text-align:center;padding:32px;max-width:420px">
 <div style="width:64px;height:64px;margin:0 auto 24px;border-radius:16px;border:3px solid %s;
-display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:%s">H</div>
+display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:%s">PL</div>
 <h1 style="font-size:20px;margin:0 0 8px;font-weight:600">%s</h1>
-<p dir="rtl" style="font-size:15px;margin:0;color:#8fa0b3">%s</p>
+<p dir="ltr" style="font-size:15px;margin:0;color:#8fa0b3">%s</p>
 </div></body></html>""" % [accent, accent, title, subtitle]
 
 	var payload := body.to_utf8_buffer()

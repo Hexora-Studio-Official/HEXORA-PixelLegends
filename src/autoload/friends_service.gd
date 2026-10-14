@@ -1,17 +1,8 @@
 extends Node
-## Friends, requests, and the party you queue with.
-##
-## Phase 1 runs the whole model locally. That is not a stub: the friend list,
-## the request flow, the party size limit and the invite text are all real, and
-## phase 2 only has to replace where the data comes from — `Api.list_friends()`
-## already exists and returns the same shape.
-##
-## Two things are deliberately visible in the UI and never hidden:
-##   * `sample: true` friends come from the local seeder (Settings ▸ Developer
-##     can turn them off). They exist so a new install has something to look at;
-##     they are badged as samples everywhere they appear.
-##   * invites to an offline player are copied to the clipboard as text. There is
-##     no push infrastructure yet, so claiming "invite sent" would be a lie.
+## Legacy local friends/party prototype retained from the earlier project.
+## It is not an active PixelLegends feature or the future Nakama integration.
+## Do not connect it to current menu placeholders. Future social/backend
+## behavior must follow docs/PROJECT_SPEC.txt and its phase gates.
 
 const STORE_PATH := "user://friends.json"
 const MAX_PARTY_SIZE := 5
@@ -22,7 +13,7 @@ const INVITE_TTL_SEC := 300
 var friends: Array[Dictionary] = []
 ## Requests: {uid, name, level, direction, created_at, sample}
 var requests: Array[Dictionary] = []
-## The local party only in phase 1: you, plus whoever accepted locally.
+## Legacy local party cache; it is not a completed PixelLegends social feature.
 var party: Array[Dictionary] = []
 ## Room invites waiting to be shown: {code, host, mode_id, created_at}
 var invites: Array[Dictionary] = []

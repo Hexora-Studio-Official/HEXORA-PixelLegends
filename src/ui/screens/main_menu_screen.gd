@@ -1,435 +1,439 @@
 extends HexScreen
-## The hub: top bar, nav rail, page area, and the matchmaking overlay.
-##
-## One screen with swap-able pages, not seven scenes. The reasons:
-##   * switching must be instant — a competitive shooter's menu should never
-##     spend 300 ms fading between Play and Squad;
-##   * the top bar (level, currencies, presence) stays live no matter which
-##     page is open, so it must not be rebuilt;
-##   * the nav rail is the app's spine and looking at a different page must not
-##     reset which tab is selected.
-##
-## Pages are `MenuPage` subclasses instantiated from the registry below. Adding
-## a page is one entry plus one script.
+## PixelLegends' visual-only battle hub. Match, hero, squad and collection
+## controls are deliberately placeholders; only local profile editing and the
+## device settings panel have behaviour in this phase.
 
-const NAV_ENTRIES := [
-	{"id": &"play", "icon": &"play", "title": &"menu.play", "section": &"menu.section.combat",
-		"script": preload("res://src/ui/pages/play_page.gd")},
-	{"id": &"rooms", "icon": &"rooms", "title": &"menu.rooms", "section": &"menu.section.combat",
-		"script": preload("res://src/ui/pages/rooms_page.gd")},
-	{"id": &"squad", "icon": &"friends", "title": &"menu.friends", "section": &"menu.section.social",
-		"script": preload("res://src/ui/pages/squad_page.gd")},
-	{"id": &"loadout", "icon": &"arsenal", "title": &"menu.arsenal",
-		"section": &"menu.section.progression", "placeholder": true},
-	{"id": &"ranked", "icon": &"rank", "title": &"menu.rank",
-		"section": &"menu.section.progression", "placeholder": true},
-	{"id": &"store", "icon": &"store", "title": &"menu.store",
-		"section": &"menu.section.progression", "placeholder": true},
-	{"id": &"profile", "icon": &"profile", "title": &"menu.profile", "section": &"menu.section.system",
-		"script": preload("res://src/ui/pages/profile_page.gd")},
-	{"id": &"settings", "icon": &"settings", "title": &"menu.settings", "section": &"menu.section.system",
-		"script": preload("res://src/ui/pages/settings_page.gd")},
+const BACKGROUND_PATH := "res://assets/Pixel Legends_ 5v5 Fantasy Showdown.png"
+
+const NAV_ITEMS: Array[Dictionary] = [
+	{"text": &"home.modes", "icon": &"play"},
+	{"text": &"home.heroes", "icon": &"crown"},
+	{"text": &"home.squad", "icon": &"friends"},
+	{"text": &"home.collection", "icon": &"arsenal"},
 ]
 
-const NAV_RAIL_WIDTH := 232
-
-var active_page_id: StringName = &"play"
-
-var _pages: Dictionary = {}          ## id -> MenuPage
-var _nav_buttons: Dictionary = {}    ## id -> Button
-var _page_host: Control
-var _queue_overlay: QueueOverlay
-
+var _background: TextureRect
+var _background_shade: ColorRect
+var _top_bar: HBoxContainer
+var _profile_card: PanelContainer
+var _build_tag: PanelContainer
+var _settings_button: Button
+var _left_rail: PanelContainer
+var _spotlight: PanelContainer
+var _battle_dock: PanelContainer
+var _battle_row: HBoxContainer
+var _battle_emblem: HexIcon
+var _battle_soon: Label
+var _battle_play: Button
+var _edit_name_button: Button
 var _name_label: Label
+var _account_label: Label
 var _avatar: AvatarView
-var _level_label: Label
-var _xp_bar: ProgressBar
-var _currency_credits: Control
-var _currency_cores: Control
-var _squad_badge: Label
-var _status_row: HBoxContainer
+
+
+func _init() -> void:
+	backdrop_enabled = false
+	safe_padding = Design.SPACE_LG
 
 
 func build() -> void:
-	var root := UiKit.vbox(Design.SPACE_MD)
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	content.add_child(root)
+	if _background == null or not is_instance_valid(_background):
+		_background = TextureRect.new()
+		_background.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_background.texture = load(BACKGROUND_PATH) as Texture2D
+		_background.z_index = -2
+		add_child(_background)
 
-	root.add_child(_build_top_bar())
+	if _background_shade == null or not is_instance_valid(_background_shade):
+		_background_shade = ColorRect.new()
+		_background_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_background_shade.color = Color(0.025, 0.045, 0.10, 0.1)
+		_background_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_background_shade.z_index = -1
+		add_child(_background_shade)
 
-	var middle := UiKit.hbox(Design.SPACE_LG)
-	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(middle)
-
-	middle.add_child(_build_nav_rail())
-
-	_page_host = Control.new()
-	_page_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_page_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_page_host.clip_contents = false
-	middle.add_child(_page_host)
-
-	root.add_child(_build_bottom_bar())
-
-	# The overlay is a sibling of the page host, not a child of it, so `rebuild()`
-	# does not free it: without this the second build stacks another overlay on
-	# top of the first, and the old one keeps its matchmaking subscriptions.
-	if _queue_overlay != null and is_instance_valid(_queue_overlay):
-		remove_child(_queue_overlay)
-		_queue_overlay.queue_free()
-	_queue_overlay = QueueOverlay.new()
-	add_child(_queue_overlay)
-
-	# Idempotent: `build()` runs again whenever the language changes.
+	_build_top_bar()
+	_build_left_rail()
+	_build_spotlight()
+	_build_battle_dock()
+	_layout_menu()
 	UiKit.listen(EventBus.profile_changed, _on_profile_changed)
-	UiKit.listen(EventBus.friends_changed, _on_friends_changed)
-	UiKit.listen(EventBus.room_invite_received, _on_invite_received)
-
-	_show_page(active_page_id)
 
 
 func _ready() -> void:
 	super._ready()
-	Audio.play_music(Audio.TRACK_MENU)
-	if Session.is_guest():
-		EventBus.toast_requested.emit(Loc.t(&"toast.guest_banner"), &"info")
+	_animate_background()
 
 
-# ------------------------------------------------------------------- top bar
-
-func _build_top_bar() -> Control:
-	var bar := UiKit.panel(&"TopBarPanel")
-	var row := UiKit.hbox(Design.SPACE_LG)
-	bar.add_child(row)
-
-	_avatar = AvatarView.make(Session.profile, 52.0)
-	row.add_child(_avatar)
-
-	var identity := UiKit.vbox(Design.SPACE_XXS)
-	identity.alignment = BoxContainer.ALIGNMENT_CENTER
-	_name_label = UiKit.label(Session.display_name(), &"SubheadingLabel")
-	identity.add_child(_name_label)
-
-	var level_row := UiKit.hbox(Design.SPACE_SM)
-	_level_label = UiKit.micro(Loc.t(&"common.level_short", {"level": Session.profile.level}))
-	level_row.add_child(_level_label)
-	_xp_bar = UiKit.progress(&"XpBar", Session.profile.xp_progress(), 6)
-	_xp_bar.custom_minimum_size = Vector2(160, 6)
-	level_row.add_child(_xp_bar)
-	identity.add_child(level_row)
-	row.add_child(identity)
-
-	row.add_child(UiKit.spacer())
-
-	_currency_credits = UiKit.stat_tile(Loc.t(&"store.currency.credits"),
-		_format_number(Session.profile.credits), Design.GOLD)
-	_currency_cores = UiKit.stat_tile(Loc.t(&"store.currency.cores"),
-		_format_number(Session.profile.cores), Design.TEAL)
-	row.add_child(_currency_credits)
-	row.add_child(_currency_cores)
-
-	var squad_button := UiKit.icon_button(&"friends", Design.TEXT_MUTED, 24.0)
-	_squad_badge = UiKit.micro("")
-	_squad_badge.add_theme_color_override("font_color", Design.ACCENT)
-	squad_button.add_child(_squad_badge)
-	_squad_badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_KEEP_SIZE)
-	_squad_badge.position = Vector2(-8, 4)
-	UiKit.on_press(squad_button, func() -> void: _show_page(&"squad"))
-	row.add_child(squad_button)
-
-	var settings_button := UiKit.icon_button(&"settings", Design.TEXT_MUTED, 24.0)
-	UiKit.on_press(settings_button, func() -> void: _show_page(&"settings"))
-	row.add_child(settings_button)
-
-	_refresh_squad_badge()
-	return bar
+func _animate_background() -> void:
+	if _background == null:
+		return
+	_background.pivot_offset = get_viewport_rect().size * 0.5
+	var tween := create_tween().set_loops()
+	tween.tween_property(_background, "scale", Vector2(1.028, 1.028), 19.0) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_background, "scale", Vector2.ONE, 19.0) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
-func _format_number(value: int) -> String:
-	# Thousands separators without locale data: group manually so a 12,500
-	# credit balance is readable.
-	var digits := str(absi(value))
-	var grouped := ""
-	var count := 0
-	for index in range(digits.length() - 1, -1, -1):
-		grouped = digits[index] + grouped
-		count += 1
-		if count % 3 == 0 and index > 0:
-			grouped = "," + grouped
-	return ("-" if value < 0 else "") + grouped
+func on_screen_resized() -> void:
+	_layout_menu()
+	if _background != null:
+		_background.pivot_offset = get_viewport_rect().size * 0.5
 
 
-# ------------------------------------------------------------------ nav rail
+func _build_top_bar() -> void:
+	_top_bar = UiKit.hbox(Design.SPACE_MD)
+	_top_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_top_bar.offset_left = 0.0
+	_top_bar.offset_right = 0.0
+	_top_bar.offset_top = 0.0
+	_top_bar.offset_bottom = 100.0
+	_top_bar.add_theme_constant_override("separation", Design.SPACE_MD)
+	content.add_child(_top_bar)
 
-func _build_nav_rail() -> Control:
-	var rail := UiKit.panel(&"RaisedPanel")
-	rail.custom_minimum_size = Vector2(NAV_RAIL_WIDTH, 0)
-	rail.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_top_bar.add_child(_build_profile_card())
+	_top_bar.add_child(UiKit.spacer())
 
-	var column := UiKit.vbox(Design.SPACE_XS)
-	rail.add_child(column)
+	_build_tag = UiKit.panel(&"EntranceDockPanel")
+	_build_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var tag := UiKit.micro(Loc.t(&"home.preview_badge"))
+	tag.add_theme_color_override("font_color", Design.ACCENT_HI)
+	_build_tag.add_child(tag)
+	_top_bar.add_child(_build_tag)
 
-	_nav_buttons.clear()
-	var last_section: StringName = &""
-	for entry: Dictionary in NAV_ENTRIES:
-		var section: StringName = entry["section"]
-		if section != last_section:
-			last_section = section
-			var caption := UiKit.micro(Loc.t(section).to_upper())
-			caption.add_theme_color_override("font_color", Design.TEXT_DIM)
-			var wrapper := MarginContainer.new()
-			wrapper.add_theme_constant_override("margin_top", Design.SPACE_SM)
-			wrapper.add_theme_constant_override("margin_bottom", Design.SPACE_XS)
-			wrapper.add_child(caption)
-			column.add_child(wrapper)
-
-		var button := _build_nav_button(entry)
-		column.add_child(button)
-		_nav_buttons[entry["id"]] = button
-
-	column.add_child(UiKit.spacer())
-	column.add_child(UiKit.divider())
-
-	var party := _build_party_block()
-	column.add_child(party)
-
-	var quit_button := UiKit.button(Loc.t(&"menu.exit"), &"GhostButton", &"exit")
-	UiKit.on_press(quit_button, func() -> void: Router.quit_game(), "back")
-	column.add_child(quit_button)
-	return rail
+	_settings_button = UiKit.icon_button(
+		&"settings", Design.ACCENT, 24.0, Loc.t(&"menu.settings"))
+	_settings_button.custom_minimum_size = Vector2(58, 58)
+	_settings_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	UiKit.on_hover(_settings_button)
+	UiKit.on_press(_settings_button, _open_settings_modal, "click")
+	_top_bar.add_child(_settings_button)
 
 
-func _build_nav_button(entry: Dictionary) -> Button:
-	var button := Button.new()
-	button.theme_type_variation = &"NavButton"
-	button.custom_minimum_size = Vector2(0, 52)
-	button.focus_mode = Control.FOCUS_NONE
+func _build_profile_card() -> PanelContainer:
+	_profile_card = UiKit.panel(&"EntranceDockPanel")
+	_profile_card.custom_minimum_size = Vector2(430, 86)
+	_profile_card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	var row := UiKit.hbox(Design.SPACE_MD)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	button.add_child(row)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_profile_card.add_child(row)
 
-	var is_placeholder := bool(entry.get("placeholder", false))
-	var icon := HexIcon.make(entry["icon"], Design.TEXT_MUTED, 22.0, 2.0)
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(icon)
+	var profile := Session.profile
+	if profile != null:
+		_avatar = AvatarView.make(profile, 58.0)
+		row.add_child(_avatar)
 
-	var text := UiKit.label(Loc.t(entry["title"]), &"BodyLabel")
-	text.add_theme_font_override("font", Design.font_label)
-	text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(text)
+	var identity := UiKit.vbox(Design.SPACE_XXS)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.alignment = BoxContainer.ALIGNMENT_CENTER
+	_name_label = UiKit.subheading(Session.display_name())
+	_name_label.add_theme_font_size_override("font_size", Design.FONT_SUBHEAD)
+	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_name_label.clip_text = true
+	identity.add_child(_name_label)
 
-	if is_placeholder:
-		var lock := HexIcon.make(&"lock", Design.TEXT_DIM, 14.0, 1.6)
-		lock.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(lock)
+	_account_label = UiKit.micro("")
+	_account_label.add_theme_color_override("font_color", Design.TEXT_DIM)
+	identity.add_child(_account_label)
+	row.add_child(identity)
 
-	button.set_meta(&"icon", icon)
-	button.set_meta(&"label", text)
-	button.set_meta(&"id", entry["id"])
-	UiKit.on_press(button, func() -> void: _show_page(entry["id"]))
-	UiKit.on_hover(button)
-	return button
+	_edit_name_button = UiKit.button(Loc.t(&"home.edit_name"), &"GlassButton", &"profile")
+	_edit_name_button.custom_minimum_size = Vector2(132, 50)
+	UiKit.on_hover(_edit_name_button)
+	UiKit.on_press(_edit_name_button, _open_name_editor, "click")
+	row.add_child(_edit_name_button)
 
-
-func _build_party_block() -> Control:
-	var block := UiKit.vbox(Design.SPACE_XS)
-	var label := UiKit.micro("")
-	label.add_theme_color_override("font_color", Design.TEXT_DIM)
-	block.add_child(label)
-	block.set_meta(&"party_label", label)
-
-	var invite := UiKit.button(Loc.t(&"friends.party.invite"), &"GhostButton", &"plus")
-	invite.custom_minimum_size = Vector2(0, 40)
-	UiKit.on_press(invite, func() -> void: _show_page(&"squad"))
-	block.add_child(invite)
-	_refresh_party_block(block)
-	return block
+	_refresh_profile_labels(profile)
+	return _profile_card
 
 
-func _refresh_party_block(block: Control) -> void:
-	var label := block.get_meta(&"party_label", null) as Label
-	if label == null:
-		return
-	var size_now := Friends.party_size()
-	if size_now <= 1:
-		label.text = Loc.t(&"menu.party.none")
-	else:
-		label.text = Loc.t(&"menu.party.size", {
-			"size": size_now, "max": Friends.MAX_PARTY_SIZE,
-		})
+func _build_left_rail() -> void:
+	_left_rail = UiKit.panel(&"EntranceDockPanel")
+	_left_rail.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_left_rail.offset_left = 0.0
+	_left_rail.offset_top = 0.0
+	content.add_child(_left_rail)
+
+	var column := UiKit.vbox(Design.SPACE_SM)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_left_rail.add_child(column)
+
+	var title := UiKit.micro(Loc.t(&"home.explore").to_upper())
+	title.add_theme_color_override("font_color", Design.ACCENT_HI)
+	column.add_child(title)
+	column.add_child(UiKit.divider(Color(0.72, 0.9, 1.0, 0.28), 1))
+
+	for entry: Dictionary in NAV_ITEMS:
+		var button := UiKit.button(Loc.t(entry["text"]), &"GlassNavButton", entry["icon"])
+		button.custom_minimum_size = Vector2(0, 58)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UiKit.on_hover(button)
+		# Intentionally no pressed callback: these feature destinations are
+		# visual placeholders until they are approved and activated individually.
+		column.add_child(button)
+
+	column.add_child(UiKit.spacer())
+	var note := UiKit.paragraph(Loc.t(&"home.feature_note"), 230.0, &"CaptionLabel")
+	note.add_theme_color_override("font_color", Design.TEXT_DIM)
+	column.add_child(note)
 
 
-# ---------------------------------------------------------------- bottom bar
+func _build_spotlight() -> void:
+	_spotlight = UiKit.panel(&"EntranceDockPanel")
+	_spotlight.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_spotlight.offset_left = 0.0
+	_spotlight.offset_top = 0.0
+	content.add_child(_spotlight)
 
-func _build_bottom_bar() -> Control:
-	var row := UiKit.hbox(Design.SPACE_LG)
-	row.add_child(UiKit.micro(Loc.t(&"app.version_label", {
-		"version": str(ProjectSettings.get_setting("application/config/version", "0.1.0")),
-	})))
+	var column := UiKit.vbox(Design.SPACE_SM)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	_spotlight.add_child(column)
 
-	row.add_child(UiKit.spacer())
+	var eyebrow := UiKit.micro(Loc.t(&"home.spotlight"))
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	eyebrow.add_theme_color_override("font_color", Design.ACCENT_HI)
+	column.add_child(eyebrow)
 
-	_status_row = UiKit.hbox(Design.SPACE_LG)
-	row.add_child(_status_row)
-	_refresh_status()
-	return row
+	var crest := HexIcon.make(&"crown", Design.ACCENT, 56.0, 2.2)
+	crest.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(crest)
 
+	var title := UiKit.heading(Loc.t(&"home.spotlight_title"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", Design.FONT_H3)
+	column.add_child(title)
 
-func _refresh_status() -> void:
-	if _status_row == null:
-		return
-	for child in _status_row.get_children():
-		_status_row.remove_child(child)
-		child.queue_free()
+	var description := UiKit.paragraph(Loc.t(&"home.spotlight_body"), 280.0)
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(description)
 
-	var region := Settings.get_int("game/region")
-	var region_text := Loc.t(GameTypes.region_key(region))
-	_status_row.add_child(UiKit.status_dot(region_text, Design.TEAL))
-
-	if Api.is_configured():
-		var online := Api.is_online()
-		_status_row.add_child(UiKit.status_dot(
-			Loc.t(&"common.online") if online else Loc.t(&"common.offline"),
-			Design.SUCCESS if online else Design.WARNING))
-	else:
-		_status_row.add_child(UiKit.status_dot(Loc.t(&"common.offline"), Design.TEXT_MUTED))
-
-	if Rooms.is_in_room():
-		_status_row.add_child(UiKit.status_dot(Rooms.room.code, Design.ACCENT))
+	var heroes := UiKit.button(Loc.t(&"home.heroes"), &"GlassButton", &"crown")
+	heroes.custom_minimum_size = Vector2(0, 54)
+	heroes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiKit.on_hover(heroes)
+	column.add_child(heroes)
 
 
-# -------------------------------------------------------------------- pages
+func _build_battle_dock() -> void:
+	_battle_dock = UiKit.panel(&"EntranceDockPanel")
+	_battle_dock.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_battle_dock.offset_left = 0.0
+	_battle_dock.offset_right = 0.0
+	_battle_dock.offset_top = -150.0
+	_battle_dock.offset_bottom = 0.0
+	content.add_child(_battle_dock)
 
-## Swap the visible page, reusing the instance so its scroll position and
-## internal state survive.
-func _show_page(page_id: StringName) -> void:
-	active_page_id = page_id
-	var page := _resolve_page(page_id)
-	if page == null:
-		return
+	_battle_row = UiKit.hbox(Design.SPACE_LG)
+	_battle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_battle_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_battle_dock.add_child(_battle_row)
 
-	for child in _page_host.get_children():
-		if child != page:
-			child.visible = false
-	if page.get_parent() != _page_host:
-		_page_host.add_child(page)
-	page.visible = true
-	page.on_shown()
+	_battle_emblem = HexIcon.make(&"shield", Design.TEAL, 56.0, 2.2)
+	_battle_emblem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_battle_row.add_child(_battle_emblem)
 
-	for id: StringName in _nav_buttons:
-		var button: Button = _nav_buttons[id]
-		var active := id == page_id
-		button.theme_type_variation = &"NavButtonActive" if active else &"NavButton"
-		var icon := button.get_meta(&"icon", null) as HexIcon
-		if icon != null:
-			icon.color = Design.ACCENT if active else Design.TEXT_MUTED
-		var label := button.get_meta(&"label", null) as Label
-		if label != null:
-			label.add_theme_color_override("font_color", Design.TEXT if active else Design.TEXT_MUTED)
+	var copy := UiKit.vbox(Design.SPACE_XXS)
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	var title := UiKit.subheading(Loc.t(&"home.battle_title"))
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	copy.add_child(title)
+	var subtitle := UiKit.label(Loc.t(&"home.battle_subtitle"), &"BodyMutedLabel")
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	copy.add_child(subtitle)
+	_battle_row.add_child(copy)
 
-	_refresh_squad_badge()
-	_refresh_status()
+	_battle_soon = UiKit.micro(Loc.t(&"home.coming_soon"))
+	_battle_soon.add_theme_color_override("font_color", Design.ACCENT_HI)
+	_battle_row.add_child(_battle_soon)
 
-
-## Public entry point for anything inside a page that needs to move the player
-## somewhere else (Play ▸ "Host a room", an invite toast, a deep link later).
-## Pages must not reach into `_show_page` directly: it is the shell's job to
-## decide whether a page may be swapped while a queue is running.
-func open_page(page_id: StringName) -> void:
-	_show_page(page_id)
-
-
-## The live instance of a page, or null if it has never been opened. Used by
-## one page to hand a parameter to another (Play ▸ Rooms opens Host or Browse
-## depending on which button was pressed).
-func page(page_id: StringName) -> MenuPage:
-	return _pages.get(page_id, null) as MenuPage
+	_battle_play = UiKit.button(Loc.t(&"home.battle_button"), &"GlassPrimaryButton", &"play")
+	_battle_play.custom_minimum_size = Vector2(250, 72)
+	_battle_play.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	UiKit.on_hover(_battle_play)
+	# Deliberately has no pressed callback in the visual-only milestone.
+	_battle_row.add_child(_battle_play)
 
 
-func _resolve_page(page_id: StringName) -> MenuPage:
-	if _pages.has(page_id):
-		return _pages[page_id]
-	for entry: Dictionary in NAV_ENTRIES:
-		if entry["id"] != page_id:
-			continue
-		var page: MenuPage
-		if bool(entry.get("placeholder", false)):
-			page = PlaceholderPage.new()
-			(page as PlaceholderPage).configure(entry["title"], entry["icon"])
+func _layout_menu() -> void:
+	var viewport := get_viewport_rect().size
+	if _top_bar != null:
+		_top_bar.offset_left = Design.SPACE_MD
+		_top_bar.offset_right = -Design.SPACE_MD
+		_top_bar.offset_top = Design.SPACE_MD
+		_top_bar.offset_bottom = 112.0
+	if _profile_card != null:
+		_profile_card.custom_minimum_size.x = minf(430.0, maxf(160.0, viewport.x - 162.0))
+	if _build_tag != null:
+		_build_tag.visible = viewport.x >= 900.0
+	if _avatar != null:
+		var avatar_side := 58.0 if viewport.x >= 800.0 else (32.0 if viewport.x < 520.0 else 40.0)
+		_avatar.custom_minimum_size = Vector2(avatar_side, avatar_side)
+		_avatar.size = Vector2(avatar_side, avatar_side)
+	if _profile_card != null:
+		var profile_row := _profile_card.get_child(0) as HBoxContainer
+		if profile_row != null:
+			profile_row.add_theme_constant_override(
+				"separation", Design.SPACE_MD if viewport.x >= 800.0 else Design.SPACE_XS)
+	if _edit_name_button != null:
+		var edit_width := 132.0 if viewport.x >= 800.0 else (68.0 if viewport.x < 520.0 else 76.0)
+		_edit_name_button.custom_minimum_size.x = edit_width
+		UiKit.set_label_text(_edit_name_button,
+			Loc.t(&"home.edit_name_short") if viewport.x < 520.0 else Loc.t(&"home.edit_name"))
+	if _name_label != null:
+		_name_label.add_theme_font_size_override(
+			"font_size", Design.FONT_SUBHEAD if viewport.x >= 800.0 else Design.FONT_SMALL)
+	if _settings_button != null:
+		_settings_button.custom_minimum_size = Vector2(58.0, 58.0)
+
+	var compact := viewport.x < 1040.0
+	if _left_rail != null:
+		_left_rail.visible = viewport.x >= 1040.0
+		_left_rail.offset_left = Design.SPACE_MD
+		_left_rail.offset_top = 148.0
+		_left_rail.offset_right = 284.0 if not compact else 244.0
+		_left_rail.offset_bottom = maxf(520.0, viewport.y - 192.0)
+	if _spotlight != null:
+		_spotlight.visible = viewport.x >= 1380.0
+		_spotlight.anchor_left = 1.0
+		_spotlight.anchor_right = 1.0
+		_spotlight.anchor_top = 0.0
+		_spotlight.anchor_bottom = 0.0
+		_spotlight.offset_left = -352.0
+		_spotlight.offset_right = -Design.SPACE_MD
+		_spotlight.offset_top = 148.0
+		_spotlight.offset_bottom = 510.0
+	if _battle_dock != null:
+		_battle_dock.anchor_left = 0.0
+		_battle_dock.anchor_right = 1.0
+		_battle_dock.anchor_top = 1.0
+		_battle_dock.anchor_bottom = 1.0
+		_battle_dock.offset_top = -150.0
+		_battle_dock.offset_bottom = -Design.SPACE_MD
+		if viewport.x < 1040.0:
+			_battle_dock.offset_left = Design.SPACE_SM
+			_battle_dock.offset_right = -Design.SPACE_SM
+		elif viewport.x < 1380.0:
+			_battle_dock.offset_left = 304.0
+			_battle_dock.offset_right = -Design.SPACE_MD
 		else:
-			var script: GDScript = entry["script"]
-			page = script.new() as MenuPage
-		page.name = String(page_id)
-		_pages[page_id] = page
-		return page
-	# Unknown page: fall back to the first real one rather than showing a blank
-	# panel, which would look like a crash.
-	push_warning("MainMenu: unknown page '%s'." % page_id)
-	return _resolve_page(&"play")
+			_battle_dock.offset_left = 304.0
+			_battle_dock.offset_right = -368.0
+	if _battle_row != null:
+		var narrow := viewport.x < 760.0
+		_battle_row.add_theme_constant_override(
+			"separation", Design.SPACE_XS if narrow else Design.SPACE_LG)
+		if _battle_emblem != null:
+			_battle_emblem.visible = not narrow
+		if _battle_soon != null:
+			_battle_soon.visible = not narrow
+		if _battle_play != null:
+			_battle_play.custom_minimum_size.x = 152.0 if narrow else 250.0
 
-
-# --------------------------------------------------------------- live updates
 
 func _on_profile_changed(profile: PlayerProfile) -> void:
+	_refresh_profile_labels(profile)
 	if _name_label != null:
 		_name_label.text = Session.display_name()
-	if _level_label != null:
-		_level_label.text = Loc.t(&"common.level_short", {"level": profile.level})
-	if _xp_bar != null:
-		_xp_bar.value = profile.xp_progress()
 	if _avatar != null:
+		_avatar.initials = profile.initials()
 		_avatar.level = profile.level
-	if _currency_credits != null:
-		UiKit.set_stat_value(_currency_credits, _format_number(profile.credits))
-	if _currency_cores != null:
-		UiKit.set_stat_value(_currency_cores, _format_number(profile.cores))
 
 
-func _on_friends_changed(_friends: Array) -> void:
-	_refresh_squad_badge()
-
-
-func _on_invite_received(invite: Dictionary) -> void:
-	EventBus.toast_requested.emit(
-		Loc.t(&"friends.invite.received", {"name": invite.get("from_name", "?")}), &"info")
-
-
-func _refresh_squad_badge() -> void:
-	if _squad_badge == null:
+func _refresh_profile_labels(profile: PlayerProfile) -> void:
+	if _account_label == null:
 		return
-	var online := Friends.online_count()
-	_squad_badge.text = str(online) if online > 0 else ""
-	_refresh_party_block(_build_party_lookup())
-	_refresh_status()
+	if profile == null:
+		_account_label.text = Loc.t(&"home.guest_profile")
+		return
+	_account_label.text = Loc.t(&"common.level_short", {"level": profile.level}) \
+		+ "  ·  " + (Loc.t(&"auth.guest.badge") if profile.is_guest else Loc.t(&"home.linked_profile"))
 
 
-## The party block lives inside the rail; find it by walking the tree once
-## rather than keeping another reference alive across a language rebuild.
-func _build_party_lookup() -> Control:
-	for node in _find_nodes_with_meta(self, &"party_label"):
-		return node.get_parent()
-	return Control.new()
+func _open_name_editor() -> void:
+	if Session.profile == null:
+		return
+	var wrapper := UiKit.panel(&"GlassModalPanel")
+	wrapper.custom_minimum_size = Vector2(480.0, 0.0)
+	var column := UiKit.vbox(Design.SPACE_MD)
+	wrapper.add_child(column)
+	column.add_child(UiKit.subheading(Loc.t(&"home.edit_title")))
+	column.add_child(UiKit.paragraph(Loc.t(&"home.edit_hint"), 520.0))
+
+	var name_field := LineEdit.new()
+	name_field.theme_type_variation = &"HexLineEdit"
+	name_field.text = Session.profile.display_name
+	name_field.placeholder_text = Loc.t(&"home.edit_placeholder")
+	name_field.max_length = 16
+	name_field.custom_minimum_size = Vector2(0.0, 58.0)
+	name_field.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	column.add_child(name_field)
+
+	var error_label := UiKit.label("", &"DangerLabel")
+	error_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	error_label.visible = false
+	column.add_child(error_label)
+
+	var actions := UiKit.hbox(Design.SPACE_SM)
+	actions.alignment = BoxContainer.ALIGNMENT_END
+	var cancel := UiKit.button(Loc.t(&"common.cancel"), &"GlassButton")
+	var save := UiKit.button(Loc.t(&"home.edit_save"), &"GlassPrimaryButton", &"check")
+	cancel.custom_minimum_size = Vector2(130.0, 56.0)
+	save.custom_minimum_size = Vector2(180.0, 56.0)
+	actions.add_child(cancel)
+	actions.add_child(save)
+	column.add_child(actions)
+
+	var layer := UiKit.show_modal(self, wrapper, 540.0)
+	UiKit.on_hover(cancel)
+	UiKit.on_hover(save)
+	UiKit.on_press(cancel, func() -> void: UiKit.close_modal(layer), "back")
+	var save_action := func() -> void:
+		_save_display_name(name_field, error_label, layer)
+	UiKit.on_press(save, save_action, "confirm")
+	name_field.text_submitted.connect(func(_value: String) -> void:
+		_save_display_name(name_field, error_label, layer))
+	name_field.call_deferred("grab_focus")
+	name_field.call_deferred("select_all")
 
 
-func _find_nodes_with_meta(root: Node, meta_key: StringName) -> Array:
-	var found: Array = []
-	for child in root.get_children():
-		if child.has_meta(meta_key):
-			found.append(child)
-		found.append_array(_find_nodes_with_meta(child, meta_key))
-	return found
+func _save_display_name(field: LineEdit, error_label: Label, layer: Control) -> void:
+	var candidate := field.text.strip_edges()
+	var validator := RegEx.new()
+	validator.compile("^[A-Za-z0-9_]{3,16}$")
+	if candidate.length() < 3 or candidate.length() > 16 or validator.search(candidate) == null:
+		error_label.text = Loc.t(&"home.edit_invalid")
+		error_label.visible = true
+		return
+	Session.update_profile({"display_name": candidate})
+	EventBus.toast_requested.emit(Loc.t(&"home.edit_saved"), &"success")
+	UiKit.close_modal(layer)
 
 
-# --------------------------------------------------------------------- input
+func _open_settings_modal() -> void:
+	var page := SettingsPage.new()
+	page.custom_minimum_size = Vector2(760.0, 560.0)
+
+	var wrapper := UiKit.panel(&"GlassModalPanel")
+	var column := UiKit.vbox(Design.SPACE_MD)
+	wrapper.add_child(column)
+	var header := UiKit.hbox(Design.SPACE_MD)
+	header.add_child(UiKit.subheading(Loc.t(&"settings.title")))
+	header.add_child(UiKit.spacer())
+	var close := UiKit.icon_button(&"close", Design.TEXT_MUTED, 20.0)
+	header.add_child(close)
+	column.add_child(header)
+	column.add_child(UiKit.divider())
+	column.add_child(page)
+	var layer := UiKit.show_modal(self, wrapper, 800.0)
+	UiKit.on_press(close, func() -> void: UiKit.close_modal(layer), "back")
+
 
 func on_back_requested() -> void:
-	if _queue_overlay != null and _queue_overlay.is_open():
-		Matchmaking.cancel_queue()
-		return
-	if active_page_id != &"play":
-		_show_page(&"play")
-		return
 	Router.quit_game()

@@ -1,0 +1,1487 @@
+PIXEL LEGENDS — FULL TECHNICAL & GAME DEVELOPMENT SPEC
+Godot 4.4 — 3D 5v5 MOBA
+
+LIVE IMPLEMENTATION STATUS & AGENT HANDOFF
+============================================================
+
+Last status check: 2026-10-14
+
+Rollback verification (2026-10-14): reverted commit 2f63395 ("Correct edge
+alignment and compact battle copy") on arena/3af02759-hexora-pixellegends.
+The src/ tree matches parent commit 580b03b exactly; earlier changes remain.
+String tables, project references, GDScript lint, Python syntax, and diff
+whitespace checks passed locally after the rollback. Godot runtime, Android
+export, and device visual checks were not rerun for this rollback. The CI/APK
+results from run 38343943699 below are historical evidence, not validation
+of this rollback.
+
+Rollback Android build (2026-10-14): PASS at commit 92d14c2 in GitHub Actions
+run 38504098509. Godot 4.4.1 import/headless startup, debug APK export,
+signature verification, archive integrity, and manifest checks passed.
+Static checks also passed in run 38504098507. Artifact
+`pixellegends-debug-apk` contains `PixelLegends-debug.apk` (ARM64 only):
+https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38504098509/artifacts/11867551015
+Artifact expires 2026-10-28. Download into the coding sandbox was blocked by
+the artifact storage host network restriction; download from GitHub instead.
+This build uses an ephemeral debug signing key, not a release key. Device
+installation, visual review, and touch/persistence test results have not been
+reported in detail. The user explicitly approved merging this APK's source
+branch into main on 2026-10-14; this approval is not device-test evidence.
+
+This is the live progress record for the implementation described below. The
+requirements and long-term target remain in the numbered specification. Agents
+must update this block only when verified project state changes; do not claim a
+feature or phase is complete from design text alone.
+
+CURRENT FORMAL PHASE
+
+PHASE 0 — FOUNDATION: IN PROGRESS; NOT PASSED.
+
+Current approved workstream: the branded client shell, UI/environment,
+documentation, and validation. This is a limited workstream, not permission to
+implement MOBA gameplay, matchmaking, online authentication, networking, or
+dedicated-server behavior. Follow the user's latest explicit scope if it is
+narrower than the long-term target in this document.
+
+IMPLEMENTED CLIENT SHELL
+
+- The Godot project is branded PixelLegends and targets Godot 4.4.
+- `assets/Pixel Legends_ 5v5 Fantasy Showdown.png` is used for the entrance
+  and main-menu background; `assets/Pixel Legends_ 5v5 Showdown.png` is the
+  configured project/Android icon source.
+- After loading, the entrance shows a thin bottom progress bar and the Play,
+  Login With Google, Login As Guest, and Settings choices, with original
+  pixel-styled interaction feedback. Only Login As Guest is active; Play and
+  Google login are display-only.
+- Future behavior already decided: after a successful first Google sign-in
+  has been securely remembered, Play should directly resume that account. This
+  is deferred and not implemented in the current UI.
+- Guest profiles are local, receive a generated name, persist on the device,
+  and can be renamed from the hub. No forced profile/operator setup is used.
+- The hub reuses the wide art with subtle motion. Feature destinations remain
+  placeholders.
+- The active UI and project documentation are English-only; Persian
+  localization and language/region selection have been removed.
+- Detailed duplicate project documents are retired. README.md is a short
+  entrypoint; AGENTS.md directs coding agents back to this file.
+
+Current implementation touchpoints: `project.godot`, `export_presets.cfg`,
+`src/ui/screens/boot_screen.gd`, `src/ui/screens/main_menu_screen.gd`,
+`src/autoload/router.gd`, `src/autoload/auth_service.gd`,
+`src/autoload/session.gd`, `src/core/player_profile.gd`, and
+`src/i18n/strings_en.gd`. These are orientation hints; inspect actual code
+before changing behavior.
+
+NOT IMPLEMENTED / NOT PROVEN
+
+- No playable 3D MOBA match, hero, map, combat, or minion/tower simulation is
+  implemented. Nakama-backed accounts, active MOBA matchmaking, online Google
+  authentication, and a dedicated match server are not connected to the
+  current UI/workstream.
+- Legacy shooter-era scripts/data and generic service autoloads remain in the
+  repository. They are not evidence that PixelLegends MOBA systems are
+  implemented; do not activate or reuse them without an approved, tested
+  migration.
+- The recommended client/server/shared organization in section 4 is a logical
+  target. The current physical project remains a Godot root project with source
+  under src/; do not move the repository wholesale to the illustrative tree.
+- Phase 0 cannot pass until its foundation requirements are implemented and
+  verified. The current scope intentionally defers its networking/headless
+  server items; Godot import, startup, and visual/device checks also remain
+  unverified.
+- No later numbered phase is marked complete. Future Google login must use the
+  authentication/backend design in this specification; today's local Guest
+  flow is not Nakama authentication.
+
+LATEST VALIDATION SNAPSHOT
+
+- English-only string table check: PASS — locale en, 538 keys.
+- Static project-reference check: PASS — 55 classes, 41 scripts, 4 scenes,
+  538 localized keys, no dangling references.
+- GDScript lint: PASS.
+- Python syntax checks for the project tools: PASS.
+- git diff --check: PASS.
+- Godot 4.4.1 CI import and headless client startup: PASS.
+- Android Debug APK export, signing verification, archive integrity, and
+  manifest checks: PASS in GitHub Actions run 38343943699 at commit a95783e.
+  Artifact `pixellegends-debug-apk` contains `PixelLegends-debug.apk` and is
+  available at:
+  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38343943699/artifacts/11788271195
+  The run page is:
+  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38343943699
+  It is debug-signed with an ephemeral CI key, not a release APK. Artifact
+  retention expires 2026-10-27. The sandbox could not copy it locally
+  because GitHub redirects artifact downloads to a storage host outside the
+  allowed network destinations.
+- Physical/emulated-device installation, visual review, touch testing, and
+  guest persistence across app restarts: NOT RUN. Godot/Android tooling is not
+  installed in the local coding environment; CI checks do not replace device
+  testing.
+
+NEXT ACTIONS
+
+1. Download the `pixellegends-debug-apk` artifact from the linked CI run and
+   install `PixelLegends-debug.apk` on an Android device or emulator.
+2. Verify loading, responsive layout, inactive controls, guest persistence/name
+   editing, and the supplied icon at desktop and mobile aspect ratios.
+3. Record the results here. Do not advance a phase gate without its test
+   evidence. Implement only the next scope explicitly approved by the user.
+
+KNOWN EXTERNAL / WORKSPACE BLOCKERS
+
+- The GitHub repository description still reads "Online Shooter". Attempts to
+  update it returned HTTP 403 (integration lacks repository metadata write
+  permission); no successful metadata change has been made.
+- Workspace sync note (2026-10-13): the fetched origin history, including the
+  uploaded PROJECT_SPEC.txt, has now been integrated into the fixed session
+  branch while preserving the PixelLegends working tree. No branch switch or
+  reset was performed. Before future synchronization or publishing, inspect
+  git status and the current branch, preserve any user changes, and avoid
+  treating historical PixelField content as the current product.
+
+============================================================
+END OF LIVE STATUS BLOCK
+============================================================
+
+
+============================================================
+1. PROJECT GOAL
+============================================================
+
+Build a fully 3D 5v5 mobile MOBA in Godot 4.4.
+
+The gameplay structure, control philosophy, match flow, camera behavior, lane structure, combat loop, and overall player experience should belong to the same modern mobile-MOBA category as Mobile Legends, while all characters, abilities, maps, art assets, names, UI assets, effects, and other creative content must be original.
+
+The game must NOT copy copyrighted characters, assets, names, maps, UI artwork, sounds, or other proprietary content from existing games.
+
+Core target:
+- 5v5 competitive MOBA
+- Fully 3D world
+- Mobile-first controls
+- Dedicated authoritative game server
+- Nakama backend
+- Godot 4.4
+- ENet / Godot MultiplayerAPI
+- Server-authoritative simulation
+- Client-side prediction and reconciliation where appropriate
+- Modern mobile-quality rendering
+- High-resolution refined pixel-art visual identity
+
+
+============================================================
+2. VISUAL DIRECTION
+============================================================
+
+The visual style must be:
+
+- High-Resolution 3D Pixel Art
+- Micro-Pixel Stylized Graphics
+- Fine Pixel-Texture Aesthetic
+- Crisp Pixel-Art Rendering
+- Fine pixel clusters
+- Sharp silhouettes
+- Sharp texture details
+- Stylized 3D characters
+- Stylized 3D environment
+- Modern stylized lighting
+- High-quality materials
+- Clean and readable VFX
+- Premium mobile-game presentation
+
+IMPORTANT:
+
+The game must NOT look like Minecraft.
+
+NOT:
+- Voxel art
+- Blocky Minecraft-style geometry
+- Large chunky pixels
+- Extremely low-resolution textures
+- Primitive cube-based characters
+- Full-screen extreme pixelation
+
+Characters and environments must be fully 3D.
+
+The pixel aesthetic should mainly appear through:
+- Texture design
+- Fine pixel clusters
+- Material details
+- Color grouping
+- Edge treatment
+- Stylized shading
+- VFX
+- UI
+- Icons
+- Small visual details
+
+Do NOT render the entire game at an extremely low internal resolution just to create a pixel effect.
+
+Use native/high-resolution rendering with a refined pixel-art-inspired material and texture style.
+
+Suggested texture resolution depending on asset importance:
+- 256x256
+- 512x512
+- 1024x1024
+
+Use higher resolutions for important hero textures and major environment assets when needed.
+
+
+============================================================
+3. CAMERA
+============================================================
+
+Use a 3D angled top-down MOBA camera.
+
+Technical description:
+
+- 3D Angled Top-Down Camera
+- 3/4 Perspective
+- Elevated Diagonal Perspective
+- Perspective Projection
+- Hero-Centered Camera
+- Mobile MOBA-style camera
+
+Do NOT call it "true isometric" unless orthographic projection is actually being used.
+
+Camera must support:
+- Configurable height
+- Configurable distance
+- Configurable pitch
+- Configurable FOV
+- Follow speed
+- Smooth camera movement
+- Zoom limits
+- Map/world boundaries
+- Hero-centered tracking
+
+The camera should provide the familiar elevated diagonal gameplay readability expected from a modern mobile MOBA.
+
+
+============================================================
+4. PROJECT ARCHITECTURE
+============================================================
+
+Use a clear separation between client, server, and shared systems.
+
+Recommended structure:
+
+project/
+├── client/
+│   ├── authentication/
+│   │   ├── google_login/
+│   │   ├── guest_login/
+│   │   ├── session/
+│   │   └── account_linking/
+│   ├── presentation/
+│   ├── ui/
+│   ├── camera/
+│   ├── effects/
+│   └── input/
+│
+├── server/
+│   ├── simulation/
+│   ├── networking/
+│   ├── game/
+│   ├── combat/
+│   ├── heroes/
+│   ├── minions/
+│   ├── towers/
+│   ├── objectives/
+│   └── validation/
+│
+├── shared/
+│   ├── heroes/
+│   ├── abilities/
+│   ├── items/
+│   ├── combat/
+│   ├── map/
+│   ├── constants/
+│   ├── protocol/
+│   └── data/
+│
+└── tools/
+
+
+============================================================
+5. AUTHENTICATION & ACCOUNT SYSTEM
+============================================================
+
+Authentication must be designed from the beginning of the project.
+
+Required authentication methods:
+
+1. Google / Gmail Sign-In
+2. Guest Login
+
+Google authentication must use OAuth and be integrated with Nakama.
+
+Players must be able to:
+- Sign in with Google
+- Continue as a Guest
+- Link a Guest account to a Google account
+- Preserve existing progress when linking
+- Restore their account after reinstalling the game
+- Restore their session when possible
+- Log out
+- Sign in with another account
+- Reconnect to an existing game session when supported
+
+Authentication, session management, token validation, account linking, and identity management must be handled by the backend/Nakama layer.
+
+The dedicated Godot game server must NOT directly manage Google OAuth.
+
+
+============================================================
+6. AUTHENTICATION FLOW
+============================================================
+
+Google / Gmail Login:
+
+Mobile Client
+    ↓
+Google OAuth / Google Sign-In
+    ↓
+Google credential / ID token
+    ↓
+Nakama Authentication
+    ↓
+Nakama User Account
+    ↓
+Authenticated Game Session
+    ↓
+Dedicated Game Server
+
+Guest Login:
+
+Mobile Client
+    ↓
+Nakama Guest Authentication
+    ↓
+Nakama User Account
+    ↓
+Authenticated Game Session
+    ↓
+Dedicated Game Server
+
+Account Linking:
+
+Existing Guest Account
+    ↓
+Google Login
+    ↓
+Link Google Identity
+    ↓
+Preserve existing player account/progress
+    ↓
+Google becomes an additional authenticated identity
+
+
+============================================================
+7. NAKAMA / BACKEND
+============================================================
+
+Use Nakama for backend services.
+
+Nakama responsibilities:
+
+Authentication:
+- Google / Gmail OAuth authentication
+- Guest authentication
+- Account linking
+- Session management
+- Token validation
+- Session restoration
+- Player identity
+
+Player services:
+- Player profile
+- Player account data
+- Basic progression data
+
+Social:
+- Friends
+- Friend requests
+- Player presence where appropriate
+
+Match services:
+- Matchmaking
+- Lobby
+- Match creation/coordination
+
+Competitive services:
+- Leaderboard
+- Ranking
+- Competitive statistics
+
+Nakama should handle backend identity and account services.
+
+The actual real-time match simulation remains on a dedicated authoritative Godot game server.
+
+
+============================================================
+8. GAME SERVER
+============================================================
+
+Use a dedicated authoritative Godot headless server.
+
+The server must:
+- Run without graphical UI
+- Run without client presentation systems
+- Own the authoritative game state
+- Validate player commands
+- Simulate combat
+- Simulate movement
+- Simulate minions
+- Simulate towers
+- Simulate objectives
+- Validate abilities
+- Validate purchases
+- Validate rewards
+- Validate victory conditions
+
+Example launch:
+
+godot --headless --match-id=1001 --port=9001
+
+For MVP:
+- One headless Godot process per match
+- One match per dedicated process
+
+This can later evolve into a more advanced server allocation system.
+
+
+============================================================
+9. NETWORKING
+============================================================
+
+Use:
+- ENet
+- Godot MultiplayerAPI
+
+Target simulation tick:
+- Approximately 30 Hz initially
+- Make tick rate configurable
+- Evaluate 60 Hz later if necessary
+
+Client should send INPUT/COMMAND data rather than authoritative world state.
+
+Examples:
+- Move direction
+- Stop
+- Face direction
+- Basic attack request
+- Ability cast request
+- Target selection
+- Recall request
+- Item purchase request
+
+The server validates the command before applying it.
+
+
+============================================================
+10. RELIABLE VS UNRELIABLE NETWORKING
+============================================================
+
+Use unreliable ordered communication for:
+- Frequent movement input
+- Facing direction
+- High-frequency transient input
+
+Use reliable communication for:
+- Important gameplay events
+- Match state transitions
+- Purchase confirmations
+- Ability confirmations where required
+- Death/respawn events
+- Objective events
+- Match result
+- Authentication/session-related important messages
+
+Important:
+
+Reliable does NOT mean trusted.
+
+The server remains authoritative regardless of network delivery mode.
+
+
+============================================================
+11. CLIENT PREDICTION & RECONCILIATION
+============================================================
+
+Use client-side prediction where appropriate.
+
+Prediction may be used for:
+- Player movement
+- Facing
+- Basic navigation responsiveness
+
+Server remains authoritative.
+
+When the server sends authoritative state:
+- Compare predicted state
+- Reconcile if necessary
+- Correct client state smoothly
+
+For other players:
+- Use interpolation
+- Do not directly snap between snapshots unless necessary
+
+Do NOT allow the client to authoritatively decide:
+- Damage
+- Kills
+- Gold
+- XP
+- Cooldown completion
+- Item purchases
+- Ability hit results
+- Tower damage
+- Objective ownership
+- Victory
+- Teleportation
+- Impossible movement
+
+
+============================================================
+12. SNAPSHOT SYSTEM
+============================================================
+
+Design the snapshot protocol early.
+
+Server periodically sends relevant world-state snapshots.
+
+Snapshots may contain:
+- Entity IDs
+- Positions
+- Rotations
+- Movement state
+- Health
+- Mana
+- Animation state
+- Team
+- Hero state
+- Relevant combat state
+- Objective state
+
+Optimize snapshots so clients receive only relevant information.
+
+Future optimization may include:
+- Delta compression
+- Interest management
+- Entity prioritization
+- Reduced update frequency for distant entities
+
+
+============================================================
+13. GAME SIMULATION LAYER
+============================================================
+
+Keep the simulation independent from presentation.
+
+Architecture:
+
+Input
+    ↓
+Server Validation
+    ↓
+Game Simulation
+    ↓
+Authoritative World State
+    ↓
+Snapshot
+    ↓
+Client Presentation
+
+The simulation must not depend on:
+- UI
+- Sprites
+- Visual effects
+- Camera
+- Animation presentation
+- Client-only nodes
+
+
+============================================================
+14. FIXED SIMULATION
+============================================================
+
+Use a fixed simulation step.
+
+Gameplay logic should be deterministic/reproducible as much as practical.
+
+Simulation systems should include:
+- Movement
+- Combat
+- Abilities
+- Cooldowns
+- Health
+- Mana
+- Status effects
+- Minions
+- Towers
+- Objectives
+- Gold
+- XP
+- Respawn
+- Victory conditions
+
+
+============================================================
+15. HERO / DATA ARCHITECTURE
+============================================================
+
+Use data-driven design.
+
+Prefer Godot Resources (.tres) for structured game data.
+
+Hero data should include:
+- Hero ID
+- Display name
+- Base health
+- Base mana
+- Movement speed
+- Attack damage
+- Attack speed
+- Attack range
+- Defense
+- Abilities
+- Growth values
+- Level scaling
+- Role/class
+
+Ability data should include:
+- Ability ID
+- Cooldown
+- Mana cost
+- Cast range
+- Damage
+- Target type
+- Area of effect
+- Duration
+- Status effects
+- Animation/effect references
+
+Keep balance values separate from core simulation code.
+
+
+============================================================
+16. COMBAT
+============================================================
+
+All important combat decisions must be server-authoritative.
+
+Server validates:
+- Attack range
+- Attack speed
+- Ability range
+- Ability cooldown
+- Mana
+- Damage
+- Target validity
+- Line/area rules
+- Status effects
+- Death
+- Respawn
+- Kill attribution
+- Assist attribution
+
+Never trust client-provided:
+- Damage
+- Hit confirmation
+- Cooldown completion
+- Gold amount
+- XP amount
+- Kill result
+
+
+============================================================
+17. 3D MOBA MAP
+============================================================
+
+The game world is fully 3D.
+
+Do NOT use TileMap as the primary world representation.
+
+Use:
+- 3D meshes
+- Modular environment assets
+- Mesh-based terrain
+- 3D collision
+- NavigationRegion3D
+- NavigationAgent3D
+
+Map structure should support:
+
+- 3 lanes
+- Jungle
+- River
+- Bush/vision areas
+- Team bases
+- Spawn areas
+- Towers
+- Lane structures
+- Neutral objectives
+- Strategic paths
+- Combat areas
+
+
+============================================================
+18. AI / MINIONS
+============================================================
+
+Use NavigationRegion3D and NavigationAgent3D.
+
+Minions must be server-authoritative.
+
+Minion systems:
+- Spawn waves
+- Lane movement
+- Target selection
+- Attack
+- Damage
+- Death
+- Pathfinding
+- Team behavior
+- Structure targeting
+
+Minion simulation must run on the dedicated server.
+
+
+============================================================
+19. TOWERS / STRUCTURES
+============================================================
+
+Tower logic must be server-authoritative.
+
+Tower systems:
+- Target acquisition
+- Attack range
+- Attack speed
+- Damage
+- Target priority
+- Structure health
+- Destruction
+- Lane progression
+- Victory/base interaction
+
+
+============================================================
+20. VISION / FOG OF WAR
+============================================================
+
+Implement server-side vision rules.
+
+The server must determine what each team/player is allowed to know.
+
+Support:
+- Vision radius
+- Bush visibility
+- Hidden enemies
+- Revealed enemies
+- Objective visibility
+- Map exploration state
+
+Do not rely solely on client-side visibility for competitive information.
+
+
+============================================================
+21. MOBILE CONTROLS & UI
+============================================================
+
+Design the controls for touch devices.
+
+Required concepts:
+- Virtual joystick
+- Basic attack button
+- Ability buttons
+- Ultimate ability
+- Recall
+- Target selection
+- Skill indicators
+- Attack range indicators
+- Damage numbers
+- Health/mana bars
+- Top match score
+- Match timer
+- Gold
+- Objectives
+- Player/hero information
+
+UI should follow the same general usability principles as modern mobile MOBAs while remaining visually original.
+
+UI visual style:
+- Fine pixel-art-inspired design
+- Sharp icons
+- Clean silhouettes
+- Small/high-resolution pixel details
+- Modern readable typography
+- No giant chunky pixel buttons
+
+
+============================================================
+22. LIGHTING & RENDERING
+============================================================
+
+Use modern stylized 3D rendering.
+
+Possible systems:
+- Directional light
+- Environment lighting
+- Soft/stylized shadows
+- Ambient occlusion where appropriate
+- Limited bloom
+- Stylized materials
+- Controlled post-processing
+
+Lighting must improve readability without destroying the fine pixel aesthetic.
+
+
+============================================================
+23. ANTI-CHEAT / SERVER VALIDATION
+============================================================
+
+The server must validate all important gameplay actions.
+
+Validate:
+- Movement speed
+- Position changes
+- Distance
+- Attack range
+- Attack speed
+- Ability range
+- Ability cooldown
+- Mana
+- Gold
+- XP
+- Items
+- Purchases
+- Teleports
+- Respawn
+- Damage
+- Target validity
+- Objective interactions
+
+Client is never trusted as the source of truth.
+
+
+============================================================
+24. RECONNECT
+============================================================
+
+Implement reconnect support.
+
+The system should support:
+- Temporary network disconnection
+- Session restoration
+- Reconnecting to an active match
+- Restoring relevant player state
+- Re-synchronizing world state
+
+Authentication/session identity should be handled through Nakama/backend systems.
+
+
+============================================================
+25. CODE QUALITY
+============================================================
+
+Use:
+- Typed GDScript
+- class_name
+- Signals
+- Enums
+- Typed arrays/dictionaries where appropriate
+- Godot Resources
+- Clear interfaces between systems
+
+Avoid:
+- Giant monolithic scripts
+- Mixing UI with gameplay simulation
+- Client-authoritative gameplay
+- Hardcoded balance values everywhere
+- Unnecessary duplicated logic
+
+
+============================================================
+26. DEVELOPMENT PHASES
+============================================================
+
+PHASE 0 — FOUNDATION
+
+- Godot 4.4 project
+- Client / Server / Shared structure
+- Networking bootstrap
+- Headless server
+- Shared data architecture
+- Basic build/run configuration
+
+
+PHASE 1 — AUTHENTICATION & BACKEND FOUNDATION
+
+- Nakama integration
+- Google / Gmail Login
+- Guest Login
+- Session management
+- Token validation
+- Account linking
+- Player profile
+- Login persistence
+- Session restoration
+- Logout
+- Basic backend communication
+
+
+PHASE 2 — TWO-PLAYER MOVEMENT
+
+- Two connected players
+- Server-authoritative movement
+- Client prediction
+- Reconciliation
+- Interpolation
+- Snapshot system
+
+
+PHASE 3 — COMBAT
+
+- Basic attack
+- Abilities
+- HP
+- Damage
+- Mana
+- Cooldowns
+- Death
+- Respawn
+
+
+PHASE 4 — MOBA CORE
+
+- Minions
+- Lanes
+- Towers
+- Gold
+- XP
+- Levels
+- Base
+- Victory conditions
+
+
+PHASE 5 — 5V5
+
+- 10 players
+- Two teams
+- Hero assignment
+- Spawn system
+- Respawn
+- Match timer
+- Team state
+
+
+PHASE 6 — FULL MOBA MAP
+
+- 3 lanes
+- Jungle
+- River
+- Bushes
+- Vision
+- Fog of war
+- Towers
+- Bases
+- Neutral objectives
+- Navigation
+
+
+PHASE 7 — HEROES & ITEMS
+
+- Multiple heroes
+- Roles
+- Abilities
+- Items
+- Item shop
+- Stats
+- Balance data
+
+
+PHASE 8 — PRODUCTION BACKEND
+
+- Matchmaking
+- Lobby
+- Friends
+- Leaderboards
+- Ranking
+- Reconnect
+- Dedicated server allocation
+- Monitoring
+- Logging
+- Analytics
+
+
+============================================================
+27. DEDICATED SERVER ALLOCATION
+============================================================
+
+For MVP:
+- Nakama handles account/matchmaking/backend services
+- Dedicated Godot process runs the actual match
+
+A future allocator/service may:
+- Find an available server
+- Start a match process
+- Assign match ID
+- Assign port
+- Pass configuration
+- Monitor process
+- Shut down finished matches
+
+Example:
+
+--headless --match-id=1001 --port=9001
+
+
+============================================================
+28. IMPORTANT DEVELOPMENT RULES FOR THE AGENT
+============================================================
+
+Do NOT build the entire game in one step.
+
+Implement and test each phase independently.
+
+Rules:
+
+1. Do not mix presentation and simulation.
+2. Do not trust the client.
+3. Keep the server authoritative.
+4. Build authentication early.
+5. Keep Google/Gmail authentication inside the Nakama/backend authentication architecture.
+6. Do not put Google OAuth logic directly inside the dedicated game simulation server.
+7. Preserve guest account progress when linking to Google.
+8. Design the snapshot protocol early.
+9. Build reconnect support into the architecture rather than treating it as an afterthought.
+10. Keep balance data separate from gameplay logic.
+11. Test every networking phase before moving forward.
+12. Do not rewrite working systems unnecessarily.
+13. Keep all important gameplay validation server-side.
+14. Keep the visual presentation independent from the server simulation.
+15. Prefer modular, reusable systems.
+16. Maintain clean typed GDScript.
+17. Do not replace fully 3D assets with voxel/cube-based assets.
+18. Do not create an extremely low-resolution full-screen pixel effect.
+19. Keep the pixel aesthetic fine, sharp, modern, and high-resolution.
+20. All creative assets and content must be original.
+
+
+
+
+============================================================
+IMPORTANT REVISION — BEGINNER-FRIENDLY DEVELOPMENT MODE
+============================================================
+
+The developer of this project is an absolute beginner in programming.
+
+The AI/development agent must act as:
+- Senior Godot Developer
+- Multiplayer/Networking Developer
+- Backend/Nakama Developer
+- Technical Architect
+- Teacher for a complete beginner
+
+The agent must NOT assume that the developer already knows:
+- Programming
+- GDScript
+- Godot architecture
+- Networking
+- Multiplayer
+- Servers
+- Databases
+- OAuth
+- Google authentication
+- Nakama
+- Git
+- Linux/headless servers
+- Deployment
+
+The agent must teach while building.
+
+FOR EVERY IMPLEMENTATION STEP:
+
+1. First explain WHAT we are building.
+2. Explain WHY we need it.
+3. Explain WHICH files will be created or changed.
+4. Explain WHERE every file belongs.
+5. Provide complete code whenever practical.
+6. Never give incomplete code with important parts silently omitted.
+7. Explain exactly where the code should be pasted.
+8. Explain exactly how to run the project.
+9. Explain exactly how to test the result.
+10. Explain what successful output should look like.
+11. Explain common errors and their fixes.
+12. Do not assume the developer understands error messages.
+13. Do not silently add dependencies or plugins.
+14. If an external dependency is required, explain it before using it.
+15. Do not make large architectural changes without explaining them first.
+16. Keep each step small, clear, and testable.
+17. Do not move to the next major phase until the current phase works.
+18. If something fails, stop and debug the current step instead of building more systems on top of it.
+19. Prefer simple solutions that are correct and maintainable.
+20. Do not over-engineer the project during the beginner/MVP stages.
+
+The agent must never respond with only:
+"Create this file and write this code."
+
+Instead, it must explain:
+- what the file does
+- why it exists
+- where it goes
+- what each important part of the code does
+- how to test it
+
+The developer must be able to follow the project without needing prior professional programming knowledge.
+
+
+============================================================
+BEGINNER DEVELOPMENT RULE — DO NOT BUILD EVERYTHING AT ONCE
+============================================================
+
+The complete Pixel Legends specification is the long-term target.
+
+It is NOT an instruction to implement the entire game immediately.
+
+The agent must build the project incrementally.
+
+Correct order:
+
+1. Make the basic Godot project work.
+2. Make a tiny playable prototype.
+3. Add authentication/backend foundation.
+4. Add basic networking.
+5. Add a simple multiplayer movement test.
+6. Add basic combat.
+7. Add the first MOBA gameplay systems.
+8. Expand the map.
+9. Expand to more players.
+10. Add heroes/items/content.
+11. Add production backend systems.
+12. Polish and optimize.
+
+Do NOT attempt to create:
+- all 10 players
+- all heroes
+- all abilities
+- the complete map
+- matchmaking
+- ranking
+- social systems
+- advanced VFX
+- production infrastructure
+
+at the beginning.
+
+Each phase must produce a working build before the next phase begins.
+
+
+============================================================
+BEGINNER-FRIENDLY SETUP ORDER
+============================================================
+
+Before writing major gameplay code, the agent must guide the developer through setup in a simple order.
+
+Recommended setup order:
+
+1. Install and verify Godot 4.4.
+2. Create and open the Pixel Legends Godot project.
+3. Confirm the project runs successfully.
+4. Establish the project folder structure.
+5. Create the first simple scene.
+6. Confirm the first scene runs.
+7. Set up the development workflow/version control when needed.
+8. Set up Nakama when the authentication/backend phase begins.
+9. Configure Google authentication when the Google login phase begins.
+10. Set up mobile platform requirements later, when the game prototype is stable.
+11. Set up dedicated server testing after the basic multiplayer architecture exists.
+
+Do not ask the developer to configure everything at the beginning.
+
+Only configure systems when they become necessary for the current phase.
+
+
+============================================================
+GOOGLE AUTHENTICATION SAFETY RULES
+============================================================
+
+Google/Gmail authentication must remain inside the client/backend authentication architecture.
+
+Rules:
+
+1. Use Nakama's supported Google authentication approach.
+2. Use an official/supported Godot-compatible integration where applicable.
+3. Do NOT create a custom OAuth server unless there is a documented technical requirement and the developer explicitly understands why it is needed.
+4. Never store Google passwords.
+5. Never send Google passwords to the game server.
+6. Do not place Google OAuth logic inside the dedicated real-time game simulation server.
+7. Do not expose sensitive authentication credentials unnecessarily.
+8. Keep authentication tokens and account credentials separated from gameplay state.
+9. The dedicated Godot game server should receive authenticated player/session information required for the match, not Google account secrets.
+10. Guest-to-Google account linking must preserve the existing player account and progression.
+11. Authentication failures must be handled clearly and safely.
+12. The agent must explain every authentication configuration step before asking the beginner to perform it.
+
+
+============================================================
+MVP-FIRST DEVELOPMENT TARGET
+============================================================
+
+Before attempting the complete 5v5 production game, create a small working MVP.
+
+The first playable MVP should contain approximately:
+
+- Guest login
+- Google login when authentication integration is ready
+- One simple playable hero
+- Basic 3D MOBA map
+- 3/4 angled top-down camera
+- Basic player movement
+- Basic attack
+- Health
+- Damage
+- Death
+- Respawn
+- Simple enemy target
+- Basic network connection
+- Two-player multiplayer test
+- Basic authoritative server
+- Simple win/lose condition
+
+Only after this works reliably should the project expand toward:
+
+- 5v5
+- Three lanes
+- Jungle
+- Minions
+- Towers
+- Objectives
+- Multiple heroes
+- Abilities
+- Items
+- Shop
+- Progression
+- Matchmaking
+- Ranked systems
+- Friends
+- Leaderboards
+- Production infrastructure
+
+
+============================================================
+DEFINITION OF DONE / PHASE GATES
+============================================================
+
+The phase names and numbers in section 26 are the canonical development
+sequence. Use these gates to verify that sequence; do not treat this list as a
+second, differently numbered roadmap. A phase passes only when its listed
+criteria have been implemented and tested.
+
+PHASE 0 — FOUNDATION PASSES WHEN:
+- The Godot 4.4 project imports, opens, and runs its basic scene without
+  critical errors.
+- Client, server, and shared responsibilities have clear boundaries.
+- Shared data/build configuration and the basic networking bootstrap exist.
+- A Godot headless server process can start without client presentation.
+
+PHASE 1 — AUTHENTICATION & BACKEND FOUNDATION PASSES WHEN:
+- Nakama guest authentication works, and Google authentication works when
+  configured through a supported integration.
+- Sessions can be created, validated, restored, and logged out safely.
+- Guest-to-Google account linking preserves the existing player account.
+- Authentication/session responsibilities are separate from match simulation.
+
+PHASE 2 — TWO-PLAYER MOVEMENT PASSES WHEN:
+- Two authenticated clients can join one dedicated test match and exchange
+  the required messages.
+- Server-authoritative movement and state synchronization work.
+- Prediction/reconciliation and interpolation are tested where appropriate.
+- The snapshot system carries the required state for the two-player test.
+
+PHASE 3 — COMBAT PASSES WHEN:
+- Basic attack, health, damage, mana, cooldown, and ability behavior work.
+- The server validates combat outcomes; death and respawn work correctly.
+
+PHASE 4 — MOBA CORE PASSES WHEN:
+- Basic minion/lane/tower foundations, gold/XP/levels, base, and victory
+  conditions work under server authority.
+
+PHASE 5 — 5V5 PASSES WHEN:
+- Ten players can be assigned to two teams with correct hero assignment,
+  spawning, respawning, match timer, and team state.
+- Core 5v5 networking is stable enough for continued development.
+
+PHASE 6 — FULL MOBA MAP PASSES WHEN:
+- The three-lane map, jungle, river, bushes/vision, bases, towers, objectives,
+  paths, and navigation work and are testable in a match.
+
+PHASE 7 — HEROES & ITEMS PASSES WHEN:
+- Multiple heroes, roles, abilities, stats, and items can be selected and
+  tested using data-driven definitions.
+- The item shop and balance data work without hardcoding balance throughout
+  simulation code.
+
+PHASE 8 — PRODUCTION BACKEND PASSES WHEN:
+- Required matchmaking, lobby/social/ranking, reconnect, and backend services
+  are functional.
+- Dedicated-server allocation, monitoring, and logging are tested for the
+  chosen deployment model.
+- Security, load, recovery, and production-operability requirements are met.
+
+
+============================================================
+BEGINNER GLOSSARY
+============================================================
+
+The agent must explain these terms in simple language when they first appear.
+
+CLIENT:
+The player's game application running on the player's phone/PC.
+
+SERVER:
+The authoritative computer process that controls the real match state.
+
+DEDICATED SERVER:
+A server process running separately from a player's game.
+
+HEADLESS:
+A server running without graphics or a normal game window.
+
+AUTHORITATIVE SERVER:
+The server is the final authority over important game state.
+
+RPC:
+A way for one computer/process to request an action from another process.
+
+TICK:
+One simulation update performed by the game server.
+
+SNAPSHOT:
+A packet containing part of the current game state.
+
+PREDICTION:
+The client temporarily predicts its own movement before receiving the server result.
+
+RECONCILIATION:
+The client corrects its prediction when the authoritative server state arrives.
+
+INTERPOLATION:
+Smoothly displaying other players between received server states.
+
+LATENCY:
+The delay between sending and receiving data over a network.
+
+NAKAMA:
+The backend service used for authentication, accounts, matchmaking, social features, leaderboards, and related services.
+
+OAUTH:
+A standard system used to authenticate through an external identity provider such as Google.
+
+TOKEN:
+A temporary credential used to prove that a session or authentication step is valid.
+
+ACCOUNT LINKING:
+Connecting two login methods to the same player account, such as Guest + Google.
+
+RESOURCE:
+A Godot data asset used to store reusable configuration/data.
+
+SCENE:
+A Godot file containing a reusable collection of nodes.
+
+NODE:
+A basic building block inside a Godot scene.
+
+NAVIGATION:
+The system that helps characters find paths through the 3D world.
+
+FOG OF WAR:
+A system that hides information from players when their team should not be able to see it.
+
+
+============================================================
+AGENT COMMUNICATION RULES FOR A COMPLETE BEGINNER
+============================================================
+
+When giving instructions, use simple language.
+
+Prefer:
+
+"Open this file:
+res://client/authentication/guest_login/guest_login.gd
+
+Replace its contents with the following code..."
+
+Then explain what the code does.
+
+Avoid unexplained instructions such as:
+
+"Implement the auth service and wire the RPC."
+
+If a technical term is necessary, explain it immediately.
+
+When multiple files are required, present them in this order:
+
+1. File path
+2. Purpose
+3. Complete code
+4. Where to create it
+5. What to change in Godot
+6. How to run
+7. How to test
+8. Expected result
+9. Common errors
+
+The agent must not assume that the developer knows where a Godot file or setting is located.
+
+
+============================================================
+ORIGINAL CREATIVE DIRECTION MUST NOT BE LOST
+============================================================
+
+All existing Pixel Legends requirements remain mandatory.
+
+The game must remain:
+
+- Fully 3D
+- 5v5 mobile MOBA
+- 3/4 perspective
+- Elevated diagonal perspective
+- Perspective projection
+- Hero-centered camera
+- High-resolution
+- Fine micro-pixel aesthetic
+- Modern stylized lighting
+- Crisp silhouettes
+- Detailed materials
+- Clean VFX
+- Original creative identity
+
+The game must NOT become:
+
+- Minecraft-like
+- Voxel-based
+- Cube-character based
+- Chunky pixel art
+- Extremely low-resolution
+- Full-screen low-resolution pixelated
+- A copy of another game's characters, maps, names, artwork, or assets
+
+All original architecture and gameplay requirements in this specification remain active.
+
+
+============================================================
+29. FINAL VISUAL TARGET
+============================================================
+
+"A high-quality fully 3D mobile MOBA with a 3/4 angled top-down perspective and modern mobile-MOBA gameplay structure, combined with a refined high-resolution micro-pixel art aesthetic.
+
+The game must NOT look voxel-based or Minecraft-like.
+
+Characters and environments are fully 3D, with extremely fine pixel-textured materials, crisp silhouettes, sharp details, stylized lighting, subtle pixel clusters, modern mobile-quality rendering, clean VFX, and strong gameplay readability.
+
+The pixel aesthetic should be visible in the art direction, textures, shading, UI, VFX, and material details without making the entire image look low-resolution or heavily pixelated.
+
+Authentication must support Google/Gmail login and Guest login through Nakama, including account linking and session restoration.
+
+The final result should feel like a polished competitive mobile 5v5 MOBA with an original high-resolution pixel-art identity."

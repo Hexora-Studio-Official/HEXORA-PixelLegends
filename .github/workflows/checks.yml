@@ -1,0 +1,50 @@
+name: Static checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install development checks
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Check translations
+        run: python3 tools/check_i18n.py
+
+      - name: Check references and scene resources
+        run: python3 tools/check_refs.py
+
+      - name: Lint GDScript
+        run: gdlint $(find src -name '*.gd' -print)
+
+      - name: Verify the reference checker catches a planted fault
+        shell: bash
+        run: |
+          fault_dir="$(mktemp -d)"
+          trap 'rm -rf "$fault_dir"' EXIT
+          git archive HEAD | tar -x -C "$fault_dir"
+          (
+            cd "$fault_dir"
+            python3 tools/plant_fault.py project.godot 'res://assets/Pixel Legends_ 5v5 Showdown.png>>>>res://__ci_missing_asset__.png'
+            if python3 tools/check_refs.py; then
+              echo "check_refs.py passed despite a deliberately missing asset"
+              exit 1
+            fi
+            echo "Expected failure observed for the planted missing asset."
+          )

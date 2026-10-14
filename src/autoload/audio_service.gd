@@ -1,14 +1,8 @@
 extends Node
-## Audio routing, procedural interface cues and music playback.
-##
-## Bus layout (see default_bus_layout.tres): Master → Music / SFX / UI / Voice.
-## Settings owns the volume values; this service is what actually plays things,
-## so the two never fight over a bus.
-##
-## Music is loaded on demand from `res://assets/audio/music/<id>.ogg`. No track
-## ships yet — the phase 1 menu is intentionally clean — but dropping a file
-## with the right name in that folder activates it with no code change. That is
-## also why the music player exists at all rather than being deferred.
+## Retained audio routing and procedural UI cues from the earlier client.
+## The current shell has no approved match/lobby music feature or audio content.
+## Future audio direction and phase scope follow docs/PROJECT_SPEC.txt; do not
+## activate gameplay tracks just by placing files in the legacy music folder.
 
 const MUSIC_DIR := "res://assets/audio/music/"
 const UI_VOICE_COUNT := 6
@@ -182,9 +176,8 @@ func _set_music_paused(paused: bool) -> void:
 		player.stream_paused = paused
 
 
-## Loads `<MUSIC_DIR><id>.ogg`, or null when the asset is absent. Missing music
-## is a normal state in phase 1, not an error, so it is logged once at debug
-## level only.
+## Loads `<MUSIC_DIR><id>.ogg`, or null when the legacy asset is absent. No
+## music track is part of the current PixelLegends UI-shell deliverable.
 func _load_track(track_id: String) -> AudioStream:
 	if track_id.is_empty():
 		return null

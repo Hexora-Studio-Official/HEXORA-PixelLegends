@@ -1,21 +1,10 @@
 extends Node
-## The only place in the client that speaks HTTP.
-##
-## Design rules, in order of importance:
-##
-##  1. **Nothing else touches HTTPRequest.** Auth, friends, rooms and
-##     matchmaking all go through `request()`, so timeouts, auth headers,
-##     retries and error shaping exist exactly once.
-##  2. **A missing backend is not an error.** With no `dev/api_base_url` the
-##     whole game runs offline; every call returns `{ok = false, error =
-##     "not_configured"}` and the callers degrade to local behaviour instead of
-##     showing a spinner forever.
-##  3. **Never block the frame.** Everything is `await`-friendly and returns a
-##     plain Dictionary; services decide what a failure means for them.
-##
-## Requests are sent as JSON with a bearer token once `auth_token` is set. The
-## token is the backend's own session token — never the Google `id_token`, which
-## is short-lived and must be verified exactly once, at sign-in.
+## Legacy generic HTTP client retained from the earlier prototype.
+## It is not a Nakama integration and must not be treated as the approved
+## online architecture for PixelLegends. The current UI exposes no online
+## account, lobby, or match flow. Future backend work must follow
+## docs/PROJECT_SPEC.txt and its phase gates; do not wire this client into a
+## placeholder or assume its endpoints are production services.
 
 ## Every response has this shape. `data` is only meaningful when `ok` is true.
 ##   {ok: bool, status: int, data: Variant, error: String}

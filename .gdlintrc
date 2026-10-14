@@ -1,7 +1,7 @@
-# gdtoolkit / gdlint configuration for HEXORA.
+# gdtoolkit / gdlint configuration for PixelField.
 #
-# Install once:  pip install gdtoolkit==4.*
-# Run:           gdlint $(find src -name '*.gd')
+# Install once:  python -m pip install -r requirements-dev.txt
+# Run:           gdlint $(find src -name '*.gd' -print)
 #
 # Deviations from gdlint's defaults, and why:
 #   max-line-length 150 — UI code builds stylebox tables and translation

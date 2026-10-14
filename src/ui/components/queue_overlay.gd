@@ -208,7 +208,7 @@ func _render_searching() -> void:
 	_accept_countdown.visible = false
 	_simulated_pill.visible = not Api.is_configured()
 
-	var selected := Matchmaking.selected_modes()
+	var selected: Array[StringName] = Matchmaking.selected_modes.duplicate()
 	var names := PackedStringArray()
 	for mode_id in selected:
 		names.append(Loc.t(GameCatalog.resolve(mode_id).short_key))
@@ -255,6 +255,7 @@ func _render_found() -> void:
 		var style := StyleBoxFlat.new()
 		style.bg_color = AvatarView.color_for_index(absi(String(entry.get("name", "x")).hash()))
 		style.set_corner_radius_all(Design.RADIUS_SM)
+		style.anti_aliasing = false
 		if bool(entry.get("is_local", false)):
 			style.border_color = Design.TEXT
 			style.set_border_width_all(2)

@@ -1,60 +1,68 @@
 extends Node
-## The HEXORA design system: one palette, one type scale, one Theme.
+## The PixelLegends design system: one palette, one type scale, one Theme.
 ##
 ## Everything visual that more than one screen needs lives here. Screens ask
 ## for *semantic* type variations ("PrimaryButton", "CardPanel") instead of
 ## assembling their own StyleBoxFlats, which is what keeps the UI coherent as
 ## more screens land.
 ##
-## Art direction (agreed for the project): clean semi-realistic 3D, not pixel
-## art and not photoreal — think "graphite and machined aluminium, lit by
-## sodium orange and instrument teal". The interface follows the same rule:
-## dark, low-saturation surfaces, one warm accent for actions, one cold accent
-## for information, and thin hairline borders instead of heavy chrome.
+## Art direction: an original pixel-art fantasy arena — deep midnight-blue
+## panels, vivid blue team accents, and golden-orange actions framed by ink-dark
+## outlines. Square corners and stepped accents echo the supplied MOBA key art.
 
 # ------------------------------------------------------------------- palette
 
-const BG: Color = Color("070b11")            ## App background, deepest layer.
-const BG_RAISED: Color = Color("0b1119")
-const SURFACE: Color = Color("0c1219")       ## Cards, panels.
-const SURFACE_ALT: Color = Color("111a24")
-const SURFACE_HI: Color = Color("17222e")    ## Hover / selected surface.
-const SURFACE_SUNKEN: Color = Color("080d13")## Inset fields, tracks.
+const BG: Color = Color("091a2a")            ## Night-blue canvas.
+const BG_RAISED: Color = Color("11283a")
+const SURFACE: Color = Color("183246")       ## Cards, panels.
+const SURFACE_ALT: Color = Color("21445c")
+const SURFACE_HI: Color = Color("315e76")    ## Hover / selected surface.
+const SURFACE_SUNKEN: Color = Color("0c2232")## Inset fields, tracks.
 
-const LINE: Color = Color("1e2c3a")          ## Hairline borders.
-const LINE_STRONG: Color = Color("2b3d4f")
+const LINE: Color = Color("31566b")          ## Cool-blue panel rule.
+const LINE_STRONG: Color = Color("071724")    ## Ink-navy pixel outline.
 
-const TEXT: Color = Color("e8eef5")
-const TEXT_MUTED: Color = Color("8fa0b3")
-const TEXT_DIM: Color = Color("5c6b7d")
-const TEXT_INVERSE: Color = Color("070b11")
+const TEXT: Color = Color("fff8e8")
+const TEXT_MUTED: Color = Color("d5e1df")
+const TEXT_DIM: Color = Color("9eb5bb")
+const TEXT_INVERSE: Color = Color("17232a")
 
-const ACCENT: Color = Color("ff7a1a")        ## Warm: the player acts.
-const ACCENT_HI: Color = Color("ffa53d")
-const ACCENT_DEEP: Color = Color("c9530a")
-const TEAL: Color = Color("18e0c8")          ## Cold: the game informs.
-const TEAL_DEEP: Color = Color("0d8f80")
+const ACCENT: Color = Color("ffd22a")        ## Bright gold: the player acts.
+const ACCENT_HI: Color = Color("ffec79")
+const ACCENT_DEEP: Color = Color("d98213")
+const TEAL: Color = Color("49bdff")          ## Sky blue: the field informs.
+const TEAL_DEEP: Color = Color("237fbd")
 
-const SUCCESS: Color = Color("38e07b")
-const WARNING: Color = Color("ffb020")
-const DANGER: Color = Color("ff4d6d")
-const GOLD: Color = Color("ffd166")
+const SUCCESS: Color = Color("83d43d")       ## Grass green.
+const WARNING: Color = Color("ff9f28")       ## Ember orange.
+const DANGER: Color = Color("f4513c")
+const GOLD: Color = Color("ffbd26")
 
-const TEAM_ALPHA: Color = Color("4da3ff")
-const TEAM_BRAVO: Color = Color("ff6b3d")
+const TEAM_ALPHA: Color = Color("42b7ff")
+const TEAM_BRAVO: Color = Color("f45b42")
 
 ## Soft tints, used for chips and highlighted rows.
-const ACCENT_TINT: Color = Color(1.0, 0.478, 0.102, 0.14)
-const TEAL_TINT: Color = Color(0.094, 0.878, 0.784, 0.12)
-const DANGER_TINT: Color = Color(1.0, 0.302, 0.427, 0.14)
+const ACCENT_TINT: Color = Color(1.0, 0.824, 0.165, 0.16)
+const TEAL_TINT: Color = Color(0.286, 0.741, 1.0, 0.15)
+const DANGER_TINT: Color = Color(0.957, 0.318, 0.235, 0.16)
+
+# Frosted glass surfaces for the entrance and main hub. Keep the fill alpha low
+# so the supplied arena art remains visible through every menu surface.
+const GLASS_FILL: Color = Color(0.035, 0.105, 0.165, 0.36)
+const GLASS_HOVER: Color = Color(0.075, 0.22, 0.31, 0.54)
+const GLASS_PRESSED: Color = Color(0.025, 0.09, 0.15, 0.66)
+const GLASS_EDGE: Color = Color(0.72, 0.9, 1.0, 0.42)
+const GLASS_EDGE_HI: Color = Color(0.58, 0.86, 1.0, 0.78)
+const GLASS_GOLD: Color = Color(0.52, 0.32, 0.09, 0.46)
+const GLASS_GOLD_EDGE: Color = Color(1.0, 0.86, 0.5, 0.88)
 
 ## Currency / rarity ramp, reused by the store and reward popups later.
 const RARITY: Array[Color] = [
-	Color("8fa0b3"),  # common
-	Color("38e07b"),  # uncommon
-	Color("4da3ff"),  # rare
-	Color("b48cff"),  # epic
-	Color("ffb020"),  # legendary
+	Color("9eb5bb"),  # common
+	Color("83d43d"),  # uncommon
+	Color("49bdff"),  # rare
+	Color("ff8f28"),  # epic
+	Color("ffbd26"),  # legendary
 ]
 
 # ------------------------------------------------------------------- metrics
@@ -62,35 +70,35 @@ const RARITY: Array[Color] = [
 # A 4px base grid. Screens should use these instead of magic numbers so that
 # spacing stays consistent when a designer asks for "a bit more air".
 
-const SPACE_XXS: int = 2
-const SPACE_XS: int = 4
-const SPACE_SM: int = 8
-const SPACE_MD: int = 12
-const SPACE_LG: int = 16
-const SPACE_XL: int = 24
-const SPACE_XXL: int = 32
+const SPACE_XXS: int = 4
+const SPACE_XS: int = 8
+const SPACE_SM: int = 12
+const SPACE_MD: int = 16
+const SPACE_LG: int = 20
+const SPACE_XL: int = 28
+const SPACE_XXL: int = 36
 const SPACE_HUGE: int = 48
 
-const RADIUS_SM: int = 4
-const RADIUS_MD: int = 8
-const RADIUS_LG: int = 14
-const RADIUS_PILL: int = 999
+const RADIUS_SM: int = 0
+const RADIUS_MD: int = 0
+const RADIUS_LG: int = 0
+const RADIUS_PILL: int = 0
 
-const BORDER_THIN: int = 1
-const BORDER_ACCENT: int = 2
-const BORDER_STRIPE: int = 3    ## The accent stripe on primary buttons.
+const BORDER_THIN: int = 2
+const BORDER_ACCENT: int = 3
+const BORDER_STRIPE: int = 5    ## The accent stripe on primary buttons.
 
-const FONT_MICRO: int = 12
-const FONT_SMALL: int = 14
-const FONT_BODY: int = 16
-const FONT_LEAD: int = 19
-const FONT_SUBHEAD: int = 22
-const FONT_H3: int = 26
-const FONT_H2: int = 34
-const FONT_H1: int = 46
-const FONT_DISPLAY: int = 64
+const FONT_MICRO: int = 14
+const FONT_SMALL: int = 16
+const FONT_BODY: int = 18
+const FONT_LEAD: int = 22
+const FONT_SUBHEAD: int = 26
+const FONT_H3: int = 30
+const FONT_H2: int = 40
+const FONT_H1: int = 52
+const FONT_DISPLAY: int = 72
 
-const TOUCH_TARGET_MIN: int = 48  ## Android accessibility minimum, in px.
+const TOUCH_TARGET_MIN: int = 56  ## Comfortable mobile tap target, in px.
 
 # --------------------------------------------------------------------- fonts
 
@@ -101,24 +109,17 @@ const FONT_DISPLAY_FILES := [
 	"ChakraPetch-SemiBold.woff2",
 	"ChakraPetch-Medium.woff2",
 ]
-## Body face. Vazirmatn carries Persian natively and has a matching Latin cut,
-## so mixed-script lines stay on one baseline and one weight ramp.
+## Body face. The client UI ships English text and uses the Latin subset.
 const FONT_UI_LATIN_FILES := [
 	"Vazirmatn-Latin-400.woff2",
 	"Vazirmatn-Latin-500.woff2",
 	"Vazirmatn-Latin-600.woff2",
 	"Vazirmatn-Latin-700.woff2",
 ]
-const FONT_UI_ARABIC_FILES := [
-	"Vazirmatn-Arabic-400.woff2",
-	"Vazirmatn-Arabic-500.woff2",
-	"Vazirmatn-Arabic-600.woff2",
-	"Vazirmatn-Arabic-700.woff2",
-]
 
 var theme: Theme
 
-var font_ui: Font                 ## Vazirmatn, Persian + Latin glyphs.
+var font_ui: Font                 ## Latin UI glyphs.
 var font_display: Font            ## Chakra Petch Bold, falls back to font_ui.
 var font_heading: Font            ## Chakra Petch SemiBold → font_ui.
 var font_label: Font              ## Chakra Petch Medium → font_ui.
@@ -128,9 +129,15 @@ var font_mono: Font               ## Tabular numerals for timers and scores.
 func _ready() -> void:
 	_load_fonts()
 	theme = _build_theme()
+	var root_window := get_tree().root
+	if OS.has_feature("mobile"):
+		# The design grid is authored in desktop pixels; phone controls need
+		# substantially more physical space and readable type. Scrollable mobile
+		# screens handle the extra height instead of shrinking the controls.
+		root_window.content_scale_factor = clampf(DisplayServer.screen_get_scale(), 1.6, 1.8)
 	# Assigning on the root Window makes every Control in the game inherit it,
 	# including Controls created later at runtime.
-	get_tree().root.theme = theme
+	root_window.theme = theme
 	# No `theme_type_variation` on the root Window on purpose: a named
 	# variation that nothing defines is dead configuration, and Godot already
 	# falls back to its built-in theme (and default font) for every item we do
@@ -139,16 +146,11 @@ func _ready() -> void:
 
 # ------------------------------------------------------------- font loading
 
-## Build a Font whose `fallbacks` chain covers Latin, Persian/Arabic and the
-## engine's own default. Returns the fallback font if nothing was importable,
-## which keeps the UI readable even if the asset folder is stripped.
+## Load the Latin UI face and display variants. If an asset is missing, use
+## Godot's built-in fallback so the English interface remains readable.
 func _load_fonts() -> void:
 	var latin := _first_available(FONT_UI_LATIN_FILES)
-	var arabic := _first_available(FONT_UI_ARABIC_FILES)
 	if latin != null:
-		# Persian text can contain Latin fragments and vice versa, so chain
-		# the two subsets into one font stack: a Label never shows tofu.
-		latin.fallbacks = [arabic] if arabic != null else []
 		font_ui = latin
 	else:
 		push_warning("Design: falling back to the engine font for UI text.")
@@ -171,8 +173,7 @@ func _first_available(files: Array) -> FontFile:
 	return null
 
 
-## Wrap a display face so that any glyph it lacks (Persian, for example) is
-## drawn by the UI font instead of being dropped.
+## Wrap a display face so glyphs it lacks are drawn by the Latin UI face.
 func _variation(base: FontFile, fallback: Font) -> Font:
 	if base == null:
 		return fallback
@@ -235,7 +236,7 @@ func _add_labels(built: Theme) -> void:
 func _add_buttons(built: Theme) -> void:
 	var kinds := [
 		{
-			"name": &"PrimaryButton", "fill": ACCENT, "border": ACCENT_HI,
+			"name": &"PrimaryButton", "fill": ACCENT, "border": BG,
 			"text": TEXT_INVERSE, "stripe": Color.TRANSPARENT,
 			"hover": ACCENT_HI, "pressed": ACCENT_DEEP,
 		},
@@ -249,7 +250,7 @@ func _add_buttons(built: Theme) -> void:
 			"hover": SURFACE_ALT, "pressed": SURFACE,
 		},
 		{
-			"name": &"OutlineButton", "fill": Color(0, 0, 0, 0), "border": LINE_STRONG,
+			"name": &"OutlineButton", "fill": Color(0, 0, 0, 0), "border": LINE,
 			"text": TEXT, "stripe": Color.TRANSPARENT,
 			"hover": SURFACE_ALT, "pressed": SURFACE_HI,
 		},
@@ -290,26 +291,24 @@ func _add_buttons(built: Theme) -> void:
 		built.set_constant(&"h_separation", variation, SPACE_SM)
 		built.set_constant(&"outline_size", variation, 0)
 
-	# Card buttons: the large selectable tiles used by the mode picker and the
-	# room browser. Same interaction model as a chip, far more room for content.
-	for variant in [{"name": &"CardButton", "active": false},
-			{"name": &"CardButtonActive", "active": true}]:
-		var card_variation: StringName = variant["name"]
-		var card_active: bool = variant["active"]
-		var card_fill := ACCENT_TINT if card_active else SURFACE
-		var card_border := ACCENT if card_active else LINE
-		built.set_type_variation(card_variation, &"Button")
-		built.set_stylebox(&"normal", card_variation,
-			_button_box(card_fill, card_border, Color.TRANSPARENT, RADIUS_LG, BORDER_THIN, 18, 16))
-		built.set_stylebox(&"hover", card_variation,
-			_button_box(card_fill, ACCENT_HI if card_active else LINE_STRONG,
-				Color.TRANSPARENT, RADIUS_LG, BORDER_THIN, 18, 16))
-		built.set_stylebox(&"pressed", card_variation,
-			_button_box(SURFACE_HI, card_border, Color.TRANSPARENT, RADIUS_LG, BORDER_THIN, 18, 16))
-		built.set_stylebox(&"focus", card_variation,
-			_button_box(card_fill, TEAL, Color.TRANSPARENT, RADIUS_LG, BORDER_ACCENT, 18, 16))
-		built.set_stylebox(&"disabled", card_variation,
-			_button_box(Color(1, 1, 1, 0.03), LINE, Color.TRANSPARENT, RADIUS_LG, BORDER_THIN, 18, 16))
+	# New entrance and hub controls use translucent surfaces rather than solid
+	# slabs, with a warm glass accent reserved for the active action.
+	_register_glass_button(
+		built, &"GlassButton", GLASS_FILL, GLASS_EDGE,
+		GLASS_HOVER, GLASS_EDGE_HI, GLASS_PRESSED, TEXT
+	)
+	_register_glass_button(
+		built, &"GlassPrimaryButton",
+		GLASS_GOLD, GLASS_GOLD_EDGE,
+		Color(0.68, 0.43, 0.1, 0.62), Color(1.0, 0.92, 0.64, 0.98),
+		Color(0.38, 0.22, 0.05, 0.72), TEXT
+	)
+	_register_glass_button(
+		built, &"GlassNavButton",
+		Color(0.04, 0.12, 0.18, 0.12), Color.TRANSPARENT,
+		Color(0.65, 0.87, 1.0, 0.15), Color(0.76, 0.92, 1.0, 0.36),
+		Color(0.04, 0.18, 0.26, 0.3), TEXT_MUTED
+	)
 
 	# Chips: compact toggle-ish buttons used for mode and region selection.
 	for state in [{"name": &"ChipButton", "active": false}, {"name": &"ChipButtonActive", "active": true}]:
@@ -332,6 +331,34 @@ func _add_buttons(built: Theme) -> void:
 		built.set_font(&"font", variation, font_label)
 		built.set_font_size(&"font_size", variation, FONT_SMALL)
 		built.set_constant(&"h_separation", variation, SPACE_XS)
+
+	# Region chips keep the same state language with tighter padding and a
+	# smaller UI face so all seven choices remain readable in a 3-column grid.
+	for state in [{"name": &"RegionChipButton", "active": false},
+			{"name": &"RegionChipButtonActive", "active": true}]:
+		var variation: StringName = state["name"]
+		var active: bool = state["active"]
+		var fill := ACCENT_TINT if active else SURFACE_ALT
+		var border := ACCENT if active else LINE
+		built.set_type_variation(variation, &"Button")
+		built.set_stylebox(&"normal", variation,
+			_button_box(fill, border, Color.TRANSPARENT, RADIUS_SM, BORDER_THIN, 4, 4))
+		built.set_stylebox(&"hover", variation,
+			_button_box(ACCENT_TINT if not active else fill, ACCENT if active else LINE_STRONG,
+				Color.TRANSPARENT, RADIUS_SM, BORDER_THIN, 4, 4))
+		built.set_stylebox(&"pressed", variation,
+			_button_box(fill, border, Color.TRANSPARENT, RADIUS_SM, BORDER_THIN, 4, 4))
+		built.set_stylebox(&"focus", variation,
+			_button_box(Color(0, 0, 0, 0), TEAL, Color.TRANSPARENT, RADIUS_SM,
+				BORDER_ACCENT, 4, 4))
+		built.set_stylebox(&"disabled", variation,
+			_button_box(Color(1, 1, 1, 0.03), LINE, Color.TRANSPARENT, RADIUS_SM, 0, 4, 4))
+		built.set_color(&"font_color", variation, ACCENT_HI if active else TEXT_MUTED)
+		built.set_color(&"font_hover_color", variation, ACCENT_HI)
+		built.set_color(&"font_pressed_color", variation, TEXT)
+		built.set_color(&"font_disabled_color", variation, TEXT_DIM)
+		built.set_font(&"font", variation, font_ui)
+		built.set_font_size(&"font_size", variation, FONT_MICRO)
 
 	# Cards: large selectable tiles (mode picker, room browser). Same
 	# interaction model as a chip, with room for a title, a rule summary and a
@@ -373,14 +400,23 @@ func _add_buttons(built: Theme) -> void:
 		built.set_font_size(&"font_size", variation, FONT_BODY)
 		built.set_constant(&"h_separation", variation, SPACE_MD)
 
-	# Plain icon button: a square tap target with no chrome until hovered.
+	# Icon-only controls get the same quiet glass treatment and a bright focus ring.
 	built.set_type_variation(&"IconButton", &"Button")
-	built.set_stylebox(&"normal", &"IconButton", _button_box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color.TRANSPARENT, RADIUS_SM, 0, 8))
-	built.set_stylebox(&"hover", &"IconButton", _button_box(SURFACE_ALT, LINE, Color.TRANSPARENT, RADIUS_SM, 1, 8))
-	built.set_stylebox(&"pressed", &"IconButton", _button_box(SURFACE_HI, LINE_STRONG, Color.TRANSPARENT, RADIUS_SM, 1, 8))
-	built.set_stylebox(&"focus", &"IconButton", _button_box(Color(0, 0, 0, 0), TEAL, Color.TRANSPARENT, RADIUS_SM, 1, 8))
+	built.set_stylebox(&"normal", &"IconButton",
+		_glass_box(Color(0.035, 0.105, 0.165, 0.22),
+			Color(0.72, 0.9, 1.0, 0.3), 18, 8, 8, 4))
+	built.set_stylebox(&"hover", &"IconButton",
+		_glass_box(GLASS_HOVER, GLASS_EDGE_HI, 18, 8, 8, 10))
+	built.set_stylebox(&"pressed", &"IconButton",
+		_glass_box(GLASS_PRESSED, GLASS_EDGE_HI, 18, 8, 8, 4))
+	built.set_stylebox(&"focus", &"IconButton",
+		_glass_box(Color(0.035, 0.105, 0.165, 0.28), GLASS_EDGE_HI, 18, 8, 8, 8))
+	built.set_stylebox(&"disabled", &"IconButton",
+		_glass_box(Color(0.035, 0.08, 0.12, 0.16), Color(0.72, 0.86, 0.94, 0.14), 18, 8, 8, 0))
 	built.set_color(&"font_color", &"IconButton", TEXT_MUTED)
 	built.set_color(&"font_hover_color", &"IconButton", TEXT)
+	built.set_color(&"font_pressed_color", &"IconButton", TEXT)
+	built.set_color(&"font_disabled_color", &"IconButton", TEXT_DIM)
 
 
 ## Build a button stylebox.
@@ -409,18 +445,84 @@ func _button_box(
 	elif border_width > 0 and border.a > 0.0:
 		box.border_color = border
 		box.set_border_width_all(border_width)
-	box.anti_aliasing = true
+	box.anti_aliasing = false
 	return box
+
+
+## Soft translucent surface used by the entrance and hub controls.
+func _glass_box(
+	fill: Color, edge: Color, radius: int, pad_x: int = 18, pad_y: int = 14,
+	shadow_size: int = 8
+) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = fill
+	box.set_corner_radius_all(radius)
+	box.set_content_margin_all(float(SPACE_SM))
+	box.content_margin_left = float(pad_x)
+	box.content_margin_right = float(pad_x)
+	box.content_margin_top = float(pad_y)
+	box.content_margin_bottom = float(pad_y)
+	if edge.a > 0.0:
+		box.border_color = edge
+		box.set_border_width_all(1)
+	box.anti_aliasing = true
+	if shadow_size > 0:
+		box.shadow_color = Color(0.01, 0.035, 0.09, 0.24)
+		box.shadow_size = shadow_size
+		box.shadow_offset = Vector2(0.0, 4.0)
+	return box
+
+
+func _register_glass_button(
+	built: Theme, variation: StringName, fill: Color, edge: Color,
+	hover_fill: Color, hover_edge: Color, pressed_fill: Color,
+	text_color: Color
+) -> void:
+	var radius := 18
+	built.set_type_variation(variation, &"Button")
+	built.set_stylebox(&"normal", variation,
+		_glass_box(fill, edge, radius, 20, 14, 8))
+	built.set_stylebox(&"hover", variation,
+		_glass_box(hover_fill, hover_edge, radius, 20, 14, 12))
+	built.set_stylebox(&"pressed", variation,
+		_glass_box(pressed_fill, hover_edge, radius, 20, 14, 4))
+	built.set_stylebox(&"focus", variation,
+		_glass_box(fill, GLASS_EDGE_HI, radius, 20, 14, 8))
+	built.set_stylebox(&"disabled", variation,
+		_glass_box(Color(0.035, 0.08, 0.12, 0.22),
+			Color(0.72, 0.86, 0.94, 0.2), radius, 20, 14, 0))
+	built.set_color(&"font_color", variation, text_color)
+	built.set_color(&"font_hover_color", variation, TEXT)
+	built.set_color(&"font_pressed_color", variation, TEXT)
+	built.set_color(&"font_focus_color", variation, TEXT)
+	built.set_color(&"font_disabled_color", variation,
+		Color(TEXT.r, TEXT.g, TEXT.b, 0.58))
+	built.set_font(&"font", variation, font_label)
+	built.set_font_size(&"font_size", variation, FONT_BODY)
+	built.set_constant(&"h_separation", variation, SPACE_SM)
+	built.set_constant(&"outline_size", variation, 0)
 
 
 ## Panels — the surfaces everything else is placed on.
 func _add_panels(built: Theme) -> void:
 	var panels := [
 		{"name": &"CardPanel", "fill": SURFACE, "border": LINE, "radius": RADIUS_LG, "pad": SPACE_XL},
+		{"name": &"SetupCardPanel", "fill": SURFACE, "border": LINE, "radius": RADIUS_LG, "pad": SPACE_SM},
 		{"name": &"FlatPanel", "fill": Color(0, 0, 0, 0), "border": Color(0, 0, 0, 0), "radius": 0, "pad": 0},
 		{"name": &"InsetPanel", "fill": SURFACE_SUNKEN, "border": LINE, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"RaisedPanel", "fill": SURFACE_ALT, "border": LINE_STRONG, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"TopBarPanel", "fill": BG_RAISED, "border": LINE, "radius": 0, "pad": SPACE_LG},
+		{"name": &"ActionDockPanel", "fill": BG_RAISED, "border": LINE, "radius": RADIUS_LG, "pad": SPACE_SM},
+		{
+			"name": &"EntranceDockPanel",
+			"fill": Color(0.025, 0.085, 0.145, 0.42),
+			"border": Color(0.72, 0.9, 1.0, 0.42), "radius": 24, "pad": SPACE_MD,
+		},
+		{
+			"name": &"GlassModalPanel",
+			"fill": Color(0.025, 0.075, 0.13, 0.58),
+			"border": Color(0.75, 0.91, 1.0, 0.5), "radius": 24, "pad": SPACE_XL,
+		},
 		{"name": &"BannerPanel", "fill": ACCENT_TINT, "border": ACCENT, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"InfoPanel", "fill": TEAL_TINT, "border": TEAL, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"WarnPanel", "fill": DANGER_TINT, "border": DANGER, "radius": RADIUS_MD, "pad": SPACE_LG},
@@ -435,10 +537,15 @@ func _add_panels(built: Theme) -> void:
 		box.bg_color = panel["fill"]
 		box.set_corner_radius_all(int(panel["radius"]))
 		box.set_content_margin_all(float(panel["pad"]))
-		box.anti_aliasing = true
+		box.anti_aliasing = false
 		if (panel["border"] as Color).a > 0.0:
 			box.border_color = panel["border"]
 			box.set_border_width_all(BORDER_THIN)
+		if variation == &"EntranceDockPanel" or variation == &"GlassModalPanel":
+			box.anti_aliasing = true
+			box.shadow_color = Color(0.01, 0.035, 0.09, 0.26)
+			box.shadow_size = 16 if variation == &"EntranceDockPanel" else 22
+			box.shadow_offset = Vector2(0.0, 7.0)
 		built.set_stylebox(&"panel", variation, box)
 
 
@@ -455,6 +562,7 @@ func _add_inputs(built: Theme) -> void:
 		if width > 0:
 			style.border_color = border
 			style.set_border_width_all(width)
+		style.anti_aliasing = false
 		return style
 
 	for variation in [&"LineEdit", &"HexLineEdit"]:
@@ -468,7 +576,7 @@ func _add_inputs(built: Theme) -> void:
 		built.set_color(&"font_placeholder_color", variation, TEXT_DIM)
 		built.set_color(&"font_selected_color", variation, TEXT_INVERSE)
 		built.set_color(&"caret_color", variation, ACCENT)
-		built.set_color(&"selection_color", variation, Color(1.0, 0.478, 0.102, 0.35))
+		built.set_color(&"selection_color", variation, Color(ACCENT.r, ACCENT.g, ACCENT.b, 0.35))
 		built.set_constant(&"caret_width", variation, 2)
 		built.set_constant(&"minimum_character_width", variation, 4)
 
@@ -498,6 +606,7 @@ func _add_inputs(built: Theme) -> void:
 		var style := StyleBoxFlat.new()
 		style.bg_color = state["fill"]
 		style.set_corner_radius_all(RADIUS_PILL)
+		style.anti_aliasing = false
 		style.content_margin_top = 3.0
 		style.content_margin_bottom = 3.0
 		built.set_stylebox(StringName(state["name"]), &"HexSlider", style)
@@ -518,11 +627,13 @@ func _add_bars(built: Theme) -> void:
 		var background := StyleBoxFlat.new()
 		background.bg_color = SURFACE_SUNKEN
 		background.set_corner_radius_all(RADIUS_PILL)
+		background.anti_aliasing = false
 		background.content_margin_top = 0.0
 		background.content_margin_bottom = 0.0
 		var fill := StyleBoxFlat.new()
 		fill.bg_color = bar["fill"]
 		fill.set_corner_radius_all(RADIUS_PILL)
+		fill.anti_aliasing = false
 		built.set_stylebox(&"background", variation, background)
 		built.set_stylebox(&"fill", variation, fill)
 		built.set_font(&"font", variation, font_label)
@@ -540,12 +651,15 @@ func _add_scrollbars(built: Theme) -> void:
 		var track := StyleBoxFlat.new()
 		track.bg_color = Color(1, 1, 1, 0.03)
 		track.set_corner_radius_all(RADIUS_PILL)
+		track.anti_aliasing = false
 		var grabber := StyleBoxFlat.new()
 		grabber.bg_color = LINE_STRONG
 		grabber.set_corner_radius_all(RADIUS_PILL)
+		grabber.anti_aliasing = false
 		var grabber_hl := StyleBoxFlat.new()
 		grabber_hl.bg_color = ACCENT
 		grabber_hl.set_corner_radius_all(RADIUS_PILL)
+		grabber_hl.anti_aliasing = false
 		built.set_stylebox(&"scroll", axis, track)
 		built.set_stylebox(&"grabber", axis, grabber)
 		built.set_stylebox(&"grabber_highlight", axis, grabber_hl)
@@ -579,6 +693,7 @@ func _add_misc(built: Theme) -> void:
 		panel.set_content_margin_all(float(SPACE_XS))
 		panel.border_color = LINE_STRONG
 		panel.set_border_width_all(BORDER_THIN)
+		panel.anti_aliasing = false
 		built.set_stylebox(&"panel", popup, panel)
 		built.set_font(&"font", popup, font_ui)
 		built.set_font_size(&"font_size", popup, FONT_BODY)

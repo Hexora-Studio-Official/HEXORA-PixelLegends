@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="GameMode" load_steps=2 format=3]
 
-; Full scale 100-player BR. Needs dedicated servers, so not LAN.
+; Full scale 100-player BR. Needs dedicated servers, so not LAN. The BR phase must support Solo and squads of 2, 3 or 5.
 ;
 ; Hand-authored data resource — safe to edit in the Godot inspector, but keep the
 ; localisation keys in sync with src/i18n/strings_*.gd.
@@ -17,7 +17,7 @@ short_key = &"mode.br100.short"
 description_key = &"mode.br100.desc"
 rules_key = &"mode.br100.rules"
 icon_kind = &"mode_br"
-accent = Color(1.000000, 0.301961, 0.427451, 1)
+accent = Color(1, 0.741, 0.149, 1)
 sort_index = 70
 min_players = 50
 max_players = 100
@@ -36,11 +36,11 @@ warmup_sec = 30.0
 revive_enabled = true
 loadout_editable_ingame = false
 is_battle_royale = true
-squad_size = 4
+squad_size = 5
 zone_phases = 7
 loot_tier = 3
 drop_from_plane = true
 in_matchmaking = true
 ranked = true
 supports_lan = false
-max_squad = 4
+max_squad = 5

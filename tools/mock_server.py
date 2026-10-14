@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""A local stand-in for the HEXORA backend. DEVELOPMENT ONLY.
+"""Legacy local mock API inherited from the pre-PixelLegends prototype.
+DEVELOPMENT ONLY; it is not connected to the current guest-first UI.
 
-The client is written against the real API contract (see
-`src/autoload/api_client.gd` and `docs/AUTH_SETUP.md` §6). This server
-implements that contract just well enough to exercise every online path —
-sign-in, profile sync, friends, the room browser, the matchmaking queue — on a
-laptop, before any real backend exists.
+The mock predates the PixelLegends 5v5 MOBA pivot. Its shooter-era identity,
+room and matchmaking endpoints are retained as historical scaffolding only; do
+not present them as working PixelLegends services or expose this server.
 
     python3 tools/mock_server.py
     # then, in the game: Settings ▸ Developer ▸ Backend base URL
@@ -49,9 +48,9 @@ STATE_PATH = Path(__file__).resolve().parent / ".mock_state.json"
 
 WARNING = """
 ────────────────────────────────────────────────────────────────────────────
-  HEXORA mock backend — DEVELOPMENT ONLY
+  PixelLegends legacy mock backend — DEVELOPMENT ONLY
   It accepts any id_token and trusts every request. Never expose this.
-  Point the game at it:  Settings ▸ Developer ▸ Backend base URL
+  Not connected to the current client UI; do not use for matches
 ────────────────────────────────────────────────────────────────────────────
 """
 

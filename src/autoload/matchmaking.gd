@@ -1,18 +1,9 @@
 extends Node
-## The random matchmaking queue.
-##
-## A queue has three jobs: build a ticket from the player's selection, search
-## until a lobby of the right size exists, and hand that lobby to the match
-## scene. The first and the third are real here. The middle one is real when
-## `Api` has a backend to talk to, and otherwise runs a *local* search that
-## produces a lobby marked `simulated: true`.
-##
-## Why simulate at all? Because the rest of the pipeline — the queue overlay,
-## the ready check, the roster screen, the accept window — needs to be built and
-## seen before the backend exists, and because a player with no internet should
-## still be able to try the modes out. What must never happen is a fabricated
-## lobby that *looks* like real players, so every simulated ticket carries the
-## flag and every screen that shows one says so.
+## Legacy matchmaking prototype retained from the earlier shooter project.
+## It is not connected to the current PixelLegends menu and is not the MOBA
+## matchmaking architecture. Do not expose its simulated/offline queue or
+## connect it to a placeholder. Future match services must follow
+## docs/PROJECT_SPEC.txt and be implemented only in the approved phase.
 
 const TICK_INTERVAL_SEC := 0.5
 ## Roughly how long each mode takes to fill at peak hours, in seconds. Used for
@@ -130,7 +121,7 @@ func start_queue(modes: Array[StringName], queue_region: int, is_ranked: bool) -
 	selected_modes = modes.duplicate()
 	_drop_unknown_modes()
 	region = queue_region if queue_region != GameTypes.Region.AUTO else _best_region()
-	ranked = is_ranked
+	ranked = is_ranked and Api.is_configured()
 
 	if selected_modes.is_empty():
 		selected_modes = _ids_of(GameCatalog.matchmaking_pool())
@@ -200,9 +191,8 @@ func cancel_queue() -> void:
 	EventBus.toast_requested.emit(Loc.t(&"toast.queue_cancelled"), &"info")
 
 
-## Accept the lobby. Phase 1 has no match scene, so this is where the honest
-## message goes out — the alternative ("Connecting…" forever) is the single
-## worst bug a lobby screen can have.
+## Legacy queue-acceptance stub. It does not start a PixelLegends MOBA match
+## and is not exposed by the current menu; do not wire it to a placeholder.
 func accept_match() -> void:
 	if state != GameTypes.MatchmakingState.FOUND:
 		return
@@ -260,8 +250,8 @@ func _roll_wait(modes: Array[StringName]) -> float:
 
 
 func _best_region() -> int:
-	# Phase 1 has no ping measurement per region, so the player's stored region
-	# is the best available answer. Guessing a different one would be worse.
+	# Legacy region preference from the earlier queue prototype. The current UI
+	# has no region selector; do not use this as PixelLegends server routing.
 	return Settings.get_int("game/region")
 
 
@@ -285,6 +275,10 @@ func _fail_local_fallback() -> void:
 	if state != GameTypes.MatchmakingState.SEARCHING:
 		return
 	ticket["simulated"] = true
+	# Local simulation and LAN play are friendly-only. Never award rank for a
+	# queue that fell back after the online service became unreachable.
+	ranked = false
+	ticket["ranked"] = false
 	_target_wait = clampf(_target_wait * 0.6, 5.0, LOCAL_WAIT_CAP_SEC)
 	ticket["estimated_wait"] = _target_wait
 	EventBus.toast_requested.emit(Loc.t(&"toast.no_network"), &"warning")

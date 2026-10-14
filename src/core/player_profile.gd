@@ -8,10 +8,9 @@ extends Resource
 ## new wire format.
 ##
 ## Progression model (mirrors what the design doc describes):
-##   * `xp` / `level`    — account progression, never resets, unlocks guns.
-##   * `rank_points`     — competitive ladder (ELO-ish), per season.
-##   * `credits`         — soft currency, earned by playing.
-##   * `cores`           — hard currency, premium only.
+##   * `xp` / `level`    — account progression, reserved for future rewards.
+##   * `rank_points`     — future competitive progression data.
+##   * `credits` / `cores` — legacy profile fields not exposed in this UI phase.
 
 ## Ladder tiers, lowest first. The key resolves through Loc; the matching
 ## entry of RANK_TIER_FLOORS is the rank points required to enter that tier.
@@ -27,6 +26,7 @@ const RANK_TIER_CEIL: int = 5000
 @export var display_name: String = "Recruit"
 @export var email: String = ""
 @export var avatar_url: String = ""
+@export var avatar_color: int = -1
 @export var provider: int = GameTypes.AuthProvider.NONE
 @export var region: int = GameTypes.Region.AUTO
 @export var clan_tag: String = ""
@@ -193,13 +193,13 @@ static func create_guest(display_name_hint: String = "") -> PlayerProfile:
 	profile.is_guest = true
 	profile.created_at = int(Time.get_unix_time_from_system())
 	profile.last_login_at = profile.created_at
-	profile.display_name = display_name_hint if not display_name_hint.is_empty() else _random_callsign()
+	profile.display_name = display_name_hint if not display_name_hint.is_empty() else _random_player_name()
 	return profile
 
 
-static func _random_callsign() -> String:
-	const ADJECTIVES := ["Iron", "Ghost", "Rapid", "Cobalt", "Vanta", "Solar", "Onyx", "Nova"]
-	const NOUNS := ["Falcon", "Vector", "Lancer", "Ronin", "Specter", "Warden", "Nomad", "Cipher"]
+static func _random_player_name() -> String:
+	const ADJECTIVES := ["Arcane", "Crimson", "Moonlit", "Storm", "Dawn", "Frost", "Wild", "Golden"]
+	const NOUNS := ["Warden", "Seer", "Ranger", "Oracle", "Phoenix", "Rider", "Mystic", "Knight"]
 	return "%s%s%02d" % [
 		ADJECTIVES[randi() % ADJECTIVES.size()],
 		NOUNS[randi() % NOUNS.size()],

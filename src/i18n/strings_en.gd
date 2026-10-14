@@ -1,26 +1,21 @@
 extends RefCounted
-## English string table (source of truth for key names).
+## English-only string table (source of truth for the client UI).
 ##
 ## Why a dictionary instead of .po files? Because it cannot silently fail.
-## Godot's gettext importer runs at editor-import time, so a `.po` that fails
-## to import leaves an exported build showing raw keys with no error the
-## player or the developer will ever see. A GDScript table is validated by
-## `tools/check_i18n.py` at review time, ships inside the script itself, and
-## supports RTL and interpolation with zero import pipeline.
-##
-## When the translation team needs Poedit, `tools/export_po.py` turns these
-## tables into .po files — the dictionary stays authoritative.
+## The GDScript table is validated by `tools/check_i18n.py` at review time and
+## ships directly in the client without a separate translation import step.
+## The current product UI is English-only; named interpolation is handled by
+## `Loc.t()`.
 ##
 ## Rules:
 ##   * Keys are `area.thing` and lower snake case.
-##   * `{placeholder}` tokens are filled by Loc.t(key, args). Never reorder
-##     placeholders across languages — name them, don't number them.
-##   * Every key here must exist in strings_fa.gd or the check script fails.
+##   * `{placeholder}` tokens are filled by Loc.t(key, args). Use named tokens,
+##     not positional indices, so call sites stay self-documenting.
 
 const TABLE := {
 	# ---------------------------------------------------------------- meta
-	"app.name": "HEXORA",
-	"app.tagline": "Tactical online shooter",
+	"app.name": "PixelLegends",
+	"app.tagline": "Choose a legend. Fight as one.",
 	"app.version_label": "Version {version}",
 	"app.build": "Build {build}",
 
@@ -76,16 +71,17 @@ const TABLE := {
 	"common.dismiss": "Dismiss",
 
 	# ---------------------------------------------------------------- auth
-	"auth.login.title": "Welcome to the field",
-	"auth.login.subtitle": "One account, every mode. Your progress, loadouts and squad follow you across devices.",
+	"auth.login.title": "Welcome to PixelLegends",
+	"auth.login.subtitle": "Enter a fantasy arena built for five-versus-five team play.",
+	"auth.login.separator": "or",
 	"auth.login.google": "Continue with Google",
 	"auth.login.google_busy": "Waiting for Google…",
-	"auth.login.guest": "Play as guest",
+	"auth.login.guest": "Login As Guest",
 	"auth.login.guest_hint": "No account needed. Progress stays on this device only.",
 	"auth.login.legal": "By continuing you accept the Terms of Service and the Privacy Policy.",
 	"auth.login.terms": "Terms of Service",
 	"auth.login.privacy": "Privacy Policy",
-	"auth.login.need_name": "Pick a callsign before you enter.",
+	"auth.login.need_name": "Choose a player name before you enter.",
 	"auth.login.dev_note": "Developer builds also accept a local profile with no network at all.",
 	"auth.login.offline_ok": "Servers unreachable — guest mode still works.",
 	"auth.login.server_ok": "Servers online",
@@ -101,19 +97,19 @@ const TABLE := {
 	"auth.error.network": "No connection. Check your network and retry.",
 	"auth.error.cancelled": "Sign-in was cancelled.",
 	"auth.error.timeout": "Google took too long to answer. Try again.",
-	"auth.error.not_configured": "Google sign-in is not configured. Use guest mode, or set a client ID in Settings ▸ Developer.",
+	"auth.error.not_configured": "Google sign-in is inactive in this phase. Login As Guest is the available entry.",
 	"auth.error.bad_token": "Google returned a token we could not verify.",
 	"auth.error.port": "Could not open the local redirect port. Close other sign-in attempts and retry.",
 	"auth.error.misconfigured": "Add this exact redirect URI to your Google OAuth client: {uri}",
 
-	"auth.setup.title": "Build your operator",
-	"auth.setup.subtitle": "This is what your squad sees in the lobby.",
-	"auth.setup.callsign": "Callsign",
+	"auth.setup.title": "Create your player profile",
+	"auth.setup.subtitle": "Your name appears to your team in the arena.",
+	"auth.setup.callsign": "Player name",
 	"auth.setup.callsign_hint": "3–16 characters, letters, digits and underscore",
-	"auth.setup.region": "Home region",
-	"auth.setup.region_hint": "Used for matchmaking ping and leaderboards. You can change it later.",
-	"auth.setup.avatar": "Operator colour",
-	"auth.setup.enter": "Enter the field",
+	"auth.setup.region": "Region",
+	"auth.setup.region_hint": "Regional selection is not part of the current client prototype.",
+	"auth.setup.avatar": "Profile colour",
+	"auth.setup.enter": "Enter the arena",
 
 	"auth.signout": "Sign out",
 	"auth.signout.confirm": "Sign out of this device? Your cloud progress is kept.",
@@ -125,36 +121,68 @@ const TABLE := {
 	"boot.loading_services": "Loading services",
 	"boot.checking_session": "Checking session",
 	"boot.ready": "Ready",
+	"splash.tagline": "5V5 FANTASY MOBA",
+	"splash.choose_path": "Choose your path",
+	"splash.saved_account_unavailable": "This saved account cannot be opened in this visual-only build yet.",
+	"splash.play": "Play",
+	"splash.login.google": "Login With Google",
+	"splash.login.guest": "Login As Guest",
 
 	# ---------------------------------------------------------------- menu
-	"menu.welcome": "Welcome back",
-	"menu.welcome_named": "Welcome back, {name}",
-	"menu.play": "Play",
-	"menu.play.desc": "Queue for a random match against real players.",
-	"menu.rooms": "Rooms",
-	"menu.rooms.desc": "Host a private lobby, invite friends, or play over a hotspot.",
-	"menu.arsenal": "Loadout",
-	"menu.arsenal.desc": "Weapons, attachments and operator gear.",
-	"menu.store": "Store",
-	"menu.store.desc": "Skins, bundles and the battle pass.",
-	"menu.rank": "Ranked",
-	"menu.rank.desc": "Ladder standing, tiers and season rewards.",
+	"menu.welcome": "Welcome, legend",
+	"menu.welcome_named": "Welcome, {name}",
+	"menu.play": "Play 5v5",
+	"menu.play.desc": "Enter a five-versus-five fantasy battle.",
+	"menu.rooms": "Squad",
+	"menu.rooms.desc": "Explore team features as they arrive in future updates.",
+	"menu.arsenal": "Collection",
+	"menu.arsenal.desc": "Your legends and cosmetics will live here.",
+	"menu.store": "Treasures",
+	"menu.store.desc": "Rewards and collection features are planned for a later phase.",
+	"menu.rank": "Ranked Arena",
+	"menu.rank.desc": "Competitive progression is planned for a later phase.",
 	"menu.friends": "Squad",
-	"menu.friends.desc": "Friends, party and invites.",
+	"menu.friends.desc": "Team up with friends in a future update.",
 	"menu.profile": "Profile",
-	"menu.profile.desc": "Stats, career and account.",
+	"menu.profile.desc": "Your player identity and future career record.",
 	"menu.settings": "Settings",
-	"menu.settings.desc": "Graphics, controls, audio and language.",
+	"menu.settings.desc": "Adjust device, audio and display options.",
 	"menu.exit": "Quit",
-	"menu.exit.confirm": "Leave HEXORA?",
-	"menu.section.combat": "Combat",
-	"menu.section.progression": "Progression",
-	"menu.section.social": "Social",
+	"menu.exit.confirm": "Leave PixelLegends?",
+	"menu.section.combat": "Arena",
+	"menu.section.progression": "Legends",
+	"menu.section.social": "Squad",
 	"menu.section.system": "System",
-	"menu.news": "Field report",
-	"menu.news.placeholder": "Season 1 “Pixel Field” begins soon. Hotspot rooms and Battle Royale 100 arrive with it.",
-	"menu.party.none": "Playing solo",
-	"menu.party.size": "Party {size}/{max}",
+	"menu.news": "Arena notice",
+	"menu.news.placeholder": "The PixelLegends battlefield is being prepared. Feature panels will unlock in future updates.",
+	"menu.party.none": "No teammates yet",
+	"menu.party.size": "Squad {size}/{max}",
+
+	# ------------------------------------------------------------- battle hub
+	"home.preview_badge": "UI PREVIEW · FEATURES IN DEVELOPMENT",
+	"home.explore": "Explore",
+	"home.modes": "5V5 ARENA",
+	"home.heroes": "HEROES",
+	"home.squad": "SQUAD",
+	"home.collection": "COLLECTION",
+	"home.feature_note": "Battle features will arrive one at a time in future updates.",
+	"home.spotlight": "HERO SPOTLIGHT",
+	"home.spotlight_title": "Your legend awaits",
+	"home.spotlight_body": "Hero selection is a placeholder for a future update.",
+	"home.battle_title": "THE ARENA IS BEING PREPARED",
+	"home.battle_subtitle": "Original 5v5 team battles are planned for PixelLegends.",
+	"home.battle_button": "PLAY 5V5",
+	"home.coming_soon": "COMING SOON",
+	"home.edit_name": "EDIT NAME",
+	"home.edit_name_short": "EDIT",
+	"home.guest_profile": "LOCAL GUEST PROFILE",
+	"home.linked_profile": "LINKED ACCOUNT",
+	"home.edit_title": "Edit your player name",
+	"home.edit_hint": "Use 3–16 letters, numbers or underscores. Your name is saved on this device.",
+	"home.edit_placeholder": "Enter a player name",
+	"home.edit_save": "SAVE NAME",
+	"home.edit_invalid": "Use 3–16 letters, numbers or underscores.",
+	"home.edit_saved": "Player name updated.",
 
 	# ---------------------------------------------------------------- play
 	"play.title": "Deploy",
@@ -177,6 +205,7 @@ const TABLE := {
 	"play.ranked": "Ranked",
 	"play.ranked.off": "Unranked",
 	"play.ranked.hint": "Ranked matches award or deduct rank points.",
+	"play.ranked.offline": "Ranked is online-only. LAN and offline matches stay casual.",
 	"play.region": "Region",
 	"play.squad_fill": "Fill squad with players",
 	"settings.allow_bots": "Allow bots if the queue is slow",
@@ -380,12 +409,7 @@ const TABLE := {
 	"settings.tab.graphics": "Graphics",
 	"settings.tab.audio": "Audio",
 	"settings.tab.controls": "Controls",
-	"settings.tab.language": "Language",
 	"settings.tab.developer": "Developer",
-
-	"settings.language": "Interface language",
-	"settings.language.hint": "Takes effect immediately.",
-	"settings.language.restart_note": "Some layouts are re-flowed for right-to-left languages.",
 
 	"settings.region": "Matchmaking region",
 	"settings.region.auto": "Automatic (lowest ping)",
@@ -490,15 +514,15 @@ const TABLE := {
 	"mode.br30.name": "Battle Royale 30",
 	"mode.br30.short": "BR30",
 	"mode.br30.desc": "A short drop. Small map, fast circles, quick matches.",
-	"mode.br30.rules": "30 players · squads of 3 · 5 circles",
+	"mode.br30.rules": "30 players · Solo or squads of 2, 3 or 5 · 5 circles",
 	"mode.br50.name": "Battle Royale 50",
 	"mode.br50.short": "BR50",
 	"mode.br50.desc": "The standard drop. Room to loot, room to flank.",
-	"mode.br50.rules": "50 players · squads of 4 · 6 circles",
+	"mode.br50.rules": "50 players · Solo or squads of 2, 3 or 5 · 6 circles",
 	"mode.br100.name": "Battle Royale 100",
 	"mode.br100.short": "BR100",
 	"mode.br100.desc": "Full scale. One hundred drop, one squad walks out.",
-	"mode.br100.rules": "100 players · squads of 4 · 7 circles",
+	"mode.br100.rules": "100 players · Solo or squads of 2, 3 or 5 · 7 circles",
 	"mode.training.name": "Training Range",
 	"mode.training.short": "Range",
 	"mode.training.desc": "Free shooting, no pressure. Dial in your settings.",
@@ -540,7 +564,7 @@ const TABLE := {
 
 	# --------------------------------------------------------------- toasts
 	"toast.local_account": "Signed in on this device — the backend has not confirmed this account yet",
-	"toast.welcome": "Welcome to HEXORA",
+	"toast.welcome": "Welcome to PixelLegends",
 	"toast.signed_out": "Signed out",
 	"toast.guest_banner": "Playing as a guest — progress is local only",
 	"toast.no_network": "Offline. Local features still work.",
@@ -571,7 +595,6 @@ const TABLE := {
 	"toast.match_ready": "Match ready",
 	"toast.phase_notice": "This screen arrives in {phase}.",
 	"toast.settings_saved": "Saved",
-	"toast.language_changed": "Language updated",
 	"toast.clipboard_empty": "Nothing to copy",
 
 	# ----------------------------------------------------------- matchmaking

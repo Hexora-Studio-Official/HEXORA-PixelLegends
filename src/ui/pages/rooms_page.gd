@@ -96,7 +96,7 @@ func _build_host_tab() -> void:
 	slider_row.add_child(UiKit.label(Loc.t(&"rooms.max_players"), &"BodyLabel"))
 	var value := UiKit.label(str(_host_max), &"NumericLabel")
 	value.custom_minimum_size = Vector2(40, 0)
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_TRAILING
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	slider_row.add_child(UiKit.spacer())
 	slider_row.add_child(value)
 
@@ -597,8 +597,9 @@ func _on_room_list_changed(entries: Array) -> void:
 	for entry in entries:
 		if entry is RoomInfo:
 			codes.append((entry as RoomInfo).code)
-	if codes.size() != _last_room_codes.size() or "|".join(codes) != _last_room_codes:
-		_last_room_codes = "|".join(codes)
+	var codes_signature := "|".join(codes)
+	if codes_signature != _last_room_codes:
+		_last_room_codes = codes_signature
 		rebuild()
 
 

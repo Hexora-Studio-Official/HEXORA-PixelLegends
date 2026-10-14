@@ -1,25 +1,10 @@
 extends Node
-## Account lifecycle: Google Sign-In, guest play, session restore, sign-out.
-##
-## This service is the only thing screens talk to about accounts. It owns the
-## state machine, the credential file and the error text; it does not own the
-## UI and it does not own the profile data (that is Session).
-##
-## Two very different paths lead to the same place:
-##
-##   Google  → GoogleSignIn gets an id_token → if a backend is configured we
-##             send the id_token to it, and the server decides who we are. That
-##             is the only trustworthy flow, because only the server can verify
-##             a Google signature.
-##             Without a backend configured (phase 1 default) we build a local
-##             profile from the account info and mark it `unverified` so
-##             nothing downstream pretends it was authenticated remotely.
-##
-##   Guest   → no account at all. A local profile with a local uid, fully
-##             playable offline, upgradable later by signing in.
-##
-## Credentials live in `user://auth.cfg` and are excluded from any future
-## cloud-save bundle.
+## Legacy account/session scaffolding retained from the earlier client.
+## The current UI exposes only local Guest entry; this is not a Nakama-backed
+## account system. The future Google/Guest architecture, backend authority, and
+## account-linking requirements are defined in docs/PROJECT_SPEC.txt. Do not
+## activate the old direct-Google/API paths before the approved authentication
+## phase. Local credentials are stored under user:// and are not cloud accounts.
 
 const STORE_PATH := "user://auth.cfg"
 const STORE_VERSION := 1
@@ -163,9 +148,9 @@ func _on_google_succeeded(account: Dictionary) -> void:
 			profile.uid = "google-local-%s" % String(account.get("sub", ""))
 			unverified_remote = true
 	else:
-		# Documented phase 1 behaviour: no backend yet, so the account is
-		# local-only. This is NOT authentication and must never gate anything
-		# security sensitive.
+		# Legacy direct-Google fallback. The current UI does not call this path;
+		# a local/unverified profile is not Nakama authentication and must never
+		# gate security-sensitive behavior.
 		profile.uid = "google-local-%s" % String(account.get("sub", ""))
 		unverified_remote = true
 
@@ -199,26 +184,26 @@ func _on_google_failed(message_key: StringName, detail: String) -> void:
 	_fail(message_key)
 
 
-## Google sometimes returns a full name with markup-ish whitespace; our own
-## validator only accepts a friendly callsign.
+## Google sometimes returns a full name with markup-ish whitespace; normalize
+## the display name to a compact player-facing form.
 func _clean_name(raw_name: String) -> String:
 	var cleaned := raw_name.strip_edges()
 	if cleaned.is_empty():
-		return PlayerProfile._random_callsign()
+		return PlayerProfile._random_player_name()
 	var first := cleaned.split(" ")[0]
 	if first.length() > 16:
 		first = first.substr(0, 16)
 	if first.length() < 3:
-		return PlayerProfile._random_callsign()
+		return PlayerProfile._random_player_name()
 	return first
 
 
 # --------------------------------------------------------------- guest flow
 
-func sign_in_as_guest(callsign: String = "") -> void:
+func sign_in_as_guest(player_name: String = "") -> void:
 	last_error = ""
 	_set_state(GameTypes.AuthState.SIGNING_IN)
-	var profile := PlayerProfile.create_guest(callsign)
+	var profile := PlayerProfile.create_guest(player_name)
 	profile.accepted_terms_version = Settings.get_int("game/terms_version", 1)
 	Session.set_profile(profile)
 	_credential = {

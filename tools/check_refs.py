@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static reference check for HEXORA — runs without Godot, gates every commit.
+"""Static reference check for PixelLegends — runs without Godot, gates every commit.
 
 gdlint only sees one file at a time, so it cannot tell you that a screen calls
 `UiKit.card_title()` when the only method is `card()`. This script is the
@@ -918,7 +918,7 @@ def main() -> int:
         "friends.status.online", "friends.status.offline",
         "friends.status.in_lobby", "friends.status.in_match",
         "settings.tab.game", "settings.tab.graphics", "settings.tab.audio",
-        "settings.tab.controls", "settings.tab.language", "settings.tab.developer",
+		"settings.tab.controls", "settings.tab.developer",
     ]
     for source in (SRC_DIR / "core").rglob("*.tres"):
         for literal in STRINGNAME_LITERAL_RE.findall(source.read_text(encoding="utf-8")):

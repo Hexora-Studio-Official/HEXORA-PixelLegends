@@ -2,11 +2,8 @@ extends Node
 ## Transient messages, stacked above every screen.
 ##
 ## Owns its own CanvasLayer (layer 90) so a toast survives a scene change —
-## "Signed out" should still be visible after the Router swaps to the login
-## screen. Screens never build their own; they emit `EventBus.toast_requested`.
-##
-## Layout follows the locale: the stack lives on the leading edge (right in
-## Persian, left in English) and the accent bar is on the inner edge.
+## for example, a sign-out notice remains visible after routing to the boot
+## screen. Screens emit `EventBus.toast_requested`; the UI is English/LTR.
 
 const MAX_VISIBLE := 4
 const DURATION_SEC := 3.4
@@ -36,9 +33,7 @@ func _ready() -> void:
 	_root.add_theme_constant_override("margin_bottom", Design.SPACE_XL)
 	_layer.add_child(_root)
 
-	# Row layout: the fixed-width stack, plus a spacer that absorbs the rest.
-	# A BoxContainer mirrors its children in RTL, so the stack lands on the
-	# leading edge (left in English, right in Persian) with no extra code.
+	# Row layout: the fixed-width toast stack followed by a spacer.
 	_row = HBoxContainer.new()
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_row)
@@ -118,7 +113,7 @@ func _build_toast(message: String, kind: StringName) -> Control:
 
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(_toast_width(), 0)
-	panel.add_theme_stylebox_override("panel", _panel_style(accent))
+	panel.add_theme_stylebox_override("panel", _panel_style())
 	# Toasts must never eat a tap meant for the game underneath.
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -146,26 +141,22 @@ func _build_toast(message: String, kind: StringName) -> Control:
 	return panel
 
 
-func _panel_style(accent: Color) -> StyleBoxFlat:
+func _panel_style() -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color(Design.SURFACE_ALT.r, Design.SURFACE_ALT.g, Design.SURFACE_ALT.b, 0.96)
 	box.set_corner_radius_all(Design.RADIUS_MD)
-	box.border_color = Color(accent.r, accent.g, accent.b, 0.55)
+	box.border_color = Design.LINE_STRONG
 	box.set_border_width_all(Design.BORDER_THIN)
 	box.set_content_margin_all(float(Design.SPACE_MD))
-	box.shadow_color = Color(0, 0, 0, 0.35)
-	box.shadow_size = 10
-	box.shadow_offset = Vector2(0, 4)
+	box.anti_aliasing = false
 	return box
 
 
 func _animate_in(toast: Control, kind: StringName) -> void:
 	Audio.play_ui(_cue_for(kind), 1.0, -3.0)
 
-	var rtl := Loc.is_rtl()
-	var offset := 40.0 if rtl else -40.0
 	toast.modulate = Color(1, 1, 1, 0)
-	toast.position.x = offset
+	toast.position.x = -40.0
 
 	var tween := create_tween()
 	tween.set_parallel(true)

@@ -1,50 +1,30 @@
-# Third-party notices
+# Third-party notices and asset provenance
 
-Everything in this repository that HEXORA did not write is listed here, with
-its licence. Keep it accurate: a shipped APK is a distribution, and an
-attribution that is missing from a build is a licence violation even if it is
-present in the source tree.
+Keep this file accurate before distributing a build. The PixelLegends product, architecture, visual direction, and implementation plan are defined by [`docs/PROJECT_SPEC.txt`](docs/PROJECT_SPEC.txt); this file is limited to licensing and provenance records.
 
 ## Fonts — `assets/fonts/`
 
 | Font | Use | Licence |
 | --- | --- | --- |
-| **Chakra Petch** (Medium, SemiBold, Bold) — Cadson Demak | Display: titles, buttons, labels, numbers | SIL Open Font License 1.1 |
-| **Vazirmatn** (Regular, Medium, SemiBold, Bold; Arabic + Latin subsets) — Saber Rastikerdar | Body text and the entire Persian UI | SIL Open Font License 1.1 |
+| **Chakra Petch** (Medium, SemiBold, Bold) — Cadson Demak | Display typography | SIL Open Font License 1.1 |
+| **Vazirmatn** (Latin Regular, Medium, SemiBold, Bold) — Saber Rastikerdar | Latin body typography | SIL Open Font License 1.1 |
 
-Both are shipped as `.woff2` in `assets/fonts/`, with the full OFL 1.1 text in
-`assets/fonts/OFL-NOTICE.txt`. The OFL requires that the copyright notice and
-the licence travel with the font files — keep both files in any redistribution,
-including a store build.
+The retained font files are distributed under the SIL Open Font License 1.1. The licence notice is in `assets/fonts/OFL-NOTICE.txt`; keep it with the font files in any redistribution. The Arabic/Persian subsets have been removed from the project.
 
-The OFL also forbids selling the fonts on their own and requires that modified
-versions be renamed. Neither applies here: the fonts are used unmodified.
+## Engine and development tools
 
-## Engine
-
-| Component | Licence |
+| Component | Licence / distribution |
 | --- | --- |
-| **Godot Engine 4.x** | MIT. The engine is *not* vendored in this repository — the developer installs it. Its full licence text must be included in a shipped build; the Android export template already ships Godot's `LICENSE.txt` alongside the binary. |
+| **Godot Engine 4.4** | MIT. The engine is installed separately and is not vendored here. Follow Godot's distribution requirements when exporting. |
+| Project scripts in `tools/` | Original development utilities; not distributed as game content. |
+| **gdtoolkit** (`gdlint`) | MIT; development-only dependency declared in `requirements-dev.txt`. |
 
-## Development-only tools — `tools/`
+## Supplied project art
 
-| Tool | Licence |
-| --- | --- |
-| `check_i18n.py`, `check_refs.py`, `mock_server.py` | Original to this project; part of the repository, not shipped in a build. |
-| `gdtoolkit` (`gdlint`) | MIT — used from a virtualenv during development, never bundled. |
+The two PixelLegends PNG files under `assets/` were supplied for this project by the project owner. No external marketplace package or third-party attribution record was provided with them. Keep the originals and verify distribution rights before public release if ownership or licensing is not documented elsewhere.
 
-## Asset policy
+All future characters, maps, UI artwork, effects, names, and other creative content must follow the originality requirements in `docs/PROJECT_SPEC.txt`. Do not rip, trace, or redistribute proprietary assets from another game.
 
-- **No downloaded asset packs.** Nothing in `assets/` came from a third-party
-  marketplace or a "free models" site. Art is authored in-house or the game
-  draws it procedurally (`design.gd` builds the theme, `HexIcon` draws the
-  icons, `tone_synth.gd` synthesises the UI sounds).
-- **Before adding an asset**, add a row here: what it is, where it came from,
-  its licence, and whether attribution is required *in-game* (some CC-BY
-  licences require an in-app credits screen, not just a README).
-- **Sound and music**: `assets/audio/` is empty apart from the README. When
-  tracks land, they must be original, CC0 or CC-BY, normalised to about
-  −16 LUFS, and credited here.
-- **What is never acceptable**: anything ripped from another game, anything
-  whose licence you have not read, and anything whose provenance is "a friend
-  sent it to me". A DMCA takedown on a store listing is unrecoverable.
+## Audio
+
+There are no shipped music files in the current UI-shell milestone. Future audio must be original or properly licensed, and every third-party item must be recorded here with its author, source, licence, and attribution requirements before inclusion.
