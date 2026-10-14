@@ -56,17 +56,21 @@ const SUBTITLE_WIDTH_FRACTION := 0.88
 
 ## The arc. The middle of the line sits this fraction of the cap height
 ## HIGHER than its ends, which makes the curve a hill rather than a valley.
-## Gentle on purpose: enough to read as a curve, not enough to look bent.
-const SUBTITLE_ARC := 0.20
+##
+## Note that the outermost letters sit at +/-0.92 of the half-width, not
+## +/-1 — their cells have width — so the visible difference between the
+## middle of the line and its ends is about 0.85 of this value, not all of
+## it. At 0.49 that works out to roughly 65 device pixels on a phone, which
+## is the measured, visible amount this was tuned to.
+const SUBTITLE_ARC := 0.49
 
 ## Entrance: letters rise into place left to right, then a rule sweeps out.
 const SUBTITLE_DURATION := 0.62
 const SUBTITLE_STAGGER := 0.035
 const SUBTITLE_CHAR_DURATION := 0.34
 const SUBTITLE_RISE := 18.0
-## Drop ink behind the type, and rule thickness, as fractions of cap height.
+## Drop ink behind the type, as a fraction of cap height.
 const SUBTITLE_INK := 0.035
-const SUBTITLE_RULE := 0.05
 
 const SUBTITLE_TEXT := "Pixel Legends"
 const TITLE_TEXT := "HEXORA-STUDIO"
@@ -133,15 +137,6 @@ var _title_line_size := Vector2i.ZERO
 var _title_ink_top := 0.0
 var _title_ink_height := 0.0
 var _puff: Texture2D
-## The sting is synthesised, not loaded — the project ships no audio files —
-## and a three-second cue costs enough to synthesise that doing it inline
-## would stall the first frame. Building it on a worker thread keeps the
-## splash smooth; if it is not ready the moment the explosion lands, the
-## sound comes in a frame or two later rather than freezing the animation to
-## wait for it.
-var _sting: AudioStreamWAV
-var _sting_thread: Thread
-var _sting_started := false
 
 
 func _init() -> void:
@@ -166,19 +161,8 @@ func _ready() -> void:
 	_title_layer.draw.connect(_draw_title)
 	add_child(_title_layer)
 
-	_sting_thread = Thread.new()
-	_sting_thread.start(_build_sting)
 	_layout()
 	resized.connect(_layout)
-
-
-func _exit_tree() -> void:
-	if _sting_thread != null and _sting_thread.is_alive():
-		_sting_thread.wait_to_finish()
-
-
-func _build_sting() -> void:
-	_sting = ToneSynth.sting()
 
 
 func _layout() -> void:
@@ -198,8 +182,8 @@ func _layout() -> void:
 	# carries the font's descent and would push the wordmark visibly high.
 	var ink_height := _title_ink_height * _title_scale
 	var gap := viewport.y * SUBTITLE_GAP
-	var block_height := ink_height + gap + float(PixelFont.CAP_H) * _subtitle_scale \
-		* (1.0 + SUBTITLE_ARC) + float(PixelFont.CAP_H) * _subtitle_scale * 0.35
+	var block_height := ink_height + gap \
+		+ float(PixelFont.CAP_H) * _subtitle_scale * (1.0 + SUBTITLE_ARC)
 	var top := (viewport.y - block_height) * 0.5
 
 	# The wordmark's shadow is drawn offset to the right, so its ink reaches
@@ -267,16 +251,6 @@ func _process(delta: float) -> void:
 	if not _finishing and _elapsed >= TIME_HOLD_END:
 		_finishing = true
 		_go_to_entrance()
-	# Fire the sting with the detonation, but only once the worker has
-	# finished: joining a finished thread returns immediately, so this never
-	# blocks the frame.
-	if not _sting_started and _elapsed >= TIME_EXPLOSION \
-			and _sting_thread != null and not _sting_thread.is_alive():
-		_sting_started = true
-		_sting_thread.wait_to_finish()
-		if _sting != null and Audio != null:
-			Audio.play_sfx(_sting, 1.0, -3.0)
-
 	queue_redraw()
 	# The wordmark lives on its own layer, so it needs redrawing too.
 	if _title_layer != null:
@@ -791,14 +765,3 @@ func _draw_subtitle(viewport: Vector2) -> void:
 		draw_texture_rect_region(_subtitle_texture, local, src,
 			Color(1.0, 1.0, 1.0, eased))
 	draw_set_transform(Vector2.ZERO)
-
-	# Once the line is in, a rule sweeps out from the centre beneath it.
-	var rule_t := clampf((since - SUBTITLE_DURATION * 0.4) / 0.5, 0.0, 1.0)
-	if rule_t <= 0.0:
-		return
-	var rule_eased := 1.0 - pow(1.0 - rule_t, 3.0)
-	var rule_w := line_width * rule_eased
-	var rule_h := maxf(2.0, cap * SUBTITLE_RULE)
-	draw_rect(Rect2(viewport.x * 0.5 - rule_w * 0.5,
-		top + cap + arc + cap * 0.22, rule_w, rule_h),
-		Color(Design.ACCENT.r, Design.ACCENT.g, Design.ACCENT.b, 0.9 * rule_eased))

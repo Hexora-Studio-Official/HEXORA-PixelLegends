@@ -220,61 +220,6 @@ static func search_pulse() -> AudioStreamWAV:
 
 ## Every cue by name, so the Settings "test tone" button and the audio service
 ## share one table. Names are stable identifiers, not localised text.
-## The studio sting: a detonation that blooms into light.
-##
-## Layered the way a film sting is layered rather than as one synthesised
-## blip — a sub-bass body for weight, a noise crack on top for the transient
-## that makes it read as an impact, air being pushed outward, a slow chord
-## swelling as the light spreads, and a chime when the subtitle lands.
-##
-## Separation comes from register and envelope: there is no stereo field to
-## place voices in, so they are kept apart by frequency instead.
-##
-## Deliberately NOT in `cue_names()`. Building this takes long enough to
-## stall a frame, and the audio service synthesises every named cue at
-## startup — one more second there would be felt by everyone, including
-## players who never reach the splash. Callers that want it build it
-## themselves.
-static func sting() -> AudioStreamWAV:
-	var voices: Array[Voice] = []
-	# Body: the weight of the hit.
-	voices.append(Voice.new({
-		"wave": Wave.SINE, "freq_start": 120.0, "freq_end": 32.0,
-		"duration": 1.2, "decay": 0.34, "gain": 0.78, "attack": 0.002,
-		"sweep_curve": 2.0,
-	}))
-	voices.append(Voice.new({
-		"wave": Wave.SINE, "freq_start": 55.0, "freq_end": 27.0,
-		"duration": 2.1, "decay": 0.55, "gain": 0.58, "attack": 0.004,
-	}))
-	# Crack: the transient that makes it an impact rather than a hum.
-	voices.append(Voice.new({
-		"wave": Wave.SINE, "freq_start": 3200.0, "freq_end": 700.0,
-		"duration": 0.22, "decay": 0.05, "gain": 0.28, "attack": 0.001,
-		"noise_amount": 0.65, "noise_smoothing": 0.30,
-	}))
-	# Air pushed out of the blast.
-	voices.append(Voice.new({
-		"wave": Wave.SINE, "freq_start": 1100.0, "freq_end": 180.0,
-		"duration": 1.5, "decay": 0.42, "gain": 0.20, "attack": 0.02,
-		"noise_amount": 0.85, "noise_smoothing": 0.78,
-	}))
-	# Bloom: a slow chord swelling as the light spreads.
-	for frequency in [523.25, 659.25, 783.99]:
-		voices.append(Voice.new({
-			"wave": Wave.SINE, "freq_start": frequency * 0.985,
-			"freq_end": frequency, "duration": 2.0, "delay": 0.85,
-			"decay": 0.95, "gain": 0.12, "attack": 0.22,
-		}))
-	# Chime as the subtitle lands.
-	voices.append(Voice.new({
-		"wave": Wave.SINE, "freq_start": 880.0, "freq_end": 1318.5,
-		"duration": 1.1, "delay": 2.25, "decay": 0.50, "gain": 0.16,
-		"attack": 0.004,
-	}))
-	return mix(voices, 3.35, 0x5714)
-
-
 static func cue(name: String) -> AudioStreamWAV:
 	match name:
 		"hover": return hover()
@@ -286,7 +231,6 @@ static func cue(name: String) -> AudioStreamWAV:
 		"toggle_off": return toggle_off()
 		"whoosh": return whoosh()
 		"search_pulse": return search_pulse()
-		"sting": return sting()
 		_:
 			push_warning("ToneSynth: unknown cue '%s'." % name)
 			return click()

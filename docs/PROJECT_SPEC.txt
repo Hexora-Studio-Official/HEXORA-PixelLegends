@@ -252,16 +252,6 @@ bloom behind the type, and smoke tinted teal and violet rather than grey.
 Fire cools through violet on a minority of particles so the burst is not one
 flat orange.
 
-Sound: ToneSynth.sting(), a synthesised three-second sting layered the way a
-film sting is - sub-bass body, noise crack for the transient, air pushed
-outward, a slow chord as the light spreads, a chime when the subtitle lands.
-The project ships no audio files and synthesises every cue it has, so this
-follows the existing convention. It is deliberately NOT registered in
-cue_names(): the audio service synthesises every named cue at startup, and an
-extra second there would be felt by players who never reach the splash. The
-splash builds it on a worker thread instead and fires it with the detonation.
-
-
 The large app icon on black at first launch is Android 12+ drawing a starting
 window with the launcher icon before the process has rendered anything. It is
 OS behaviour, not the engine; Godot's own boot splash is already off
