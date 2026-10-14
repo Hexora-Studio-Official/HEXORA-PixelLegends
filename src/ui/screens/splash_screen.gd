@@ -31,11 +31,13 @@ const LETTER_DURATION := 0.32
 
 ## The wordmark is sized to a fraction of the *width*, so it reads the same on
 ## a phone and on a desktop window.
-const TITLE_WIDTH_FRACTION := 0.84
+const TITLE_WIDTH_FRACTION := 0.86
 ## ...but never taller than this fraction of the height.
-const TITLE_MAX_HEIGHT_FRACTION := 0.22
-const TITLE_TRACKING := 1
-const TITLE_SHADOW_CELLS := 0.45
+const TITLE_MAX_HEIGHT_FRACTION := 0.26
+## Tracking and drop shadow, in ART PIXELS. The face is 92 art pixels tall at
+## the cap, so these are fine adjustments rather than whole letter widths.
+const TITLE_TRACKING := 4
+const TITLE_SHADOW := 4
 
 ## Gap between the wordmark and the subtitle, as a fraction of screen height.
 const SUBTITLE_GAP := 0.05
@@ -104,6 +106,17 @@ var _subtitle_width := 0.0
 ## The display face with extra tracking baked in, so the engine lays the
 ## subtitle out rather than this script.
 var _subtitle_font: FontVariation
+## The wordmark is baked once per layout, then drawn as one region per letter.
+var _title_layer: Control
+var _title_texture: ImageTexture
+var _title_rects: Array[Rect2i] = []
+var _title_positions: Array[Vector2] = []
+var _title_line_size := Vector2i.ZERO
+## Where the ink sits inside the line box, in art pixels. The line box carries
+## the font's descent, so centring on the box rather than on the ink would push
+## the wordmark visibly high.
+var _title_ink_top := 0.0
+var _title_ink_height := 0.0
 var _puff: Texture2D
 
 
@@ -122,6 +135,18 @@ func _ready() -> void:
 	_subtitle_font.base_font = Design.font_display
 	if Design.font_ui != null:
 		_subtitle_font.fallbacks = [Design.font_ui]
+
+	# The wordmark gets its own layer so it can use nearest-neighbour
+	# filtering: an art-pixel grid has to stay hard-edged or it stops reading
+	# as pixels at all. The smoke and fire behind it keep the smooth filtering
+	# they need, which is why this cannot simply be set on the root.
+	_title_layer = Control.new()
+	_title_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_title_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_title_layer.draw.connect(_draw_title)
+	add_child(_title_layer)
+
 	_layout()
 	resized.connect(_layout)
 
@@ -130,32 +155,55 @@ func _layout() -> void:
 	var viewport := get_viewport_rect().size
 	if viewport.x <= 1.0 or viewport.y <= 1.0:
 		return
-	var cells := PixelFont.measure_cells(TITLE_TEXT, TITLE_TRACKING)
-	var by_width := viewport.x * TITLE_WIDTH_FRACTION / float(cells.x)
-	var by_height := viewport.y * TITLE_MAX_HEIGHT_FRACTION / float(PixelFont.GLYPH_H)
+	var units := PixelFont.measure_units(TITLE_TEXT, TITLE_TRACKING)
+	var by_width := viewport.x * TITLE_WIDTH_FRACTION / float(units.x)
+	var by_height := viewport.y * TITLE_MAX_HEIGHT_FRACTION / float(units.y)
 	_title_scale = minf(by_width, by_height)
+	_bake_title()
 	_subtitle_size = _fit_subtitle(viewport)
 	if _subtitle_font != null:
 		_subtitle_font.spacing_glyph = int(round(float(_subtitle_size) * SUBTITLE_TRACKING))
 		_subtitle_width = _subtitle_font.get_string_size(SUBTITLE_TEXT.to_upper(),
 			_subtitle_size).x
 
-	# Centre the pair as one block: wordmark, gap, then subtitle.
-	var title_height := float(PixelFont.GLYPH_H) * _title_scale
+	# Centre the pair as one block: wordmark ink, gap, then subtitle. The block
+	# is measured on the INK rather than on the line box, because the box
+	# carries the font's descent and would push the wordmark visibly high.
+	var ink_height := _title_ink_height * _title_scale
 	var gap := viewport.y * SUBTITLE_GAP
-	var block_height := title_height + gap + float(_subtitle_size) * 1.35
+	var block_height := ink_height + gap + float(_subtitle_size) * 1.35
 	var top := (viewport.y - block_height) * 0.5
 
-	_centre = Vector2(viewport.x * 0.5, top + title_height * 0.5)
-	var title_size := PixelFont.measure_pixels(TITLE_TEXT, _title_scale, TITLE_TRACKING)
 	# The wordmark's shadow is drawn offset to the right, so its ink reaches
-	# past its measured width by exactly that much. Centring on the measured
-	# width therefore puts the visible block half a shadow to the right of
-	# centre, which is enough to read askew next to the subtitle. Centre the
-	# ink, not the glyph origin.
-	var shadow := TITLE_SHADOW_CELLS * _title_scale
-	_title_origin = Vector2(_centre.x - (title_size.x + shadow) * 0.5,
-		_centre.y - title_size.y * 0.5)
+	# past its measured width by exactly that much. Centre the ink, not the
+	# glyph origin, or the visible block sits half a shadow right of centre.
+	var shadow := float(TITLE_SHADOW) * _title_scale
+	var line_width := float(_title_line_size.x) * _title_scale
+	_title_origin = Vector2(viewport.x * 0.5 - (line_width + shadow) * 0.5, top)
+	_centre = Vector2(viewport.x * 0.5,
+		top + (_title_ink_top + _title_ink_height * 0.5) * _title_scale)
+
+
+## Bake the whole wordmark into a single image, once per layout, with each
+## letter already tinted by its place in the gradient.
+func _bake_title() -> void:
+	var colours: Array[Color] = []
+	for index in TITLE_TEXT.length():
+		colours.append(_title_colour(index, TITLE_TEXT.length()))
+	var baked := PixelFont.bake(TITLE_TEXT, TITLE_TRACKING, colours)
+	_title_rects = baked["rects"]
+	_title_positions = baked["positions"]
+	_title_line_size = baked["size"]
+	_title_texture = ImageTexture.create_from_image(baked["image"])
+	# Bounds of the actual ink inside the line box.
+	_title_ink_top = float(_title_line_size.y)
+	_title_ink_height = 0.0
+	for rect in _title_rects:
+		if rect.size.x <= 0 or rect.size.y <= 0:
+			continue
+		_title_ink_top = minf(_title_ink_top, float(rect.position.y))
+		_title_ink_height = maxf(_title_ink_height, float(rect.position.y + rect.size.y))
+	_title_ink_height = maxf(0.0, _title_ink_height - _title_ink_top)
 
 
 ## Largest subtitle size that fits both limits: the height fraction, and the
@@ -190,6 +238,9 @@ func _process(delta: float) -> void:
 		_finishing = true
 		_go_to_entrance()
 	queue_redraw()
+	# The wordmark lives on its own layer, so it needs redrawing too.
+	if _title_layer != null:
+		_title_layer.queue_redraw()
 
 
 ## `_input` rather than `_unhandled_input`: this control stops the mouse, so
@@ -338,7 +389,6 @@ func _draw() -> void:
 	_draw_embers()
 	_draw_shockwave(viewport)
 	_draw_flash(viewport)
-	_draw_title()
 	_draw_subtitle(viewport)
 
 
@@ -482,10 +532,13 @@ func _draw_flash(viewport: Vector2) -> void:
 
 func _draw_title() -> void:
 	var since := _elapsed - TIME_TITLE
-	if since < 0.0:
+	if since < 0.0 or _title_texture == null:
 		return
-	var advance := float(PixelFont.GLYPH_W + TITLE_TRACKING) * _title_scale
+	var shadow := float(TITLE_SHADOW) * _title_scale
 	for index in TITLE_TEXT.length():
+		var src: Rect2i = _title_rects[index]
+		if src.size.x <= 0 or src.size.y <= 0:
+			continue
 		var start := float(index) * LETTER_STAGGER
 		var t := (since - start) / LETTER_DURATION
 		if t <= 0.0:
@@ -495,19 +548,18 @@ func _draw_title() -> void:
 		# makes the word feel punched in rather than faded up.
 		var overshoot := 1.0 + 2.2 * pow(1.0 - p, 2.0) * sin(p * PI * 1.5)
 		var letter_scale := _title_scale * (0.3 + 0.7 * p) * overshoot
-		var colour := _title_colour(index, TITLE_TEXT.length())
-		# Recentre the letter inside its cell as it scales, so it grows out of
-		# its own middle instead of drifting right.
-		var cell_w := float(PixelFont.GLYPH_W) * _title_scale
-		var grown_w := float(PixelFont.GLYPH_W) * letter_scale
-		var cell_h := float(PixelFont.GLYPH_H) * _title_scale
-		var grown_h := float(PixelFont.GLYPH_H) * letter_scale
-		var origin := Vector2(
-			_title_origin.x + float(index) * advance + (cell_w - grown_w) * 0.5,
-			_title_origin.y + (cell_h - grown_h) * 0.5)
-		PixelFont.draw_character_shadowed(self, TITLE_TEXT.substr(index, 1), origin,
-			letter_scale, colour, Design.LINE_STRONG, clampf(p * 1.4, 0.0, 1.0),
-			TITLE_SHADOW_CELLS)
+		var cell := Vector2(src.size) * _title_scale
+		var grown := Vector2(src.size) * letter_scale
+		# Recentre the letter in its own cell as it scales, so it grows out of
+		# its middle instead of drifting.
+		var origin: Vector2 = _title_origin + _title_positions[index] * _title_scale \
+			+ (cell - grown) * 0.5
+		var ink_alpha := clampf(p * 1.4, 0.0, 1.0)
+		_title_layer.draw_texture_rect_region(_title_texture,
+			Rect2(origin + Vector2(shadow, shadow), grown), src,
+			Color(0.0, 0.0, 0.0, ink_alpha * 0.55))
+		_title_layer.draw_texture_rect_region(_title_texture, Rect2(origin, grown),
+			src, Color(1.0, 1.0, 1.0, ink_alpha))
 
 
 ## Three-stop ramp across the wordmark: gold leads, cyan carries, violet
@@ -549,8 +601,8 @@ func _draw_subtitle(viewport: Vector2) -> void:
 	# `draw_string` places text by its baseline, so the visual top has to be
 	# derived from the font's ascent — otherwise the line creeps up into the
 	# wordmark on fonts with a tall ascender.
-	var title_height := float(PixelFont.GLYPH_H) * _title_scale
-	var top := _centre.y + title_height * 0.5 + viewport.y * SUBTITLE_GAP
+	var title_bottom := _title_origin.y + (_title_ink_top + _title_ink_height) * _title_scale
+	var top := title_bottom + viewport.y * SUBTITLE_GAP
 	var baseline := top + font.get_ascent(size)
 	var y := baseline + (1.0 - eased) * SUBTITLE_RISE
 
