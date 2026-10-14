@@ -28,6 +28,7 @@ const NAV_ITEMS: Array[Dictionary] = [
 var _background: TextureRect
 var _background_shade: ColorRect
 var _top_bar: HBoxContainer
+var _atmosphere: Atmosphere
 var _profile_card: PanelContainer
 var _build_tag: PanelContainer
 var _settings_button: Button
@@ -72,6 +73,13 @@ func build() -> void:
 		_background_shade.z_index = -1
 		add_child(_background_shade)
 
+	if _atmosphere == null or not is_instance_valid(_atmosphere):
+		_atmosphere = Atmosphere.new()
+		_atmosphere.name = "Atmosphere"
+		# Above the artwork and its shade, below every control in `content`.
+		_atmosphere.z_index = -1
+		add_child(_atmosphere)
+
 	_build_top_bar()
 	_build_left_rail()
 	_build_spotlight()
@@ -82,24 +90,15 @@ func build() -> void:
 
 func _ready() -> void:
 	super._ready()
-	_animate_background()
-
-
-func _animate_background() -> void:
-	if _background == null:
-		return
-	_background.pivot_offset = get_viewport_rect().size * 0.5
-	var tween := create_tween().set_loops()
-	tween.tween_property(_background, "scale", Vector2(1.028, 1.028), 19.0) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(_background, "scale", Vector2.ONE, 19.0) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# The artwork used to breathe here: an endless 1.0 → 1.028 scale loop.
+	# Scaling a full-bleed texture by a fraction of a percent makes the pixel
+	# grid shimmer, so the art read as trembling rather than as moving. The
+	# artwork now stays perfectly still and `Atmosphere` puts living light in
+	# front of it instead.
 
 
 func on_screen_resized() -> void:
 	_layout_menu()
-	if _background != null:
-		_background.pivot_offset = get_viewport_rect().size * 0.5
 
 
 func _build_top_bar() -> void:

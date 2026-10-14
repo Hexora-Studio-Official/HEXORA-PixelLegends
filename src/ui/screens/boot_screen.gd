@@ -18,6 +18,7 @@ var _background: TextureRect
 var _background_shade: ColorRect
 var _action_panel: PanelContainer
 var _brand_mark: Control
+var _atmosphere: Atmosphere
 var _play_button: Button
 var _google_button: Button
 var _guest_button: Button
@@ -53,6 +54,13 @@ func build() -> void:
 		_background_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_background_shade.z_index = -1
 		add_child(_background_shade)
+
+	if _atmosphere == null or not is_instance_valid(_atmosphere):
+		_atmosphere = Atmosphere.new()
+		_atmosphere.name = "Atmosphere"
+		# Above the artwork and its shade, below every control in `content`.
+		_atmosphere.z_index = -1
+		add_child(_atmosphere)
 
 	_settings_button = UiKit.button(Loc.t(&"menu.settings"), &"GlassButton", &"settings")
 	_settings_button.custom_minimum_size = Vector2(156, 56)
@@ -137,18 +145,11 @@ func build() -> void:
 func _ready() -> void:
 	super._ready()
 	_restore_session()
-	_animate_background()
-
-
-func _animate_background() -> void:
-	if _background == null:
-		return
-	_background.pivot_offset = get_viewport_rect().size * 0.5
-	var tween := create_tween().set_loops()
-	tween.tween_property(_background, "scale", Vector2(1.035, 1.035), 15.0) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(_background, "scale", Vector2.ONE, 15.0) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# The artwork used to breathe here: an endless 1.0 → 1.035 scale loop.
+	# Scaling a full-bleed texture by a fraction of a percent makes the pixel
+	# grid shimmer, so the art read as trembling rather than as moving. The
+	# artwork now stays perfectly still and `Atmosphere` puts living light in
+	# front of it instead.
 
 
 ## A choice that exists but cannot be used yet.
@@ -227,8 +228,6 @@ func _layout_actions() -> void:
 
 func on_screen_resized() -> void:
 	_layout_actions()
-	if _background != null:
-		_background.pivot_offset = get_viewport_rect().size * 0.5
 
 
 func _restore_session() -> void:
