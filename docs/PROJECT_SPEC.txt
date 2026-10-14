@@ -193,14 +193,46 @@ design system, so no screen had to change:
     pixel-art depth idiom, square and resolution independent.
   - Google's four brand colours are deliberately left untouched.
 
-Launch sting (commit 38fdb87). SplashScreen is now run/main_scene: an
-explosion tears open the dark, HEXORA-STUDIO slams in as real pixel type, and
-Pixel Legends drifts up beneath it. Procedural rather than a video — a video
-adds a decode step and megabytes to the APK, and it still could not replace
-the OS starting window. PixelFont is a 5x7 bitmap face defined as data: the
-project ships Chakra Petch and Vazirmatn, neither of them pixel, and a code
-face needs nothing licensed, imported or attributed. 2.9 s, skippable by tap,
-then fades into the entrance screen.
+  CORRECTION (commit 57b8c6e): that pass changed nothing the user could see,
+  and the reason is worth recording. The two screens that exist use only
+  EntranceDockPanel, GlassModalPanel, GlassNavButton, GlassButton and
+  GlassPrimaryButton. Three of those five kept their colours as literals
+  written into design.gd's own tables, below the palette block — so
+  repainting the palette changed them by exactly nothing. The constants that
+  did move feed the solid half of the system, which after the legacy sweep
+  styles only settings_page. The literals are now replaced with GLASS_PANEL,
+  GLASS_MODAL and GLASS_NAV, and no colour on a live surface is out of the
+  palette's reach any more.
+  Panels also get the drop edge that pass missed: the panel table builds its
+  own styleboxes and was never routed through _apply_drop_edge. Panels on the
+  canvas now share the crisp edge with buttons; the two glass panels that
+  float over the artwork keep a soft lift, because a hard edge on those reads
+  as a sticker.
+
+Launch sting (commit 38fdb87, rebuilt in commit 57b8c6e). SplashScreen is now
+run/main_scene: an explosion tears open the dark, HEXORA-STUDIO slams in as
+real pixel type, and Pixel Legends drifts up beneath it. Procedural rather
+than a video — a video adds a decode step and megabytes to the APK, and it
+still could not replace the OS starting window. 2.9 s, skippable by tap, then
+fades into the entrance screen.
+The first version was poor and was rebuilt:
+  - Wordmark and subtitle are now centred as one block, computed from their
+    measured heights, instead of the wordmark pinned to a fraction of the
+    screen.
+  - Bigger: wordmark ~132 px → ~172 px tall on a 1080 px screen; subtitle
+    56 px → 78 px.
+  - PixelFont moved 5x7 → 7x9. At wordmark scale a 5x7 letter is thirty-five
+    squares and every curve collapses into a stair. Every glyph was verified
+    by rasterising the face to text and reading the letters back.
+  - Letters carry a hard offset shadow; flat squares read as crude at that
+    size.
+  - The "smoke" was literally growing grey squares. It is now a procedurally
+    generated radial falloff texture drawn as layered puffs that cool and
+    darken as they rise (90 instead of 48). Fire uses the same texture.
+  - The subtitle overlapped because it was positioned by summing
+    single-character widths; a font's advance in context is not a
+    character's isolated width, so the error accumulated and glyphs landed on
+    each other. Positions now come from measured prefixes.
 
 The large app icon on black at first launch is Android 12+ drawing a starting
 window with the launcher icon before the process has rendered anything. It is
@@ -208,11 +240,11 @@ OS behaviour, not the engine; Godot's own boot splash is already off
 (boot_splash/show_image=false). Changing it needs an Android theme, and there
 is no android/ directory in the project yet.
 
-Android debug APK (2026-10-14): PASS at commit 661a4e4 in run 38551664350.
-Artifact `pixellegends-debug-apk`, 40,381,303 bytes (~38.5 MB), expires
-2026-10-28. This build DOES cover the work above: the headless boot really
-runs the splash and then the entrance without error.
-  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38551664350
+Android debug APK (2026-10-14): PASS at commit 57b8c6e in run 38576982315.
+Artifact `pixellegends-debug-apk`, 40,383,540 bytes (~38.5 MB), expires
+2026-10-28. This is the build to install: it carries the palette wiring, the
+panel drop edges and the rebuilt sting.
+  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38576982315
 One caught defect worth recording: commit 907f700 FAILED the smoke test with
 `SCRIPT ERROR: Parse Error: Function "sinf()" not found in base self`. Godot 4
 provides sin/cos/tan but no sinf/cosf/tanf. They had been added to
@@ -238,16 +270,17 @@ the legacy retirement and shell improvements above.
 - Reference-checker self-test: verified by planting a deliberately bogus
   `Design.*` constant and a bogus `UiKit.*` call in the new code; both were
   reported. This matters because no GDScript compiler runs in this sandbox.
-- Godot 4.4.1 CI import and headless client startup: PASS in run 38551664350
-  at commit 661a4e4 — this one DOES cover the redesign, the safe-area fix and
-  the launch sting. NOTE: the same check FAILED at commit 907f700 with
+- Godot 4.4.1 CI import and headless client startup: PASS in run 38576982315
+  at commit 57b8c6e — this one DOES cover the palette wiring, the safe-area
+  fix and the rebuilt sting. NOTE: the same check FAILED at commit 907f700 with
   `Function "sinf()" not found`; local checks had all passed, because the
   non-existent function had been blessed in check_refs.py. CI is the only
   compiler available here and it is the authority, not the local checks.
 - Android Debug APK export, signing verification, archive integrity, and
-  manifest checks: PASS in the same run 38551664350 at commit 661a4e4.
-  Older artifacts (run 38510540964 at da0179d, run 38504098509 at 92d14c2,
-  run 38343943699 at a95783e) are superseded and should not be used. All of
+  manifest checks: PASS in the same run 38576982315 at commit 57b8c6e.
+  Older artifacts (run 38551664350 at 661a4e4, run 38510540964 at da0179d,
+  run 38504098509 at 92d14c2, run 38343943699 at a95783e) are superseded and
+  should not be used. All of
   these are debug-signed with an ephemeral CI key, not a release key.
 - The sandbox cannot download the artifact or the run logs: GitHub redirects
   both to hosts outside the allowed network destinations. Download the APK
@@ -259,7 +292,7 @@ the legacy retirement and shell improvements above.
 
 NEXT ACTIONS
 
-1. Download `pixellegends-debug-apk` from run 38551664350 and install
+1. Download `pixellegends-debug-apk` from run 38576982315 and install
    `PixelLegends-debug.apk` on an Android phone or emulator. It is already
    built; nothing stands between this and a device test.
 2. On the device, verify what the recent changes actually touched and CI cannot
