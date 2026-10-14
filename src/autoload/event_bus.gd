@@ -9,13 +9,14 @@ extends Node
 ## Convention: past tense for things that happened, `*_changed` for state,
 ## `*_requested` for intent that a listener is expected to fulfil.
 ##
-## Payloads are primitives, Dictionaries or core Resources (`PlayerProfile`,
-## `RoomInfo`, `GameMode`). Never pass a Node through the bus — that would
-## re-couple the modules this exists to keep apart.
-
-# ------------------------------------------------------------------ lifecycle
-## Emitted once all services finished booting. Boot screen waits for this.
-signal services_ready()
+## Payloads are primitives, Dictionaries or core Resources (`PlayerProfile`).
+## Never pass a Node through the bus — that would re-couple the modules this
+## exists to keep apart.
+##
+## Scope note (2026-10-14): the matchmaking, room, LAN-discovery, friend and
+## party signals were removed along with the services that emitted them. A
+## signal nobody emits and nobody listens to is not architecture, it is debt;
+## the MOBA phases in docs/PROJECT_SPEC.txt will add back what they need.
 
 # ----------------------------------------------------------------------- auth
 ## GameTypes.AuthState
@@ -33,31 +34,6 @@ signal profile_persisted()
 signal settings_changed(section: StringName)
 signal graphics_settings_applied()
 signal language_changed(locale: String)
-
-# ---------------------------------------------------------------- matchmaking
-## GameTypes.MatchmakingState
-signal matchmaking_state_changed(state: int)
-signal matchmaking_tick(elapsed: float, eta: float, players: int, expanding: bool)
-signal matchmaking_found(ticket: Dictionary)
-signal matchmaking_cancelled()
-
-# ---------------------------------------------------------------------- rooms
-signal room_created(room: RoomInfo)
-signal room_updated(room: RoomInfo)
-signal room_closed(reason: String)
-signal room_list_changed(rooms: Array)
-## GameTypes.DiscoveryState, human-readable status
-signal discovery_state_changed(state: int, message: String)
-signal lan_room_seen(room: RoomInfo)
-
-# -------------------------------------------------------------------- friends
-signal friends_changed(friends: Array)
-signal friend_requests_changed(requests: Array)
-signal party_changed(party: Array)
-signal room_invite_received(invite: Dictionary)
-
-# ------------------------------------------------------------------- presence
-signal network_availability_changed(online: bool)
 
 # ------------------------------------------------------------------------- ui
 ## kind: "info" | "success" | "warning" | "error"

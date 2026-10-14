@@ -909,16 +909,8 @@ def main() -> int:
     # generators that produce them are enumerated here instead. Every entry
     # must keep matching its source of truth in the codebase.
     dynamic_keys: list[str] = []
-    catalog_text = (SRC_DIR / "core" / "game_catalog.gd").read_text(encoding="utf-8")
-    categories = re.search(r"func categories\(\).*?return \[([^\]]+)\]", catalog_text, re.S)
-    if categories:
-        # `category.core` is built as `StringName("category.%s" % category)`.
-        dynamic_keys += [f"category.{name}" for name in re.findall(r"&?(\w+)", categories.group(1))]
     dynamic_keys += [
-        "friends.status.online", "friends.status.offline",
-        "friends.status.in_lobby", "friends.status.in_match",
         "settings.tab.game", "settings.tab.graphics", "settings.tab.audio",
-		"settings.tab.controls", "settings.tab.developer",
     ]
     for source in (SRC_DIR / "core").rglob("*.tres"):
         for literal in STRINGNAME_LITERAL_RE.findall(source.read_text(encoding="utf-8")):
@@ -928,8 +920,6 @@ def main() -> int:
     tiers = re.search(r"RANK_TIER_KEYS[^\]]*\[([^\]]+)\]", profile_text)
     if tiers:
         dynamic_keys += re.findall(r"&?(\w+\.\w+)", tiers.group(1))
-    types_text = (SRC_DIR / "core" / "game_types.gd").read_text(encoding="utf-8")
-    dynamic_keys += re.findall(r'return &"(region\.\w+)"', types_text)
     for key in sorted(set(dynamic_keys)):
         for locale, keys in i18n_tables.items():
             if key not in keys:

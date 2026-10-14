@@ -709,23 +709,8 @@ func _add_misc(built: Theme) -> void:
 
 # ------------------------------------------------------------------ helpers
 
-## Accent colour for a mode, resolving through the catalog so that a mode's
-## colour is defined in exactly one place (its .tres file).
-func mode_accent(mode_id: StringName) -> Color:
-	var mode := GameCatalog.by_id(mode_id)
-	if mode == null:
-		return ACCENT
-	return mode.accent
-
-
 func rarity_color(tier: int) -> Color:
 	return RARITY[clampi(tier, 0, RARITY.size() - 1)]
-
-
-## Colour for a ping reading, delegating to GameTypes so gameplay code and UI
-## agree without either owning the other.
-func ping_color(ping_ms: int) -> Color:
-	return GameTypes.ping_color(GameTypes.ping_quality(ping_ms))
 
 
 ## A hairline separator ColorRect, styled and sized.

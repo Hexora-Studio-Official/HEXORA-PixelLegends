@@ -59,6 +59,31 @@ func _build_game() -> void:
 	general.add_child(_toggle_row(&"settings.keep_screen_on", "game/keep_screen_on"))
 	general.add_child(_toggle_row(&"settings.streamer_mode", "game/streamer_mode"))
 
+	_build_account_card()
+
+
+## The local guest account and the one way out of it.
+##
+## This used to live in a "developer" tab that no tab button ever opened, which
+## meant a guest could sign in but could never sign out. Account actions belong
+## with the settings a player actually reaches, so they are here instead.
+func _build_account_card() -> void:
+	if not Auth.is_signed_in():
+		return
+
+	var account := card(&"profile.account")
+	account.add_child(UiKit.key_value(Loc.t(&"auth.setup.callsign"), Session.display_name()))
+	account.add_child(UiKit.paragraph(Loc.t(&"auth.login.guest_hint"), 620.0, &"CaptionLabel"))
+
+	var sign_out := UiKit.button(Loc.t(&"auth.signout"), &"DangerButton", &"exit")
+	sign_out.custom_minimum_size = Vector2(220, Design.TOUCH_TARGET_MIN)
+	UiKit.on_press(sign_out, func() -> void:
+		Auth.sign_out()
+		Router.clear_history()
+		Router.goto(&"boot")
+	)
+	account.add_child(sign_out)
+
 
 # -------------------------------------------------------------- graphics tab
 
@@ -153,96 +178,6 @@ func _build_audio() -> void:
 	voice.add_child(_toggle_row(&"settings.audio.muted_when_bg", "audio/mute_in_background"))
 
 
-# -------------------------------------------------------------- controls tab
-
-func _build_controls() -> void:
-	var scheme := card(&"settings.tab.controls")
-	scheme.add_child(_option_row(&"settings.controls.preset", "controls/preset",
-		[
-			{"value": 0, "key": &"settings.controls.preset.mobile"},
-			{"value": 1, "key": &"settings.controls.preset.mobile3"},
-			{"value": 2, "key": &"settings.controls.preset.gamepad"},
-			{"value": 3, "key": &"settings.controls.preset.keyboard"},
-		], &""))
-
-	var aim := card(&"menu.section.combat")
-	aim.add_child(_slider_row(&"settings.controls.sensitivity", "controls/sensitivity",
-		0.0, 1.0, 0.01, "percent"))
-	aim.add_child(_slider_row(&"settings.controls.ads_sensitivity", "controls/ads_sensitivity",
-		0.2, 1.6, 0.05, "percent"))
-	aim.add_child(_toggle_row(&"settings.controls.invert_y", "controls/invert_y"))
-	aim.add_child(_toggle_row(&"settings.controls.auto_sprint", "controls/auto_sprint"))
-	aim.add_child(_toggle_row(&"settings.controls.tap_to_fire", "controls/tap_to_fire"))
-	aim.add_child(_toggle_row(&"settings.controls.gyro", "controls/gyro_enabled",
-		&"settings.controls.gyro.hint"))
-
-	var hud := card(&"settings.controls.hud_layout")
-	hud.add_child(UiKit.paragraph(Loc.t(&"settings.controls.touch_hint"), 720.0))
-	hud.add_child(_slider_row(&"settings.controls.button_scale", "controls/button_scale",
-		0.7, 1.5, 0.05, "percent"))
-	hud.add_child(_slider_row(&"settings.controls.button_opacity", "controls/button_opacity",
-		0.3, 1.0, 0.05, "percent"))
-	hud.add_child(_toggle_row(&"settings.controls.left_handed", "controls/left_handed"))
-	var reset := UiKit.button(Loc.t(&"settings.controls.reset_layout"), &"OutlineButton")
-	UiKit.on_press(reset, func() -> void:
-		Settings.set_value("controls/hud_layout", {})
-		EventBus.toast_requested.emit(Loc.t(&"toast.settings_saved"), &"success")
-	)
-	hud.add_child(reset)
-
-
-# ------------------------------------------------------------- developer tab
-
-func _build_developer() -> void:
-	var card_node := card(&"settings.dev.title")
-	card_node.add_child(UiKit.paragraph(Loc.t(&"settings.dev.warning"), 720.0, &"WarningLabel"))
-
-	card_node.add_child(_text_row(&"settings.dev.api_base", "dev/api_base_url",
-		"https://api.example.com"))
-	card_node.add_child(_text_row(&"settings.dev.google_client_id", "dev/google_client_id",
-		"1234567890-abcdef.apps.googleusercontent.com"))
-	card_node.add_child(_text_row(&"settings.dev.google_secret", "dev/google_client_secret",
-		"GOCSPX-…"))
-	card_node.add_child(UiKit.paragraph(Loc.t(&"settings.dev.google_secret.hint"), 720.0,
-		&"CaptionLabel"))
-	card_node.add_child(UiKit.key_value(
-		Loc.t(&"settings.dev.redirect_uri"), Auth.expected_redirect_uri(), Design.TEAL))
-	card_node.add_child(UiKit.paragraph(Loc.t(&"settings.dev.google_client_id.hint"), 720.0))
-	card_node.add_child(UiKit.paragraph(Loc.t(&"settings.dev.google_client_id.android"), 720.0))
-
-	# One-tap copy of the redirect URI: this value has to be pasted into the
-	# Google Cloud Console, and a typo there costs an hour.
-	var copy := UiKit.button(Loc.t(&"common.copy"), &"OutlineButton", &"copy")
-	UiKit.on_press(copy, func() -> void:
-		UiKit.copy_to_clipboard(Auth.expected_redirect_uri(),
-			Loc.t(&"settings.dev.redirect_uri"))
-	)
-	card_node.add_child(copy)
-
-	var dev := card(&"settings.tab.developer")
-	dev.add_child(_toggle_row(&"settings.dev.mock_rooms", "dev/seed_mock_data"))
-	dev.add_child(_int_slider_row(&"settings.dev.simulate_latency", "dev/simulated_latency_ms",
-		0, 600, 25))
-
-	var actions := UiKit.hbox(Design.SPACE_SM)
-	var reset_settings := UiKit.button(Loc.t(&"settings.dev.reset_settings"), &"DangerButton")
-	UiKit.on_press(reset_settings, func() -> void:
-		Settings.reset_all()
-		EventBus.toast_requested.emit(Loc.t(&"settings.dev.reset_settings.done"), &"success")
-		rebuild()
-	)
-	actions.add_child(reset_settings)
-	if Auth.is_signed_in():
-		var sign_out := UiKit.button(Loc.t(&"auth.signout"), &"OutlineButton")
-		UiKit.on_press(sign_out, func() -> void:
-			Auth.sign_out()
-			Router.clear_history()
-			Router.goto(&"boot")
-		)
-		actions.add_child(sign_out)
-	dev.add_child(actions)
-
-
 # ------------------------------------------------------------------ row kinds
 
 ## Label on the leading side, control on the trailing side.
@@ -315,40 +250,6 @@ func _slider_row(label_key: StringName, settings_key: String, minimum: float, ma
 	return _row(label_key, holder)
 
 
-func _int_slider_row(label_key: StringName, settings_key: String,
-		minimum: int, maximum: int, step: int) -> Control:
-	var holder := UiKit.hbox(Design.SPACE_MD)
-	holder.alignment = BoxContainer.ALIGNMENT_END
-
-	var value_label := UiKit.label("", &"NumericLabel")
-	value_label.custom_minimum_size = Vector2(76, 0)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-
-	var slider := HSlider.new()
-	slider.theme_type_variation = &"HexSlider"
-	slider.min_value = float(minimum)
-	slider.max_value = float(maximum)
-	slider.step = float(step)
-	slider.value = float(Settings.get_int(settings_key))
-	slider.custom_minimum_size = Vector2(240, Design.TOUCH_TARGET_MIN)
-	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	value_label.text = str(int(slider.value))
-
-	slider.value_changed.connect(func(value: float) -> void:
-		value_label.text = Loc.t(&"common.ping_ms", {"ms": int(value)}) if minimum > 0 \
-			else str(int(value))
-		Settings.set_value(settings_key, int(value))
-	)
-	if minimum > 0:
-		value_label.text = Loc.t(&"common.ping_ms", {"ms": int(slider.value)})
-
-	holder.add_child(value_label)
-	holder.add_child(slider)
-	return _row(label_key, holder)
-
-
-## Mutually exclusive chips for a small set of values.
 func _option_row(label_key: StringName, settings_key: String, options: Array,
 		hint_key: StringName = &"") -> Control:
 	# More than three choices would overflow a phone in landscape, so those
@@ -387,26 +288,8 @@ func _custom_row(label_key: StringName, control: Control) -> Control:
 	return _row(label_key, control)
 
 
-func _text_row(label_key: StringName, settings_key: String, placeholder: String) -> Control:
-	var field := LineEdit.new()
-	field.theme_type_variation = &"HexLineEdit"
-	field.placeholder_text = placeholder
-	field.text = Settings.get_string(settings_key)
-	field.custom_minimum_size = Vector2(340, Design.TOUCH_TARGET_MIN)
-	field.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	# Committing on focus loss as well as on Enter: on a phone the keyboard is
-	# usually dismissed by tapping away, which is exactly when this fires.
-	field.text_submitted.connect(func(text: String) -> void: _commit_text(settings_key, text))
-	field.focus_exited.connect(func() -> void: _commit_text(settings_key, field.text))
-	return _row(label_key, field)
 
 
-func _commit_text(settings_key: String, text: String) -> void:
-	var cleaned := text.strip_edges()
-	if Settings.get_string(settings_key) == cleaned:
-		return
-	Settings.set_value(settings_key, cleaned)
-	EventBus.toast_requested.emit(Loc.t(&"settings.dev.saved"), &"success")
 
 
 static func _values_equal(left: Variant, right: Variant) -> bool:

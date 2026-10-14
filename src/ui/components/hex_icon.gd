@@ -68,12 +68,6 @@ func _draw() -> void:
 
 	match kind:
 		&"play": _draw_play(origin, scale_factor, width)
-		&"mode_tdm": _draw_mode_tdm(origin, scale_factor, width)
-		&"mode_snd": _draw_mode_snd(origin, scale_factor, width)
-		&"mode_ffa": _draw_mode_ffa(origin, scale_factor, width)
-		&"mode_gunfight": _draw_mode_gunfight(origin, scale_factor, width)
-		&"mode_br": _draw_mode_br(origin, scale_factor, width)
-		&"mode_training": _draw_mode_training(origin, scale_factor, width)
 		&"rooms": _draw_signal(origin, scale_factor, width)
 		&"arsenal": _draw_arsenal(origin, scale_factor, width)
 		&"store": _draw_store(origin, scale_factor, width)
@@ -140,52 +134,16 @@ func _draw_play(origin: Vector2, scale_factor: float, _width: float) -> void:
 	draw_colored_polygon(_poly(origin, scale_factor, [[7, 4], [20, 12], [7, 20]]), color)
 
 
-func _draw_mode_tdm(origin: Vector2, scale_factor: float, width: float) -> void:
-	# Two opposing chevrons: two teams pushing at each other.
-	draw_polyline(_poly(origin, scale_factor, [[3, 6], [9, 12], [3, 18]]), color, width, false)
-	draw_polyline(_poly(origin, scale_factor, [[21, 6], [15, 12], [21, 18]]), _tone(), width, false)
-	_line(origin, scale_factor, width, [11, 12], [13, 12])
 
 
-func _draw_mode_snd(origin: Vector2, scale_factor: float, width: float) -> void:
-	# Charge: body, fuse, spark.
-	_circle(origin, scale_factor, 11, 15, 6, false, color)
-	_line(origin, scale_factor, width, [13.5, 10], [16, 6])
-	_circle(origin, scale_factor, 17, 5, 1.8, true, _tone())
-	_line(origin, scale_factor, width, [6, 21], [17, 21])
 
 
-func _draw_mode_ffa(origin: Vector2, scale_factor: float, width: float) -> void:
-	# Crossfire: four bolts converging on a point.
-	var centre := _poly(origin, scale_factor, [[12, 12]])[0]
-	for angle in [0.0, PI * 0.5, PI, PI * 1.5]:
-		var start := centre + Vector2(cos(angle), sin(angle)) * 4.0 * scale_factor
-		var end := centre + Vector2(cos(angle), sin(angle)) * 10.0 * scale_factor
-		draw_line(start, end, color, width, false)
-	_circle(origin, scale_factor, 12, 12, 1.6, true, Color.TRANSPARENT)
 
 
-func _draw_mode_gunfight(origin: Vector2, scale_factor: float, width: float) -> void:
-	# Crossed barrels.
-	_line(origin, scale_factor, width, [4, 6], [20, 18])
-	_line(origin, scale_factor, width, [20, 6], [4, 18])
-	_circle(origin, scale_factor, 12, 12, 2.0, true, Color.TRANSPARENT)
 
 
-func _draw_mode_br(origin: Vector2, scale_factor: float, _width: float) -> void:
-	# Shrinking play zone.
-	_circle(origin, scale_factor, 12, 12, 9.0, false, color)
-	_circle(origin, scale_factor, 12, 12, 5.5, false, _tone())
-	_circle(origin, scale_factor, 12, 12, 1.8, true, Color.TRANSPARENT)
 
 
-func _draw_mode_training(origin: Vector2, scale_factor: float, width: float) -> void:
-	_circle(origin, scale_factor, 12, 12, 9.0, false, color)
-	_circle(origin, scale_factor, 12, 12, 4.0, false, _tone())
-	_line(origin, scale_factor, width, [12, 2], [12, 6])
-	_line(origin, scale_factor, width, [12, 18], [12, 22])
-	_line(origin, scale_factor, width, [2, 12], [6, 12])
-	_line(origin, scale_factor, width, [18, 12], [22, 12])
 
 
 func _draw_signal(origin: Vector2, scale_factor: float, width: float) -> void:

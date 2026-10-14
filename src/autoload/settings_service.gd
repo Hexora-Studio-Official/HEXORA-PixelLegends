@@ -69,12 +69,9 @@ func _build_defaults() -> Dictionary:
 	return {
 		# ------------------------------------------------------------ game
 		"game/language": "en",
-		"game/region": GameTypes.Region.AUTO,
 		"game/show_ping": true,
 		"game/show_fps": false,
 		"game/vibration": true,
-		"game/allow_party_invites": true,
-		"game/auto_requeue": false,
 		"game/keep_screen_on": true,
 		"game/streamer_mode": false,
 		"game/terms_version": 1,
@@ -108,43 +105,6 @@ func _build_defaults() -> Dictionary:
 		"audio/push_to_talk": true,
 		"audio/mute_in_background": true,
 
-		# -------------------------------------------------------- controls
-		"controls/preset": 0,                 # touch2 | touch3 | gamepad | kbm
-		"controls/sensitivity": 0.55,
-		"controls/ads_sensitivity": 0.75,     # multiplier of the above
-		"controls/invert_y": false,
-		"controls/auto_sprint": true,
-		"controls/tap_to_fire": false,
-		"controls/left_handed": false,
-		"controls/gyro_enabled": false,
-		"controls/gyro_strength": 0.35,
-		"controls/button_scale": 1.0,
-		"controls/button_opacity": 0.85,
-		"controls/hud_layout": {},            # control name -> Vector2 offset
-		"controls/gamepad_deadzone": 0.18,
-
-		# ------------------------------------------------------------- net
-		# Both of these are about what happens when there are not enough humans.
-		# The defaults follow what the game actually wants (a small room should
-		# still be playable); a player who would rather wait than play with bots
-		# can turn them off.
-		"net/allow_bots": true,
-		"net/bot_difficulty": 1,
-
-		# ----------------------------------------------------- developer
-		# Empty by default: an unconfigured build stays fully offline and never
-		# phones home during a review or a demo.
-		"dev/api_base_url": "",
-		"dev/google_client_id": "",
-		# Google hands every installed/desktop OAuth client a "secret" and its
-		# token endpoint refuses the exchange without one. It is not a real
-		# secret (it ships inside every copy of the app) which is exactly why
-		# PKCE exists; we still let the developer paste it here so the login
-		# works on whatever client type their console project uses.
-		"dev/google_client_secret": "",
-		"dev/simulated_latency_ms": 0,
-		"dev/seed_mock_data": true,
-		"dev/verbose_net_log": false,
 	}
 
 
@@ -444,7 +404,3 @@ func _msaa_for(aa: int) -> Viewport.MSAA:
 ## will tank their frame rate.
 func supports_advanced_effects() -> bool:
 	return _device_tier != DeviceTier.LOW
-
-
-func is_online_mode_enabled() -> bool:
-	return not get_string("dev/api_base_url").is_empty()

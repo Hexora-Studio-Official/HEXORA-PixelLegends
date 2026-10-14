@@ -5,10 +5,19 @@ extends HexScreen
 
 const BACKGROUND_PATH := "res://assets/Pixel Legends_ 5v5 Fantasy Showdown.png"
 const MIN_DISPLAY_SEC := 1.35
+## Widest the entrance dock ever gets. Beyond this the buttons stop reading as
+## a group and start reading as three unrelated bars.
+const DOCK_MAX_WIDTH := 640.0
+const BRAND_MARK_SIZE := 68.0
+const BRAND_MARK_SIZE_COMPACT := 52.0
+## How far an unavailable choice is dimmed. Enough to read as "not yet", not
+## so much that the label becomes unreadable against the artwork.
+const INACTIVE_ALPHA := 0.68
 
 var _background: TextureRect
 var _background_shade: ColorRect
 var _action_panel: PanelContainer
+var _brand_mark: Control
 var _play_button: Button
 var _google_button: Button
 var _guest_button: Button
@@ -58,18 +67,20 @@ func build() -> void:
 	_action_panel = UiKit.panel(&"EntranceDockPanel")
 	_action_panel.anchor_left = 0.5
 	_action_panel.anchor_right = 0.5
-	_action_panel.anchor_top = 0.69
-	_action_panel.anchor_bottom = 0.69
-	_action_panel.offset_left = -320.0
-	_action_panel.offset_right = 320.0
-	_action_panel.offset_top = -118.0
-	_action_panel.offset_bottom = 118.0
 	_action_panel.visible = false
+	# Width and height are measured from the dock's own content in
+	# `_layout_actions()` rather than hard-coded here, so a longer translation
+	# or a larger system font can never be clipped by a fixed rectangle.
 	content.add_child(_action_panel)
 
 	var stack := UiKit.vbox(Design.SPACE_SM)
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_action_panel.add_child(stack)
+
+	_brand_mark = PixelLegendsMark.new()
+	_brand_mark.custom_minimum_size = Vector2(BRAND_MARK_SIZE, BRAND_MARK_SIZE)
+	_brand_mark.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	stack.add_child(_brand_mark)
 
 	var eyebrow := UiKit.micro(Loc.t(&"splash.choose_path").to_upper())
 	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -80,27 +91,21 @@ func build() -> void:
 	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stack.add_child(buttons)
 
+	# This order is not arbitrary: docs/PROJECT_SPEC.txt lists the entrance
+	# choices as Play, Login With Google, Login As Guest. Keep it.
 	_play_button = UiKit.button(Loc.t(&"splash.play"), &"GlassButton", &"play")
-	_play_button.custom_minimum_size = Vector2(190, 60)
-	_play_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_play_button.disabled = true
-	_play_button.modulate.a = 0.68
 	_play_button.tooltip_text = Loc.t(&"common.soon")
-	buttons.add_child(_play_button)
+	buttons.add_child(_inactive_choice_slot(_play_button))
 
 	_google_button = UiKit.button(
 		Loc.t(&"splash.login.google"), &"GlassButton", &"google")
-	_google_button.custom_minimum_size = Vector2(210, 60)
-	_google_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_google_button.disabled = true
-	_google_button.modulate.a = 0.68
 	_google_button.tooltip_text = Loc.t(&"common.soon")
-	buttons.add_child(_google_button)
+	buttons.add_child(_inactive_choice_slot(_google_button))
 
 	_guest_button = UiKit.button(
 		Loc.t(&"splash.login.guest"), &"GlassPrimaryButton", &"profile")
-	_guest_button.custom_minimum_size = Vector2(210, 60)
-	_guest_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiKit.on_hover(_guest_button, "hover")
 	UiKit.on_press(_guest_button, _on_guest_pressed, "confirm")
 	buttons.add_child(_guest_button)
@@ -124,6 +129,9 @@ func build() -> void:
 	UiKit.listen(EventBus.auth_signed_in, _on_signed_in)
 	UiKit.listen(EventBus.auth_failed, _on_auth_failed)
 	_layout_actions()
+	# Measure again after the first layout pass: the dock's minimum size is
+	# only known once its labels have been given a real width to wrap at.
+	call_deferred("_layout_actions")
 
 
 func _ready() -> void:
@@ -143,31 +151,78 @@ func _animate_background() -> void:
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
+## A choice that exists but cannot be used yet.
+##
+## A disabled button only explains itself through `tooltip_text`, and Android
+## never shows tooltips — on the platform this game targets, the player would
+## simply see two buttons that silently refuse to work. The note makes the
+## reason visible on every device, and keeping it attached to the button means
+## the two can never drift apart.
+func _inactive_choice_slot(button: Button) -> VBoxContainer:
+	var slot := UiKit.vbox(Design.SPACE_XXS)
+	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.modulate.a = INACTIVE_ALPHA
+	slot.add_child(button)
+
+	var note := UiKit.micro(Loc.t(&"common.soon").to_upper())
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.add_theme_color_override("font_color", Design.TEXT_MUTED)
+	note.modulate.a = 0.8
+	slot.add_child(note)
+	return slot
+
+
+## Size and place the entrance dock.
+##
+## Everything here is derived from the viewport and from the dock's own
+## measured content. The previous version pinned the height to a constant,
+## which meant any change to the copy, the font scale or the number of choices
+## risked clipping the last button instead of reflowing around it.
 func _layout_actions() -> void:
 	if _action_panel == null:
 		return
 	var viewport := get_viewport_rect().size
-	var half_width := minf(320.0, maxf(160.0, (viewport.x - 40.0) * 0.5))
-	_action_panel.offset_left = -half_width
-	_action_panel.offset_right = half_width
+	if viewport.x <= 0.0 or viewport.y <= 0.0:
+		return
+
+	var margin := Design.SPACE_MD
 	var compact := viewport.y < 650.0
-	var anchor_y := 0.69
-	var half_height := 142.0
-	if compact:
-		anchor_y = 0.53
-		half_height = 140.0
-	elif viewport.x < 760.0:
-		anchor_y = 0.68
+
+	# ---- buttons: full width of the dock, height follows the compact rule.
+	# No fixed minimum width — that used to fight `SIZE_EXPAND_FILL` and could
+	# push a 210px-wide button out of a 320px-wide dock on a small phone.
+	var button_height := 56.0 if compact else 60.0
+	for button: Button in [_guest_button, _play_button, _google_button]:
+		if button == null:
+			continue
+		button.custom_minimum_size = Vector2(0.0, button_height)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	if _brand_mark != null:
+		var mark_size := BRAND_MARK_SIZE_COMPACT if compact else BRAND_MARK_SIZE
+		_brand_mark.custom_minimum_size = Vector2(mark_size, mark_size)
+
+	# ---- width: as wide as it can be, capped so the group stays a group.
+	var width := clampf(viewport.x - margin * 2.0, 240.0, DOCK_MAX_WIDTH)
+	_action_panel.offset_left = -width * 0.5
+	_action_panel.offset_right = width * 0.5
+
+	# ---- height: measured from the content, never guessed.
+	var height := maxf(_action_panel.get_combined_minimum_size().y, 160.0)
+
+	# ---- position: low on tall screens, lifted on short ones, and clamped so
+	# the dock can never hang off the bottom edge or collide with the top.
+	var preferred := 0.53 if compact else (0.68 if viewport.x < 760.0 else 0.69)
+	var centre_y := clampf(
+		viewport.y * preferred,
+		margin + height * 0.5,
+		maxf(margin + height * 0.5, viewport.y - margin - height * 0.5))
+	var anchor_y := centre_y / viewport.y
 	_action_panel.anchor_top = anchor_y
 	_action_panel.anchor_bottom = anchor_y
-	_action_panel.offset_top = -half_height
-	_action_panel.offset_bottom = half_height
-	if _guest_button != null:
-		_guest_button.custom_minimum_size.y = 56.0 if compact else 60.0
-	if _play_button != null:
-		_play_button.custom_minimum_size.y = 56.0 if compact else 60.0
-	if _google_button != null:
-		_google_button.custom_minimum_size.y = 56.0 if compact else 60.0
+	_action_panel.offset_top = -height * 0.5
+	_action_panel.offset_bottom = height * 0.5
 
 
 func on_screen_resized() -> void:
@@ -281,7 +336,7 @@ func _open_settings_modal() -> void:
 
 
 func on_back_requested() -> void:
-	if _busy:
-		Auth.cancel_google_sign_in()
-		return
+	# There is no cancellable sign-in flow any more: guest entry is a single
+	# local step. Back on the entrance means "leave the game", which is what
+	# Android players expect from the system gesture.
 	Router.quit_game()

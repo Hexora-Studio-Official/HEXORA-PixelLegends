@@ -28,7 +28,6 @@ const RANK_TIER_CEIL: int = 5000
 @export var avatar_url: String = ""
 @export var avatar_color: int = -1
 @export var provider: int = GameTypes.AuthProvider.NONE
-@export var region: int = GameTypes.Region.AUTO
 @export var clan_tag: String = ""
 
 @export_group("Progression")
@@ -43,7 +42,6 @@ const RANK_TIER_CEIL: int = 5000
 @export var matches_won: int = 0
 @export var kills: int = 0
 @export var deaths: int = 0
-@export var headshots: int = 0
 @export var damage_dealt: int = 0
 @export var longest_win_streak: int = 0
 @export var current_win_streak: int = 0

@@ -259,80 +259,6 @@ static func icon_button(kind: StringName, color: Color = Design.TEXT_MUTED,
 	return node
 
 
-## Large selectable tile describing one game mode. The visual language lives
-## here so the mode picker, the room browser and the lobby all agree on what a
-## ruleset looks like.
-static func mode_card(mode: GameMode, selected: bool = false,
-		on_toggle: Callable = Callable(), stacked: bool = false) -> Button:
-	var node := Button.new()
-	node.theme_type_variation = &"CardButtonActive" if selected else &"CardButton"
-	node.mouse_filter = Control.MOUSE_FILTER_PASS
-	node.custom_minimum_size = Vector2(0, 88 if not stacked else 108)
-	node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	node.focus_mode = Control.FOCUS_NONE
-	node.tooltip_text = Loc.t(mode.rules_key)
-
-	var row: BoxContainer = vbox(Design.SPACE_SM) if stacked else hbox(Design.SPACE_SM)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	node.add_child(row)
-
-	var icon := HexIcon.make(mode.icon_kind, mode.accent, 28.0, 2.0, mode.accent)
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	row.add_child(icon)
-
-	var column := vbox(Design.SPACE_XXS)
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_child(column)
-
-	var title := label(Loc.t(mode.title_key), &"SectionLabel")
-	title.custom_minimum_size.x = 0.0
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.clip_text = true
-	if stacked:
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(title)
-
-	var details := mode.format_tag()
-	if mode.ranked:
-		details += " · " + Loc.t(&"play.ranked").to_upper()
-	if not mode.supports_lan:
-		details += " · " + Loc.t(&"common.online").to_upper()
-	var summary := label(details, &"CaptionLabel")
-	summary.custom_minimum_size.x = 0.0
-	summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	summary.clip_text = true
-	if stacked:
-		summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	summary.add_theme_color_override("font_color", Design.TEXT_MUTED)
-	summary.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(summary)
-
-	node.set_meta(META_LABEL, title)
-	node.set_meta(META_ICON, icon)
-	node.set_meta(&"accent", mode.accent)
-	if on_toggle.is_valid():
-		node.pressed.connect(func() -> void: on_toggle.call(mode.id))
-	return node
-
-## Restyle a mode card in place. Cheaper and less flickery than rebuilding the
-## whole grid every time a mode is toggled.
-static func set_card_active(node: Button, active: bool) -> void:
-	node.theme_type_variation = &"CardButtonActive" if active else &"CardButton"
-	var accent := node.get_meta(&"accent", Design.ACCENT) as Color
-	var icon := node.get_meta(META_ICON, null) as HexIcon
-	if icon != null:
-		icon.accent = accent
-	var title := label_text(node)
-	if title != null:
-		title.add_theme_color_override("font_color", Design.ACCENT_HI if active else Design.TEXT)
-
-
-## Selectable chip, used for modes, regions and filters.
 static func chip(
 		text: String, active: bool = false, icon_kind: StringName = &"", compact: bool = false
 ) -> Button:
@@ -538,5 +464,3 @@ static func copy_to_clipboard(text: String, label: String = "") -> void:
 	)
 
 
-static func accent_for_mode(mode_id: StringName) -> Color:
-	return Design.mode_accent(mode_id)
