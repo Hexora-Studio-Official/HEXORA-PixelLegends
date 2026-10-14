@@ -130,6 +130,29 @@ NOT IMPLEMENTED / NOT PROVEN
   authentication/backend design in this specification; today's local Guest
   flow is not Nakama authentication.
 
+Android debug APK (2026-10-14): PASS at commit da0179d in GitHub Actions run
+38510540964, on branch arena/6919bc8f-hexora-pixellegends. This build DOES
+cover the legacy retirement and the shell changes above — it is the first
+runtime evidence for them.
+  Run page:
+  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38510540964
+  Artifact `pixellegends-debug-apk` contains `PixelLegends-debug.apk`,
+  40,362,529 bytes (~38.5 MB), expires 2026-10-28.
+Every step passed: Godot 4.4.1 editor import, headless client boot, debug APK
+export, apksigner signature verification, `unzip -t` archive integrity, and the
+aapt2 manifest check including android.permission.VIBRATE.
+The headless boot step runs `godot --headless --path . --quit-after 10`, so it
+really constructs and runs the entrance screen for ten seconds and fails the
+build on any `ERROR:`, `SCRIPT ERROR:` or `Parse Error`. That means the 30
+deleted files, the four removed autoloads, the rewritten services and the new
+entrance-dock layout all parse and execute without error.
+Two honest limits: (a) headless has no rendering, so nothing about the
+*appearance* of the new layouts is verified — only that they build and run;
+(b) a fresh CI runner has no stored guest session, so the boot stops at the
+entrance and `main_menu_screen.gd` (including the new narrow-screen nav rail)
+was NOT exercised by this run. It still needs a device.
+The APK is debug-signed with an ephemeral CI key, not a release key.
+
 LATEST VALIDATION SNAPSHOT
 
 Snapshot taken 2026-10-14 on branch arena/6919bc8f-hexora-pixellegends, after
@@ -146,17 +169,16 @@ the legacy retirement and shell improvements above.
 - Reference-checker self-test: verified by planting a deliberately bogus
   `Design.*` constant and a bogus `UiKit.*` call in the new code; both were
   reported. This matters because no GDScript compiler runs in this sandbox.
-- Godot 4.4.1 CI import and headless client startup: last PASS was before
-  these changes (run 38504098509, commit 92d14c2) and does NOT cover them.
+- Godot 4.4.1 CI import and headless client startup: PASS in run 38510540964
+  at commit da0179d — this one DOES cover the changes above.
 - Android Debug APK export, signing verification, archive integrity, and
-  manifest checks: last PASS in GitHub Actions run 38504098509 at commit
-  92d14c2 — BEFORE the 30 deleted files and the layout changes, so it does
-  not validate them. Both known artifacts are therefore out of date:
-  `pixellegends-debug-apk` from run 38504098509 (expires 2026-10-28) and from
-  run 38343943699 (expires 2026-10-27). They are debug-signed with an
-  ephemeral CI key, not a release key. The sandbox cannot copy them locally
-  because GitHub redirects artifact downloads to a storage host outside the
-  allowed network destinations; download from GitHub instead.
+  manifest checks: PASS in the same run 38510540964 at commit da0179d.
+  Older artifacts (run 38504098509 at 92d14c2, run 38343943699 at a95783e) are
+  superseded and should not be used. All of these are debug-signed with an
+  ephemeral CI key, not a release key.
+- The sandbox cannot download the artifact or the run logs: GitHub redirects
+  both to hosts outside the allowed network destinations. Download the APK
+  from the run page on GitHub instead.
 - Physical/emulated-device installation, visual review, touch testing, and
   guest persistence across app restarts: NOT RUN. Godot/Android tooling is not
   installed in the local coding environment; CI checks do not replace device
@@ -164,29 +186,26 @@ the legacy retirement and shell improvements above.
 
 NEXT ACTIONS
 
-1. Open the project in Godot 4.4.1 on the developer's machine and confirm it
-   imports and starts with no errors: 30 files were deleted and four autoloads
-   removed, and no compiler runs in the coding sandbox, so this is the first
-   real check of that work.
-2. Re-enable an Android debug build for this branch (see KNOWN BLOCKERS) and
-   install the resulting APK on a phone or emulator.
-3. Verify, on a device, the things the recent changes actually touched: the
-   entrance dock at portrait/landscape and short-viewport sizes, the new
-   "coming soon" notes on Play and Google, the hub's explore bar on a narrow
-   screen, sign-out from Settings → Game, and guest persistence across an app
-   restart.
+1. Download `pixellegends-debug-apk` from run 38510540964 and install
+   `PixelLegends-debug.apk` on an Android phone or emulator. It is already
+   built; nothing stands between this and a device test.
+2. On the device, verify what the recent changes actually touched and CI cannot
+   see: the entrance dock at portrait, landscape and short-viewport sizes; the
+   new "coming soon" notes on Play and Login With Google; the hub's explore bar
+   on a narrow screen (CI never reached the hub — see the limits above);
+   sign-out from Settings → Game; and guest persistence across an app restart.
+3. Open the project in Godot 4.4.1 on the developer's machine for anything that
+   needs eyes on a real renderer.
 4. Record the results here. Do not advance a phase gate without its test
    evidence. Implement only the next scope explicitly approved by the user.
 
 KNOWN EXTERNAL / WORKSPACE BLOCKERS
 
-- The Android debug workflow (`.github/workflows/android-debug.yml`) triggers
-  on push only for two hard-coded branches, `arena/22d75a58-hexora-pixelfield`
-  and `arena/3af02759-hexora-pixellegends`. The current branch,
-  `arena/6919bc8f-hexora-pixellegends`, is not in that list, so pushing here
-  will NOT produce an APK. It can still be run manually via
-  `workflow_dispatch`. Adding the current branch to the filter is a one-line
-  change and needs the user's go-ahead.
+- Fixed 2026-10-14: the Android debug workflow triggered on push only for two
+  hard-coded branches. `arena/6919bc8f-hexora-pixellegends` has been added to
+  the filter, so pushes here now build an APK. Note that `workflow_dispatch`
+  is NOT a usable fallback from the coding sandbox — the integration token gets
+  HTTP 403 on the dispatch endpoint — so the push filter is the only route.
 - Godot cannot be installed in the coding sandbox: the release download
   redirects from github.com to objects.githubusercontent.com, which is outside
   the allowed network destinations. Runtime, export and device verification
