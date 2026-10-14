@@ -115,7 +115,7 @@ func _build() -> void:
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(panel)
 
-	var column := UiKit.vbox(Design.SPACE_SM)
+	var column := UiKit.vbox(Design.SPACE_XS)
 	panel.add_child(column)
 
 	# ---- header -----------------------------------------------------------
@@ -639,6 +639,9 @@ func _link_row(label_key: StringName) -> Control:
 	var button := UiKit.button(Loc.t(label_key), &"GlassButton")
 	button.disabled = true
 	button.modulate.a = 0.55
+	# A row that cannot be pressed is not a touch target. Handing it the full
+	# 56px is exactly the empty space this screen was scrolling through.
+	button.custom_minimum_size.y = 44.0
 	return _row(label_key, button)
 
 
