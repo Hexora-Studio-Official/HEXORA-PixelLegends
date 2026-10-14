@@ -18,11 +18,11 @@ extends Control
 
 # ------------------------------------------------------------------ timeline
 
-const TIME_EXPLOSION := 0.50
-const TIME_TITLE := 0.52
-const TIME_SUBTITLE := 1.45
-const TIME_HOLD_END := 2.90
-const FADE_DURATION := 0.50
+const TIME_EXPLOSION := 0.90
+const TIME_TITLE := 1.05
+const TIME_SUBTITLE := 2.20
+const TIME_HOLD_END := 4.30
+const FADE_DURATION := 0.70
 
 const LETTER_STAGGER := 0.05
 const LETTER_DURATION := 0.32
@@ -40,40 +40,52 @@ const TITLE_TRACKING := 4
 const TITLE_SHADOW := 4
 
 ## Gap between the wordmark and the subtitle, as a fraction of screen height.
-const SUBTITLE_GAP := 0.05
-## Sized generously: at 0.072 of the height capped at 88px the line read as a
-## caption under the wordmark rather than as part of the logo.
-const SUBTITLE_SIZE_FRACTION := 0.12
-const SUBTITLE_SIZE_MIN := 44
-const SUBTITLE_SIZE_MAX := 150
+const SUBTITLE_GAP := 0.08
 
-## Extra tracking between subtitle letters, as a fraction of the type size.
-const SUBTITLE_TRACKING := 0.14
+## The line is sized by its CAP HEIGHT, in the same art pixels the face was
+## rasterised on, so the two faces stay in proportion whatever the viewport
+## reports. 0.085 of the height puts the caps at about 92 design pixels —
+## which is what the approved version measured.
+const SUBTITLE_CAP_FRACTION := 0.085
+const SUBTITLE_CAP_MIN := 30.0
+const SUBTITLE_CAP_MAX := 150.0
+## Tracking between subtitle letters, in art pixels.
+const SUBTITLE_TRACKING := 18
 ## Never let the tracked line run past this fraction of the screen width.
 const SUBTITLE_WIDTH_FRACTION := 0.88
-## A glyph's advance scales linearly with font size, so one measurement at this
-## reference size gives the size that fills the width, with no fitting loop.
-const SUBTITLE_REFERENCE := 100
 
-## Entrance: the whole line rises and brightens as one, then a rule sweeps out
-## from the centre beneath it.
+## The arc. The middle of the line sits this fraction of the cap height
+## HIGHER than its ends, which makes the curve a hill rather than a valley.
+## Gentle on purpose: enough to read as a curve, not enough to look bent.
+const SUBTITLE_ARC := 0.20
+
+## Entrance: letters rise into place left to right, then a rule sweeps out.
 const SUBTITLE_DURATION := 0.62
-const SUBTITLE_RISE := 26.0
-## Rule thickness and the drop ink behind the type, as fractions of the size.
+const SUBTITLE_STAGGER := 0.035
+const SUBTITLE_CHAR_DURATION := 0.34
+const SUBTITLE_RISE := 18.0
+## Drop ink behind the type, and rule thickness, as fractions of cap height.
+const SUBTITLE_INK := 0.035
 const SUBTITLE_RULE := 0.05
-const SUBTITLE_INK := 0.05
 
 const SUBTITLE_TEXT := "Pixel Legends"
 const TITLE_TEXT := "HEXORA-STUDIO"
 
 # ---------------------------------------------------------------- particles
 
-const FIRE_COUNT := 190
-const SMOKE_COUNT := 70
-const SPARK_COUNT := 40
+const FIRE_COUNT := 280
+const SMOKE_COUNT := 110
+const SPARK_COUNT := 80
 ## Slow embers that outlive the burst and drift up through the whole sting.
 ## Without them the explosion is over in a second and the rest is static.
-const EMBER_COUNT := 46
+const EMBER_COUNT := 70
+## Flat pixel squares thrown clear of the blast, tumbling as they go. They are
+## what makes the burst read as shattering something rather than as a puff of
+## light, and they carry the pixel language into the effect itself.
+const SHARD_COUNT := 44
+## Four-point sparkles that twinkle across the whole screen. Pure decoration,
+## and the cheapest way to make the frame feel expensive.
+const GLINT_COUNT := 34
 
 const FIRE_GRAVITY := -120.0
 const FIRE_DRAG := 1.35
@@ -100,12 +112,15 @@ var _rng := RandomNumberGenerator.new()
 var _centre := Vector2.ZERO
 var _title_scale := 12.0
 var _title_origin := Vector2.ZERO
-var _subtitle_size := 48
-## Measured width of the subtitle line, kept for the rule beneath it.
-var _subtitle_width := 0.0
-## The display face with extra tracking baked in, so the engine lays the
-## subtitle out rather than this script.
-var _subtitle_font: FontVariation
+## The subtitle is baked exactly like the wordmark: one image, one region per
+## letter. Baking is what lets the line be set on a curve — a baked bitmap
+## carries advances computed from the font at build time, so placing letters
+## along an arc involves no measurement the device can disagree with.
+var _subtitle_scale := 1.0
+var _subtitle_texture: ImageTexture
+var _subtitle_rects: Array[Rect2i] = []
+var _subtitle_positions: Array[Vector2] = []
+var _subtitle_line_size := Vector2i.ZERO
 ## The wordmark is baked once per layout, then drawn as one region per letter.
 var _title_layer: Control
 var _title_texture: ImageTexture
@@ -118,6 +133,15 @@ var _title_line_size := Vector2i.ZERO
 var _title_ink_top := 0.0
 var _title_ink_height := 0.0
 var _puff: Texture2D
+## The sting is synthesised, not loaded — the project ships no audio files —
+## and a three-second cue costs enough to synthesise that doing it inline
+## would stall the first frame. Building it on a worker thread keeps the
+## splash smooth; if it is not ready the moment the explosion lands, the
+## sound comes in a frame or two later rather than freezing the animation to
+## wait for it.
+var _sting: AudioStreamWAV
+var _sting_thread: Thread
+var _sting_started := false
 
 
 func _init() -> void:
@@ -131,11 +155,6 @@ func _ready() -> void:
 	# The subtitle face is the display face with extra tracking. The tracking
 	# has to live in the font, not in the draw loop: positioning letters by
 	# hand is exactly what made them collide.
-	_subtitle_font = FontVariation.new()
-	_subtitle_font.base_font = Design.font_display
-	if Design.font_ui != null:
-		_subtitle_font.fallbacks = [Design.font_ui]
-
 	# The wordmark gets its own layer so it can use nearest-neighbour
 	# filtering: an art-pixel grid has to stay hard-edged or it stops reading
 	# as pixels at all. The smoke and fire behind it keep the smooth filtering
@@ -147,8 +166,19 @@ func _ready() -> void:
 	_title_layer.draw.connect(_draw_title)
 	add_child(_title_layer)
 
+	_sting_thread = Thread.new()
+	_sting_thread.start(_build_sting)
 	_layout()
 	resized.connect(_layout)
+
+
+func _exit_tree() -> void:
+	if _sting_thread != null and _sting_thread.is_alive():
+		_sting_thread.wait_to_finish()
+
+
+func _build_sting() -> void:
+	_sting = ToneSynth.sting()
 
 
 func _layout() -> void:
@@ -160,18 +190,16 @@ func _layout() -> void:
 	var by_height := viewport.y * TITLE_MAX_HEIGHT_FRACTION / float(units.y)
 	_title_scale = minf(by_width, by_height)
 	_bake_title()
-	_subtitle_size = _fit_subtitle(viewport)
-	if _subtitle_font != null:
-		_subtitle_font.spacing_glyph = int(round(float(_subtitle_size) * SUBTITLE_TRACKING))
-		_subtitle_width = _subtitle_font.get_string_size(SUBTITLE_TEXT.to_upper(),
-			_subtitle_size).x
+	_subtitle_scale = _fit_subtitle_scale(viewport)
+	_bake_subtitle()
 
 	# Centre the pair as one block: wordmark ink, gap, then subtitle. The block
 	# is measured on the INK rather than on the line box, because the box
 	# carries the font's descent and would push the wordmark visibly high.
 	var ink_height := _title_ink_height * _title_scale
 	var gap := viewport.y * SUBTITLE_GAP
-	var block_height := ink_height + gap + float(_subtitle_size) * 1.35
+	var block_height := ink_height + gap + float(PixelFont.CAP_H) * _subtitle_scale \
+		* (1.0 + SUBTITLE_ARC) + float(PixelFont.CAP_H) * _subtitle_scale * 0.35
 	var top := (viewport.y - block_height) * 0.5
 
 	# The wordmark's shadow is drawn offset to the right, so its ink reaches
@@ -206,27 +234,29 @@ func _bake_title() -> void:
 	_title_ink_height = maxf(0.0, _title_ink_height - _title_ink_top)
 
 
-## Largest subtitle size that fits both limits: the height fraction, and the
-## width the tracked line may occupy. A glyph's advance scales linearly with
-## font size, so one measurement at a reference size gives the answer directly,
-## with no fitting loop.
-func _fit_subtitle(viewport: Vector2) -> int:
+## Largest subtitle scale that fits both limits: the cap-height fraction, and
+## the width the tracked line may occupy.
+func _fit_subtitle_scale(viewport: Vector2) -> float:
+	var units := PixelFont.measure_subtitle_units(SUBTITLE_TEXT.to_upper(), SUBTITLE_TRACKING)
+	var by_height := clampf(viewport.y * SUBTITLE_CAP_FRACTION,
+		SUBTITLE_CAP_MIN, SUBTITLE_CAP_MAX) / float(PixelFont.CAP_H)
+	var by_width := viewport.x * SUBTITLE_WIDTH_FRACTION / float(units.x)
+	return maxf(0.05, minf(by_height, by_width))
+
+
+## Bake the subtitle with each letter already tinted by its place in the ramp.
+## Cold on purpose: the wordmark above is warm gold.
+func _bake_subtitle() -> void:
 	var text := SUBTITLE_TEXT.to_upper()
-	var count := text.length()
-	var font := _subtitle_font
-	if count == 0 or font == null:
-		return SUBTITLE_SIZE_MIN
-	var measured := font.get_string_size(text, SUBTITLE_REFERENCE).x
-	if measured <= 0.0:
-		return SUBTITLE_SIZE_MIN
-	var unit := measured / float(SUBTITLE_REFERENCE)
-	var by_height := clampf(viewport.y * SUBTITLE_SIZE_FRACTION,
-		float(SUBTITLE_SIZE_MIN), float(SUBTITLE_SIZE_MAX))
-	# `spacing_glyph` is counted in pixels and scales with the size, so it enters
-	# the sum here rather than being applied afterwards.
-	var by_width := viewport.x * SUBTITLE_WIDTH_FRACTION \
-		/ (unit + float(count) * SUBTITLE_TRACKING)
-	return int(maxf(4.0, minf(by_height, by_width)))
+	var colours: Array[Color] = []
+	for index in text.length():
+		var t := float(index) / float(maxi(1, text.length() - 1))
+		colours.append(Design.TEAL.lerp(Design.VIOLET, t))
+	var baked := PixelFont.bake_subtitle(text, SUBTITLE_TRACKING, colours)
+	_subtitle_rects = baked["rects"]
+	_subtitle_positions = baked["positions"]
+	_subtitle_line_size = baked["size"]
+	_subtitle_texture = ImageTexture.create_from_image(baked["image"])
 
 
 func _process(delta: float) -> void:
@@ -237,6 +267,16 @@ func _process(delta: float) -> void:
 	if not _finishing and _elapsed >= TIME_HOLD_END:
 		_finishing = true
 		_go_to_entrance()
+	# Fire the sting with the detonation, but only once the worker has
+	# finished: joining a finished thread returns immediately, so this never
+	# blocks the frame.
+	if not _sting_started and _elapsed >= TIME_EXPLOSION \
+			and _sting_thread != null and not _sting_thread.is_alive():
+		_sting_started = true
+		_sting_thread.wait_to_finish()
+		if _sting != null and Audio != null:
+			Audio.play_sfx(_sting, 1.0, -3.0)
+
 	queue_redraw()
 	# The wordmark lives on its own layer, so it needs redrawing too.
 	if _title_layer != null:
@@ -309,6 +349,7 @@ func _spawn_blast() -> void:
 			"span": _rng.randf_range(0.55, 1.35),
 			"size": _rng.randf_range(14.0, 40.0),
 			"seed": _rng.randf(),
+			"hue": _rng.randf(),
 		})
 	for _i in SMOKE_COUNT:
 		var angle := _rng.randf() * TAU
@@ -321,6 +362,7 @@ func _spawn_blast() -> void:
 			"span": _rng.randf_range(1.8, 3.6),
 			"size": _rng.randf_range(46.0, 130.0),
 			"seed": _rng.randf(),
+			"hue": _rng.randf(),
 		})
 	for _i in SPARK_COUNT:
 		var angle := _rng.randf() * TAU
@@ -331,8 +373,9 @@ func _spawn_blast() -> void:
 			"vel": Vector2(cos(angle) * speed, sin(angle) * speed * 0.8),
 			"life": 0.0,
 			"span": _rng.randf_range(0.9, 2.0),
-			"size": _rng.randf_range(3.0, 6.0),
+			"size": _rng.randf_range(3.0, 7.0),
 			"seed": _rng.randf(),
+			"hue": _rng.randf(),
 		})
 	for _i in EMBER_COUNT:
 		_particles.append({
@@ -344,6 +387,34 @@ func _spawn_blast() -> void:
 			"span": _rng.randf_range(2.4, 4.2),
 			"size": _rng.randf_range(2.5, 5.5),
 			"seed": _rng.randf(),
+			"hue": _rng.randf(),
+		})
+	for _i in SHARD_COUNT:
+		var shard_angle := _rng.randf() * TAU
+		var shard_speed := _rng.randf_range(0.5, 1.0) * reach * 0.8
+		_particles.append({
+			"kind": "shard",
+			"pos": _centre + Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-0.3, 0.3)) * reach * 0.05,
+			"vel": Vector2(cos(shard_angle) * shard_speed, sin(shard_angle) * shard_speed * 0.7),
+			"life": 0.0,
+			"span": _rng.randf_range(1.1, 2.4),
+			"size": _rng.randf_range(7.0, 19.0),
+			"seed": _rng.randf(),
+			"hue": _rng.randf(),
+			"angle": _rng.randf() * TAU,
+			"spin": _rng.randf_range(-7.0, 7.0),
+		})
+	for _i in GLINT_COUNT:
+		_particles.append({
+			"kind": "glint",
+			"pos": _centre + Vector2(_rng.randf_range(-1.0, 1.0) * reach * 0.85,
+				_rng.randf_range(-0.55, 0.55) * reach),
+			"vel": Vector2(_rng.randf_range(-10.0, 10.0), _rng.randf_range(-26.0, -6.0)),
+			"life": 0.0,
+			"span": _rng.randf_range(1.8, 4.0),
+			"size": _rng.randf_range(10.0, 30.0),
+			"seed": _rng.randf(),
+			"hue": _rng.randf(),
 		})
 
 
@@ -366,6 +437,14 @@ func _advance_particles(delta: float) -> void:
 			vel.x = lerpf(vel.x, sway, minf(1.0, delta * 1.4))
 			vel.y += SMOKE_RISE * 0.85 * delta
 			vel *= maxf(0.0, 1.0 - 0.18 * delta)
+		elif kind == "shard":
+			# Shards tumble and fall: they are debris, not light.
+			vel.y -= FIRE_GRAVITY * 1.25 * delta
+			vel *= maxf(0.0, 1.0 - 0.62 * delta)
+			particle["angle"] = float(particle["angle"]) + float(particle["spin"]) * delta
+		elif kind == "glint":
+			vel.y += SMOKE_RISE * 0.35 * delta
+			vel *= maxf(0.0, 1.0 - 0.30 * delta)
 		else:
 			vel.y -= FIRE_GRAVITY * 1.7 * delta
 			vel *= maxf(0.0, 1.0 - 0.85 * delta)
@@ -385,8 +464,10 @@ func _draw() -> void:
 	_draw_smoke()
 	_draw_bloom(viewport)
 	_draw_fire()
+	_draw_shards()
 	_draw_sparks()
 	_draw_embers()
+	_draw_glints()
 	_draw_shockwave(viewport)
 	_draw_flash(viewport)
 	_draw_subtitle(viewport)
@@ -410,6 +491,11 @@ func _draw_smoke() -> void:
 		var pos: Vector2 = particle["pos"]
 		# Cooler and darker as it rises and cools.
 		var tone := Color(0.42, 0.47, 0.56).lerp(Color(0.16, 0.20, 0.28), t)
+		# Tinted, not grey: the cloud should look lit by the fire behind it.
+		# Half the puffs cool through teal, half through violet, so the smoke
+		# carries colour of its own instead of flattening into fog.
+		var cool := Design.TEAL if float(particle["hue"]) > 0.5 else Design.VIOLET
+		tone = tone.lerp(cool, 0.26 * (1.0 - t))
 		draw_texture_rect(_puff,
 			Rect2(pos.x - size * 0.5 + drift, pos.y - size * 0.5, size, size),
 			false, Color(tone.r, tone.g, tone.b, alpha))
@@ -425,20 +511,25 @@ func _draw_fire() -> void:
 		var pos: Vector2 = particle["pos"]
 		var size := float(particle["size"]) * (1.0 - t * 0.5)
 		# White-hot core, then gold, then ember, then out.
-		var colour := _fire_ramp(t)
+		var colour := _fire_ramp(t, float(particle["hue"]))
 		var alpha := (1.0 - t) * (1.0 - t) * 0.95
 		draw_texture_rect(_puff,
 			Rect2(pos.x - size * 0.5, pos.y - size * 0.5, size, size),
 			false, Color(colour.r, colour.g, colour.b, alpha))
 
 
-func _fire_ramp(t: float) -> Color:
+func _fire_ramp(t: float, hue: float) -> Color:
 	if t < 0.18:
 		return Design.TEXT.lerp(Design.ACCENT_HI, t / 0.18)
 	if t < 0.45:
 		return Design.ACCENT_HI.lerp(Design.ACCENT, (t - 0.18) / 0.27)
 	if t < 0.75:
-		return Design.ACCENT.lerp(Design.ACCENT_DEEP, (t - 0.45) / 0.30)
+		var warm := Design.ACCENT.lerp(Design.ACCENT_DEEP, (t - 0.45) / 0.30)
+		# A minority of the burst cools through violet rather than red, so the
+		# fire is not one flat orange across two hundred particles.
+		if hue > 0.62:
+			return warm.lerp(Design.VIOLET, (hue - 0.62) / 0.38 * 0.6)
+		return warm
 	return Design.ACCENT_DEEP.lerp(Design.DANGER, (t - 0.75) / 0.25)
 
 
@@ -452,8 +543,72 @@ func _draw_sparks() -> void:
 		var pos: Vector2 = particle["pos"]
 		var size := float(particle["size"])
 		var alpha := (1.0 - t) * 0.9
-		var colour := Design.ACCENT_HI if float(particle["seed"]) > 0.5 else Design.TEAL
+		var hue := float(particle["hue"])
+		var colour := Design.TEAL
+		if hue > 0.66:
+			colour = Design.ACCENT_HI
+		elif hue > 0.33:
+			colour = Design.VIOLET
 		draw_rect(Rect2(pos.x - size * 0.5, pos.y - size * 0.5, size, size),
+			Color(colour.r, colour.g, colour.b, alpha))
+
+
+## Shards: flat pixel squares thrown clear of the blast, tumbling as they go.
+## A hard edge and no glow, so they read as debris rather than as more light —
+## which is what gives the burst something solid in it.
+func _draw_shards() -> void:
+	for particle in _particles:
+		if particle["kind"] != "shard":
+			continue
+		var t := float(particle["life"]) / float(particle["span"])
+		if t >= 1.0:
+			continue
+		var pos: Vector2 = particle["pos"]
+		var size := float(particle["size"]) * (1.0 - t * 0.25)
+		var alpha := (1.0 - t) * (1.0 - t) * 0.9
+		var hue := float(particle["hue"])
+		var colour := Design.TEAL
+		if hue > 0.60:
+			colour = Design.ACCENT
+		elif hue < 0.25:
+			colour = Design.VIOLET
+		draw_set_transform(pos, float(particle["angle"]), Vector2.ONE)
+		draw_rect(Rect2(-size * 0.5, -size * 0.5, size, size),
+			Color(colour.r, colour.g, colour.b, alpha))
+	draw_set_transform(Vector2.ZERO)
+
+
+## Glints: four-point sparkles — a soft halo with a bright cross — each
+## twinkling on its own phase, so the frame keeps moving long after the fire
+## has gone.
+func _draw_glints() -> void:
+	for particle in _particles:
+		if particle["kind"] != "glint":
+			continue
+		var t := float(particle["life"]) / float(particle["span"])
+		if t >= 1.0:
+			continue
+		var pos: Vector2 = particle["pos"]
+		var size := float(particle["size"])
+		var twinkle := absf(sin(_elapsed * 2.6 + float(particle["seed"]) * TAU))
+		var alpha := sin(t * PI) * twinkle * 0.9
+		if alpha <= 0.01:
+			continue
+		var hue := float(particle["hue"])
+		var colour := Design.TEXT
+		if hue > 0.66:
+			colour = Design.ACCENT_HI
+		elif hue > 0.33:
+			colour = Design.TEAL
+		var halo := size * 2.2
+		draw_texture_rect(_puff,
+			Rect2(pos.x - halo * 0.5, pos.y - halo * 0.5, halo, halo),
+			false, Color(colour.r, colour.g, colour.b, alpha * 0.35))
+		var arm := size * 0.5
+		var bar := maxf(1.5, size * 0.09)
+		draw_rect(Rect2(pos.x - arm * 0.5, pos.y - bar * 0.5, arm, bar),
+			Color(colour.r, colour.g, colour.b, alpha))
+		draw_rect(Rect2(pos.x - bar * 0.5, pos.y - arm * 0.5, bar, arm),
 			Color(colour.r, colour.g, colour.b, alpha))
 
 
@@ -571,66 +726,79 @@ func _title_colour(index: int, total: int) -> Color:
 		return Design.ACCENT.lerp(Design.TEAL, t / 0.5)
 	return Design.TEAL.lerp(Design.VIOLET, (t - 0.5) / 0.5)
 
-## The subtitle: one call for the whole line, centred by the engine.
+## The subtitle, set on a gentle upward arc — a hill, not a valley — so the
+## line answers the shape of the wordmark instead of sagging away from it.
 ##
-## Three attempts positioned the letters by hand — summing single-character
-## widths, measuring running prefixes, and finally laying them out on a fixed
-## pitch — and all three overlapped on the device, even though the arithmetic
-## said they could not. That is the lesson: whatever this script assumes about
-## a font's metrics is the thing that turns out to be wrong.
+## Every letter is a region of one baked image, placed by advances that were
+## computed from the font at build time. That matters: positioning real-font
+## characters by hand is what made them overlap, three times over, and a curve
+## needs per-letter placement. Baking removes the measurement entirely.
 ##
-## So the line is handed to the engine whole, and the engine also does the
-## centring: `width` spans the viewport and the alignment puts the text in the
-## middle of it. Nothing here measures anything. Tracking is baked into the
-## font (see _ready) for the same reason.
-##
-## What that costs is a gradient across the letters. What it buys is a line
-## that cannot overlap and cannot sit off-centre, which is worth more.
+## Each letter is also turned to sit square to the curve. Without that the
+## ends of an arced line read as loosely-placed rather than as curved.
 func _draw_subtitle(viewport: Vector2) -> void:
 	var since := _elapsed - TIME_SUBTITLE
-	if since < 0.0:
+	if since < 0.0 or _subtitle_texture == null:
 		return
-	var font := _subtitle_font
-	if font == null:
-		return
-	var text := SUBTITLE_TEXT.to_upper()
-	var size := _subtitle_size
-	var p := clampf(since / SUBTITLE_DURATION, 0.0, 1.0)
-	var eased := 1.0 - pow(1.0 - p, 3.0)
-
-	# `draw_string` places text by its baseline, so the visual top has to be
-	# derived from the font's ascent — otherwise the line creeps up into the
-	# wordmark on fonts with a tall ascender.
-	var title_bottom := _title_origin.y + (_title_ink_top + _title_ink_height) * _title_scale
-	var top := title_bottom + viewport.y * SUBTITLE_GAP
-	var baseline := top + font.get_ascent(size)
-	var y := baseline + (1.0 - eased) * SUBTITLE_RISE
+	var count := SUBTITLE_TEXT.length()
+	var line_width := float(_subtitle_line_size.x) * _subtitle_scale
+	var cap := float(PixelFont.CAP_H) * _subtitle_scale
+	var arc := cap * SUBTITLE_ARC
+	var left := viewport.x * 0.5 - line_width * 0.5
+	var top := _title_origin.y + (_title_ink_top + _title_ink_height) * _title_scale \
+		+ viewport.y * SUBTITLE_GAP
+	var span := maxf(line_width, 1.0)
 
 	# A cool glow behind the line, so it sits in light rather than on black.
-	var glow_h := float(size) * 3.2
+	var settled := clampf(since / SUBTITLE_DURATION, 0.0, 1.0)
+	var glow_h := cap * 3.2
 	draw_texture_rect(_puff,
-		Rect2(viewport.x * 0.5 - _subtitle_width * 0.62, baseline - glow_h * 0.6,
-			_subtitle_width * 1.24, glow_h),
-		false, Color(Design.TEAL.r, Design.TEAL.g, Design.TEAL.b, 0.18 * eased))
+		Rect2(viewport.x * 0.5 - line_width * 0.62,
+			top + arc * 0.5 - glow_h * 0.32, line_width * 1.24, glow_h),
+		false, Color(Design.TEAL.r, Design.TEAL.g, Design.TEAL.b, 0.20 * settled))
 
-	# Drop ink first, then the bright face on top. Two passes over the same
-	# layout: the engine has already decided where every letter goes, so the
-	# passes cannot drift apart.
-	var ink := float(size) * SUBTITLE_INK
-	draw_string(font, Vector2(0.0, y + ink), text, HORIZONTAL_ALIGNMENT_CENTER,
-		viewport.x, size,
-		Color(Design.LINE_STRONG.r, Design.LINE_STRONG.g, Design.LINE_STRONG.b, 0.92 * eased))
-	draw_string(font, Vector2(0.0, y), text, HORIZONTAL_ALIGNMENT_CENTER,
-		viewport.x, size,
-		Color(Design.TEAL.r, Design.TEAL.g, Design.TEAL.b, eased))
+	for index in count:
+		var src: Rect2i = _subtitle_rects[index]
+		if src.size.x <= 0 or src.size.y <= 0:
+			continue
+		var start := float(index) * SUBTITLE_STAGGER
+		var t := (since - start) / SUBTITLE_CHAR_DURATION
+		if t <= 0.0:
+			continue
+		var p := clampf(t, 0.0, 1.0)
+		var eased := 1.0 - pow(1.0 - p, 3.0)
+		# 0 at the ends of the line, 1 at its middle: the middle sits `arc`
+		# higher than the ends, which is what makes the curve a hill.
+		var centred := (float(index) + 0.5) / float(count) * 2.0 - 1.0
+		var rise := arc * centred * centred
+		# dy/dx of that parabola, so each letter leans onto the curve.
+		var slope := 4.0 * arc * centred / span
+		var at: Vector2 = _subtitle_positions[index]
+		var source := Vector2(src.size)
+		var w := source.x * _subtitle_scale
+		var h := source.y * _subtitle_scale
+		var cx := left + at.x * _subtitle_scale + w * 0.5
+		var cy := top + at.y * _subtitle_scale + h * 0.5 + rise \
+			+ (1.0 - eased) * SUBTITLE_RISE
+		var ink := cap * SUBTITLE_INK
+		var local := Rect2(source * -0.5, source)
+		draw_set_transform(Vector2(cx + ink, cy + ink), atan(slope),
+			Vector2(_subtitle_scale, _subtitle_scale))
+		draw_texture_rect_region(_subtitle_texture, local, src,
+			Color(0.0, 0.0, 0.0, 0.55 * eased))
+		draw_set_transform(Vector2(cx, cy), atan(slope),
+			Vector2(_subtitle_scale, _subtitle_scale))
+		draw_texture_rect_region(_subtitle_texture, local, src,
+			Color(1.0, 1.0, 1.0, eased))
+	draw_set_transform(Vector2.ZERO)
 
 	# Once the line is in, a rule sweeps out from the centre beneath it.
 	var rule_t := clampf((since - SUBTITLE_DURATION * 0.4) / 0.5, 0.0, 1.0)
 	if rule_t <= 0.0:
 		return
 	var rule_eased := 1.0 - pow(1.0 - rule_t, 3.0)
-	var rule_w := _subtitle_width * rule_eased
-	var rule_h := maxf(2.0, float(size) * SUBTITLE_RULE)
+	var rule_w := line_width * rule_eased
+	var rule_h := maxf(2.0, cap * SUBTITLE_RULE)
 	draw_rect(Rect2(viewport.x * 0.5 - rule_w * 0.5,
-		baseline + float(size) * 0.26, rule_w, rule_h),
+		top + cap + arc + cap * 0.22, rule_w, rule_h),
 		Color(Design.ACCENT.r, Design.ACCENT.g, Design.ACCENT.b, 0.9 * rule_eased))

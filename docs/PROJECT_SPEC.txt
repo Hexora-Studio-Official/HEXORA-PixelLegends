@@ -209,30 +209,58 @@ design system, so no screen had to change:
   float over the artwork keep a soft lift, because a hard edge on those reads
   as a sticker.
 
-Launch sting (commit 38fdb87, rebuilt in commit 57b8c6e). SplashScreen is now
+Launch sting (commits 38fdb87, 57b8c6e, ef0ca36). SplashScreen is
 run/main_scene: an explosion tears open the dark, HEXORA-STUDIO slams in as
-real pixel type, and Pixel Legends drifts up beneath it. Procedural rather
-than a video — a video adds a decode step and megabytes to the APK, and it
-still could not replace the OS starting window. 2.9 s, skippable by tap, then
-fades into the entrance screen.
-The first version was poor and was rebuilt:
-  - Wordmark and subtitle are now centred as one block, computed from their
-    measured heights, instead of the wordmark pinned to a fraction of the
-    screen.
-  - Bigger: wordmark ~132 px → ~172 px tall on a 1080 px screen; subtitle
-    56 px → 78 px.
-  - PixelFont moved 5x7 → 7x9. At wordmark scale a 5x7 letter is thirty-five
-    squares and every curve collapses into a stair. Every glyph was verified
-    by rasterising the face to text and reading the letters back.
-  - Letters carry a hard offset shadow; flat squares read as crude at that
-    size.
-  - The "smoke" was literally growing grey squares. It is now a procedurally
-    generated radial falloff texture drawn as layered puffs that cool and
-    darken as they rise (90 instead of 48). Fire uses the same texture.
-  - The subtitle overlapped because it was positioned by summing
-    single-character widths; a font's advance in context is not a
-    character's isolated width, so the error accumulated and glyphs landed on
-    each other. Positions now come from measured prefixes.
+pixel type, and PIXEL LEGENDS rises beneath it on a gentle upward arc.
+Procedural rather than a video - a video adds a decode step and megabytes to
+the APK, and it still could not replace the OS starting window. 5.0 s,
+skippable by tap, then fades into the entrance screen.
+
+Three defects are worth recording, because each was diagnosed from the spec
+rather than from taste:
+
+  1. The first version was poor and was rebuilt: wordmark and subtitle are
+     centred as one block computed from their measured heights; the "smoke"
+     was literally growing grey squares and is now a procedurally generated
+     radial falloff drawn as layered puffs that cool and darken as they rise.
+
+  2. The subtitle overlapped, three times over, every time it was positioned
+     character by character - by summing isolated widths, by measuring
+     running prefixes, and once on a fixed pitch with a 22% margin that the
+     arithmetic said could not fail and the device did. The margin was never
+     the problem; the premise was. Anything this project assumes about a
+     font's metrics at run time is the thing that turns out to be wrong on a
+     phone. Both lines are now baked from precomputed bitmaps whose advances
+     were measured at build time, so nothing measures anything at run time.
+     Baking is also what allows the arc and a per-letter colour ramp, both of
+     which need per-letter placement.
+
+  3. The 7x9 pixel face put one art pixel at roughly 27 device pixels across.
+     Section 2 ("Visual Direction") and section 29 ("Final Visual Target")
+     forbid exactly that by name: "Large chunky pixels", "Chunky pixel art",
+     "The game must NOT look like Minecraft." The face was regenerated, not
+     retuned - Chakra Petch Bold rasterised at a cap height of 92 art pixels
+     with a hard two-level edge (no anti-aliasing, which would read as vector
+     text), a 1 px outline, and a 3 px top highlight / bottom shade. One art
+     pixel now lands at roughly 2.6 device pixels: ten times finer, with the
+     wordmark keeping its footprint. tools/build_pixel_font.py regenerates
+     it; the generated file says so rather than inviting hand-edits.
+
+Effects (5.0 s): fire 280, smoke 110, sparks 80, embers 70, plus tumbling
+pixel shards and twinkling four-point glints, two shockwave rings, a warm
+bloom behind the type, and smoke tinted teal and violet rather than grey.
+Fire cools through violet on a minority of particles so the burst is not one
+flat orange.
+
+Sound: ToneSynth.sting(), a synthesised three-second sting layered the way a
+film sting is - sub-bass body, noise crack for the transient, air pushed
+outward, a slow chord as the light spreads, a chime when the subtitle lands.
+The project ships no audio files and synthesises every cue it has, so this
+follows the existing convention. It is deliberately NOT registered in
+cue_names(): the audio service synthesises every named cue at startup, and an
+extra second there would be felt by players who never reach the splash. The
+splash builds it on a worker thread instead and fires it with the detonation.
+
 
 The large app icon on black at first launch is Android 12+ drawing a starting
 window with the launcher icon before the process has rendered anything. It is
@@ -240,19 +268,11 @@ OS behaviour, not the engine; Godot's own boot splash is already off
 (boot_splash/show_image=false). Changing it needs an Android theme, and there
 is no android/ directory in the project yet.
 
-Android debug APK (2026-10-14): PASS at commit 57b8c6e in run 38576982315.
-Artifact `pixellegends-debug-apk`, 40,383,540 bytes (~38.5 MB), expires
-2026-10-28. This is the build to install: it carries the palette wiring, the
-panel drop edges and the rebuilt sting.
-  https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38576982315
-One caught defect worth recording: commit 907f700 FAILED the smoke test with
-`SCRIPT ERROR: Parse Error: Function "sinf()" not found in base self`. Godot 4
-provides sin/cos/tan but no sinf/cosf/tanf. They had been added to
-check_refs.py's ENGINE_GLOBALS, which made every local check pass while the
-engine rejected the code; they are removed again, and the comment there
-records why. check_refs.py is a reference and typo net, not a compiler — an
-entry in that list asserts a function exists, and asserting one that does not
-is worse than omitting it.
+Android debug APK (2026-10-14): the build to install is the newest successful
+run of "Import and export Android debug APK" in Actions. Each artefact is
+`pixellegends-debug-apk`, roughly 40 MB, and expires 14 days after its run.
+Debug-signed with an ephemeral CI key.
+
 
 LATEST VALIDATION SNAPSHOT
 
