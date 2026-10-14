@@ -66,6 +66,9 @@ func build() -> void:
 
 	_settings_button = UiKit.button(Loc.t(&"menu.settings"), &"GlassButton", &"settings")
 	_settings_button.custom_minimum_size = Vector2(156, 56)
+	# Named so the headless check in tests/ can find the real button
+	# instead of guessing at it by its label text.
+	_settings_button.name = "EntranceSettingsButton"
 	# Visible from the first frame. It used to be revealed with the sign-in
 	# dock, which meant a player could not reach graphics, audio or text size
 	# until after signing in — even when the reason they wanted Settings was

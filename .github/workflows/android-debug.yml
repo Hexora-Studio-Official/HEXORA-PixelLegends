@@ -111,6 +111,9 @@ jobs:
           run_logged "Godot editor import" editor-import godot --headless --path . --editor --quit
           run_logged "Headless client boot" headless-boot godot --headless --path . --quit-after 10
 
+      - name: Check the entrance Settings button opens the panel
+        run: godot --headless --path . --script res://tests/headless_ui_check.gd
+
       - name: Export Android debug APK
         shell: bash
         env:
