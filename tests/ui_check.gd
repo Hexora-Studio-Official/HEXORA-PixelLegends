@@ -117,6 +117,22 @@ func _ready() -> void:
 		var inner := _find_scroll(dialog)
 		if inner != null:
 			await _report_categories(dialog, inner)
+		# A tab strip that wraps, or a tab whose label has wrapped inside it,
+		# is what made two of the six categories two lines tall. One row of
+		# tabs is exactly one touch target high.
+		var strip := _find_rail(dialog)
+		if strip != null:
+			var strip_height := strip.size.y
+			print("CHECK tabs height=%.0f expected=%d" % [strip_height, Design.TOUCH_TARGET_MIN])
+			if strip_height > float(Design.TOUCH_TARGET_MIN) + 8.0:
+				problems.append("the category tabs no longer fit on one row: %.0f" % strip_height)
+			for tab in strip.get_children():
+				if not (tab is Button):
+					continue
+				var tab_rect := (tab as Button).get_global_rect()
+				if tab_rect.size.y > float(Design.TOUCH_TARGET_MIN) + 8.0:
+					problems.append("tab '%s' is two lines tall: %s"
+						% [(tab as Button).text, tab_rect.size])
 
 	print("CHECK button area=%s visible=%s disabled=%s covered_by='%s'"
 		% [rect.size, button.visible, button.disabled, covering])

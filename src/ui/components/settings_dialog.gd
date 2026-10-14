@@ -67,6 +67,14 @@ const EXPOSED_KEYS: Array[String] = [
 ## rather than as six words floating at different widths.
 const MIN_CHIP_WIDTH := 96.0
 
+## Contact details for the studio. These are facts rather than interface
+## copy, so they live here instead of in the translation table.
+const STUDIO_NAME := "HEXORA-STUDIO"
+const STUDIO_EMAIL := "Hexora.Studio.Business@Gmail.com"
+const MANAGEMENT_NAME := "Hassani"
+const MANAGEMENT_PHONE := "+989383386828"
+const MANAGEMENT_EMAIL := "Mostafa.Hassani.Business@Gmail.com"
+
 var _active: int = Cat.GENERAL
 ## How many groups the current category has drawn, so dividers go between
 ## them and not before the first.
@@ -142,19 +150,16 @@ func _build() -> void:
 	# ---- footer -----------------------------------------------------------
 	column.add_child(UiKit.divider())
 	var footer := UiKit.hbox(Design.SPACE_SM)
-	var reset := UiKit.button(Loc.t(&"settings.footer.reset"), &"DangerButton")
-	reset.custom_minimum_size = Vector2(0, Design.TOUCH_TARGET_MIN)
+	var reset := UiKit.button(Loc.t(&"settings.footer.reset"), &"DangerPillButton")
 	UiKit.on_press(reset, _on_reset, "click")
 	footer.add_child(reset)
 	footer.add_child(UiKit.spacer())
 
 	_cancel_button = UiKit.button(Loc.t(&"common.cancel"), &"GlassButton")
-	_cancel_button.custom_minimum_size = Vector2(140, Design.TOUCH_TARGET_MIN)
 	UiKit.on_press(_cancel_button, _on_cancel, "back")
 	footer.add_child(_cancel_button)
 
 	_apply_button = UiKit.button(Loc.t(&"settings.footer.apply"), &"GlassPrimaryButton")
-	_apply_button.custom_minimum_size = Vector2(140, Design.TOUCH_TARGET_MIN)
 	UiKit.on_press(_apply_button, _on_apply, "confirm")
 	footer.add_child(_apply_button)
 	column.add_child(footer)
@@ -171,12 +176,32 @@ func _build_rail(parent: Container) -> void:
 	parent.add_child(_rail)
 	_rail_buttons.clear()
 	for index in CATEGORIES.size():
-		var button := UiKit.chip(Loc.t(CATEGORIES[index]), index == _active)
-		button.custom_minimum_size = Vector2(MIN_CHIP_WIDTH, Design.TOUCH_TARGET_MIN)
+		var button := _tab(Loc.t(CATEGORIES[index]), index == _active)
 		var category := index
 		UiKit.on_press(button, func() -> void: _select(category))
 		_rail.add_child(button)
 		_rail_buttons.append(button)
+
+
+## A category tab: rounded, and as wide as its own words.
+##
+## The chip it replaced had square corners and asked for a minimum width of
+## 20px — the size of its icon slot — so a tab collapsed into a narrow
+## column and wrapped its label onto a second line. That is what was
+## happening to "Accessibility" and "Network & Resources".
+func _tab(text: String, active: bool) -> Button:
+	var node := Button.new()
+	node.theme_type_variation = &"SettingsTabActive" if active else &"SettingsTab"
+	node.text = text
+	node.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	node.autowrap_mode = TextServer.AUTOWRAP_OFF
+	node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	node.clip_text = true
+	node.mouse_filter = Control.MOUSE_FILTER_PASS
+	node.custom_minimum_size = Vector2(
+		maxf(MIN_CHIP_WIDTH, UiKit.text_width(text, Design.FONT_BODY)
+			+ float(Design.SPACE_XL * 2)), Design.TOUCH_TARGET_MIN)
+	return node
 
 
 func _select(category: int) -> void:
@@ -184,7 +209,8 @@ func _select(category: int) -> void:
 		return
 	_active = category
 	for index in _rail_buttons.size():
-		UiKit.set_chip_active(_rail_buttons[index], index == _active)
+		_rail_buttons[index].theme_type_variation = \
+			&"SettingsTabActive" if index == _active else &"SettingsTab"
 	_render_content()
 
 
@@ -274,11 +300,9 @@ func _confirm(title: String, body: String, action: String, on_yes: Callable) -> 
 	column.add_child(UiKit.paragraph(body, 380.0))
 	var row := UiKit.hbox(Design.SPACE_SM)
 	var no := UiKit.button(Loc.t(&"common.cancel"), &"GlassButton")
-	no.custom_minimum_size = Vector2(140, Design.TOUCH_TARGET_MIN)
 	UiKit.on_press(no, _dismiss_confirm, "back")
 	row.add_child(no)
-	var yes := UiKit.button(action, &"DangerButton")
-	yes.custom_minimum_size = Vector2(140, Design.TOUCH_TARGET_MIN)
+	var yes := UiKit.button(action, &"DangerPillButton")
 	UiKit.on_press(yes, func() -> void:
 		_dismiss_confirm()
 		on_yes.call()
@@ -355,8 +379,7 @@ func _render_general() -> void:
 
 	var danger := _section(&"settings.general.reset_card")
 	danger.add_child(UiKit.paragraph(Loc.t(&"settings.general.reset_note"), 460.0))
-	var reset := UiKit.button(Loc.t(&"settings.general.reset_all"), &"DangerButton")
-	reset.custom_minimum_size = Vector2(240, Design.TOUCH_TARGET_MIN)
+	var reset := UiKit.button(Loc.t(&"settings.general.reset_all"), &"DangerPillButton")
 	UiKit.on_press(reset, _on_reset, "click")
 	danger.add_child(reset)
 
@@ -417,8 +440,7 @@ func _render_graphics() -> void:
 
 	var restore := _section(&"settings.graphics.restore_card")
 	restore.add_child(UiKit.paragraph(Loc.t(&"settings.graphics.restore_note"), 460.0))
-	var button := UiKit.button(Loc.t(&"settings.graphics.restore"), &"OutlineButton")
-	button.custom_minimum_size = Vector2(260, Design.TOUCH_TARGET_MIN)
+	var button := UiKit.button(Loc.t(&"settings.graphics.restore"), &"DangerPillButton")
 	UiKit.on_press(button, _on_reset_graphics, "click")
 	restore.add_child(button)
 
@@ -524,14 +546,26 @@ func _render_about() -> void:
 	info.add_child(_read_only_row(&"settings.about.build", String(build_id)))
 	info.add_child(_read_only_row(&"settings.about.engine", String(engine_version)))
 
+	# Reachable contact details. The point of an About screen is being able
+	# to get hold of someone, and an address a player cannot lift off the
+	# screen is little better than no address at all on a phone.
+	var studio := _section(&"settings.about.studio_card")
+	studio.add_child(_copy_row(&"settings.about.developer", STUDIO_NAME))
+	studio.add_child(_copy_row(&"settings.about.email_studio", STUDIO_EMAIL))
+	studio.add_child(_copy_row(&"settings.about.management", MANAGEMENT_NAME))
+	studio.add_child(_copy_row(&"settings.about.phone", MANAGEMENT_PHONE))
+	studio.add_child(_copy_row(&"settings.about.email_management", MANAGEMENT_EMAIL))
+
 	var legal := _section(&"settings.about.legal_card")
 	# The note belongs to the group. Under each link it was the same sentence
 	# seven times, which is most of why this screen scrolled at all.
 	legal.add_child(UiKit.paragraph(Loc.t(&"settings.about.legal_note"), 520.0))
+	# No "help centre" or "report an issue" rows: those are the contact
+	# details directly above, and offering a dead channel beside a working
+	# one is worse than not offering it.
 	for key in [
 		&"settings.about.terms", &"settings.about.privacy", &"settings.about.licenses",
-		&"settings.about.support", &"settings.about.report", &"settings.about.credits",
-		&"settings.about.updates",
+		&"settings.about.credits", &"settings.about.updates",
 	]:
 		legal.add_child(_link_row(key))
 
@@ -603,10 +637,27 @@ func _read_only_row(label_key: StringName, value: String,
 ## says so — a dead link is worse than no link.
 func _link_row(label_key: StringName) -> Control:
 	var button := UiKit.button(Loc.t(label_key), &"GlassButton")
-	button.custom_minimum_size = Vector2(240, Design.TOUCH_TARGET_MIN)
 	button.disabled = true
 	button.modulate.a = 0.55
 	return _row(label_key, button)
+
+
+## A value worth taking away, with a button that puts it on the clipboard.
+func _copy_row(label_key: StringName, value: String) -> Control:
+	var block := UiKit.vbox(Design.SPACE_XXS)
+	block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	block.add_child(UiKit.label(Loc.t(label_key), &"BodyLabel"))
+	block.add_child(UiKit.label(value, &"ValueLabel"))
+	var action := UiKit.button(Loc.t(&"settings.about.copy"), &"GlassButton")
+	action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	UiKit.on_press(action, func() -> void:
+		UiKit.copy_to_clipboard(value, Loc.t(label_key))
+	)
+	var row := UiKit.hbox(Design.SPACE_LG)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(block)
+	row.add_child(action)
+	return row
 
 
 func _toggle_row(label_key: StringName, settings_key: String,
@@ -676,7 +727,8 @@ func _option_row(label_key: StringName, settings_key: String, options: Array,
 		# that column and grows hundreds of pixels tall wrapping its own
 		# label, so give it a floor measured from the words it holds.
 		chip.custom_minimum_size = Vector2(
-			maxf(MIN_CHIP_WIDTH, float(text.length()) * 11.0 + 32.0), Design.TOUCH_TARGET_MIN)
+			maxf(MIN_CHIP_WIDTH, UiKit.text_width(text, Design.FONT_SMALL)
+				+ float(Design.SPACE_XL * 2)), Design.TOUCH_TARGET_MIN)
 		if disabled:
 			chip.modulate.a = 0.55
 		UiKit.on_press(chip, func() -> void:

@@ -131,6 +131,9 @@ const RADIUS_SM: int = 0
 const RADIUS_MD: int = 0
 const RADIUS_LG: int = 0
 const RADIUS_PILL: int = 0
+## Corners of a settings tab. Browser tabs are rounded; the chip style this
+## replaced had square corners and read as unfinished.
+const TAB_RADIUS: int = 14
 
 const BORDER_THIN: int = 2
 const BORDER_ACCENT: int = 3
@@ -411,6 +414,43 @@ func _add_buttons(built: Theme) -> void:
 		GLASS_GOLD_HOVER, GLASS_GOLD_HOVER_EDGE,
 		GLASS_GOLD_PRESSED, TEXT
 	)
+	# A destructive action with the same rounded corners as the buttons next
+	# to it. The plain danger style is square-cornered, and sitting beside a
+	# rounded Cancel it reads as unfinished rather than as a warning.
+	_register_glass_button(
+		built, &"DangerPillButton",
+		DANGER_TINT, DANGER,
+		DANGER, DANGER, Color("d92b40"), DANGER
+	)
+	# Settings tabs. Registered by hand because they are narrower than an
+	# action button and carry their own corner radius.
+	for tab in [{"name": &"SettingsTab", "active": false},
+			{"name": &"SettingsTabActive", "active": true}]:
+		var tab_name: StringName = tab["name"]
+		var tab_on: bool = tab["active"]
+		var tab_fill := ACCENT_TINT if tab_on else GLASS_FILL
+		var tab_edge := ACCENT if tab_on else GLASS_EDGE
+		var tab_text := ACCENT_HI if tab_on else TEXT_MUTED
+		built.set_type_variation(tab_name, &"Button")
+		built.set_stylebox(&"normal", tab_name,
+			_glass_box(tab_fill, tab_edge, TAB_RADIUS, 18, 12, 0))
+		built.set_stylebox(&"hover", tab_name,
+			_glass_box(GLASS_HOVER, GLASS_EDGE_HI, TAB_RADIUS, 18, 12, 6))
+		built.set_stylebox(&"pressed", tab_name,
+			_glass_box(GLASS_PRESSED, tab_edge, TAB_RADIUS, 18, 12, 2))
+		built.set_stylebox(&"focus", tab_name,
+			_glass_box(tab_fill, TEAL, TAB_RADIUS, 18, 12, 6))
+		built.set_stylebox(&"disabled", tab_name,
+			_glass_box(GLASS_DISABLED, GLASS_DISABLED_EDGE, TAB_RADIUS, 18, 12, 0))
+		built.set_color(&"font_color", tab_name, tab_text)
+		built.set_color(&"font_hover_color", tab_name, ACCENT_HI)
+		built.set_color(&"font_pressed_color", tab_name, TEXT)
+		built.set_color(&"font_focus_color", tab_name, tab_text)
+		built.set_color(&"font_disabled_color", tab_name, TEXT_DIM)
+		built.set_font(&"font", tab_name, font_label)
+		built.set_font_size(&"font_size", tab_name, _scaled(FONT_BODY))
+		built.set_constant(&"h_separation", tab_name, SPACE_SM)
+		built.set_constant(&"outline_size", tab_name, 0)
 	# Nav rail entries are registered by hand rather than through
 	# _register_glass_button, because they carry a stripe on the leading edge
 	# and that helper has no parameter slot left for one. The stripe is what

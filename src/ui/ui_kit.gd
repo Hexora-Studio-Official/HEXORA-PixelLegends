@@ -226,7 +226,27 @@ static func button(
 	inner.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(inner)
 	node.set_meta(META_LABEL, inner)
+	# Reserve the width the words need. Without it the button collapses to
+	# its icon slot in any layout that gives a child only what it asks for,
+	# which is how "Reset to Defaults" came to show only "res".
+	node.custom_minimum_size.x = text_width(text) + float(Design.SPACE_XL * 2) \
+		+ (float(Design.SPACE_SM + 20) if icon_kind != &"" else 0.0)
 	return node
+
+
+## How wide `text` is in the UI face at the size `base` is drawn at.
+##
+## A Button is sized from its own `text` property, and the buttons made here
+## keep their words in a child label instead — so on their own they report
+## the width of an empty string and collapse to the icon slot, wrapping the
+## label into a narrow column. Anything that needs to know how wide a button
+## wants to be has to ask this.
+static func text_width(text: String, base: int = Design.FONT_BODY) -> float:
+	if Design.font_label == null:
+		return float(text.length()) * float(base) * 0.6
+	return Design.font_label.get_string_size(
+		text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+		int(round(float(base) * Design.text_scale))).x
 
 
 static func _button_text_color(variation: StringName) -> Color:
@@ -282,7 +302,11 @@ static func chip(
 		node = button(text, variation, icon_kind)
 	node.set_meta(META_CHIP_INACTIVE, inactive_variation)
 	node.set_meta(META_CHIP_ACTIVE, active_variation)
-	node.custom_minimum_size = Vector2(0, 56)
+	# Compact chips sit in tight grids that give them their width, so they are
+	# left alone; the rest are sized to their words for the same reason the
+	# buttons above are.
+	node.custom_minimum_size = Vector2(
+		0.0 if compact else text_width(text, Design.FONT_SMALL) + float(Design.SPACE_XL * 2), 56)
 	return node
 
 

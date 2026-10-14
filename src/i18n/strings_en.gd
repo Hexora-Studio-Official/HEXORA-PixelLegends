@@ -243,6 +243,7 @@ const TABLE := {
 	"settings.about.version": "Version",
 	"settings.about.build": "Build",
 	"settings.about.engine": "Engine",
+	"settings.about.studio_card": "Studio",
 	"settings.about.legal_card": "Legal & support",
 	"settings.about.legal_note": "These open a project page. They stay unavailable until the addresses are published.",
 	"settings.about.terms": "Terms of service",
@@ -252,6 +253,12 @@ const TABLE := {
 	"settings.about.report": "Report a technical issue",
 	"settings.about.credits": "Acknowledgements",
 	"settings.about.updates": "Check for updates",
+	"settings.about.developer": "Developer",
+	"settings.about.email_studio": "Studio email",
+	"settings.about.management": "Management",
+	"settings.about.phone": "Telegram & WhatsApp",
+	"settings.about.email_management": "Management email",
+	"settings.about.copy": "Copy",
 
 	# ---------------------------------------------------------------- ranks
 	"rank.bronze": "Bronze",

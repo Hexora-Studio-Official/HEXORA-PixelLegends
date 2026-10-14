@@ -333,7 +333,7 @@ func _open_settings_modal() -> void:
 	# The categories moved from a side column to a strip along the top, which
 	# gives the rows the full width but costs the panel a row of height. Take
 	# it back, and never ask for more than the screen has.
-	var height := minf(820.0, maxf(420.0, viewport.y - Design.SPACE_XL * 2.0))
+	var height := minf(760.0, maxf(400.0, viewport.y - 2.0 * Design.SPACE_HUGE))
 	_settings_dialog.custom_minimum_size = Vector2(width, height)
 	_settings_dialog.close_requested.connect(_close_settings_modal)
 	_settings_layer = UiKit.show_modal(self, _settings_dialog, width)
