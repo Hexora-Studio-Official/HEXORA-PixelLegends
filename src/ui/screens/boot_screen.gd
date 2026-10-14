@@ -328,9 +328,13 @@ func _open_settings_modal() -> void:
 	# Never wider than the screen: on a narrow or very tall device the panel
 	# has to fit rather than run off the edge. The modal wrapper scrolls, so
 	# a short screen is still usable.
-	var available := get_viewport_rect().size.x
-	var width := 940.0 if available <= 1.0 else minf(940.0, available - Design.SPACE_LG * 2.0)
-	_settings_dialog.custom_minimum_size = Vector2(width, 620)
+	var viewport := get_viewport_rect().size
+	var width := 940.0 if viewport.x <= 1.0 else minf(940.0, viewport.x - Design.SPACE_LG * 2.0)
+	# The categories moved from a side column to a strip along the top, which
+	# gives the rows the full width but costs the panel a row of height. Take
+	# it back, and never ask for more than the screen has.
+	var height := minf(720.0, maxf(420.0, viewport.y - Design.SPACE_XL * 2.0))
+	_settings_dialog.custom_minimum_size = Vector2(width, height)
 	_settings_dialog.close_requested.connect(_close_settings_modal)
 	_settings_layer = UiKit.show_modal(self, _settings_dialog, width)
 

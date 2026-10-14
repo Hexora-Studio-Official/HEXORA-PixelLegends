@@ -114,6 +114,9 @@ func _ready() -> void:
 			problems.append("the panel is partly clipped: %s of %s" % [shown_area.size, area.size])
 		print("CHECK panel nodes=%d area=%s visible_area=%s"
 			% [_count_descendants(dialog), area.size, shown_area.size])
+		var inner := _find_scroll(dialog)
+		if inner != null:
+			await _report_categories(dialog, inner)
 
 	print("CHECK button area=%s visible=%s disabled=%s covered_by='%s'"
 		% [rect.size, button.visible, button.disabled, covering])
@@ -163,6 +166,61 @@ func _visible_area(control: Control) -> Rect2:
 				area = area.intersection(ancestor.get_global_rect())
 		node = node.get_parent()
 	return area
+
+
+## Walk every category and report the height its rows need against the height
+## the panel can show. "Pointless scrolling" is a number, not an opinion, and
+## this is what stops it returning: padding added anywhere shows up here as
+## overflow that did not exist before.
+func _report_categories(dialog: Control, inner: ScrollContainer) -> void:
+	var rail := _find_rail(dialog)
+	if rail == null:
+		print("CHECK categories could not find the strip")
+		return
+	var room := inner.get_global_rect().size.y
+	var total_overflow := 0.0
+	for chip in rail.get_children():
+		if not (chip is Button):
+			continue
+		(chip as Button).pressed.emit()
+		await get_tree().process_frame
+		var rows := _rows_of(inner)
+		if rows == null:
+			continue
+		var needed := rows.get_combined_minimum_size().y
+		var overflow := maxf(0.0, needed - room)
+		total_overflow += overflow
+		print("CHECK category %-22s rows=%4.0f  room=%4.0f  scroll=%4.0f"
+			% [chip.text, needed, room, overflow])
+	print("CHECK categories total_scroll=%.0f" % total_overflow)
+
+
+## The scrolling list inside the panel, as opposed to the one wrapping it.
+func _find_scroll(from: Node) -> ScrollContainer:
+	for child in from.get_children():
+		if child is ScrollContainer:
+			return child as ScrollContainer
+		var found := _find_scroll(child)
+		if found != null:
+			return found
+	return null
+
+
+func _find_rail(from: Node) -> HFlowContainer:
+	for child in from.get_children():
+		if child is HFlowContainer:
+			return child as HFlowContainer
+		var found := _find_rail(child)
+		if found != null:
+			return found
+	return null
+
+
+func _rows_of(inner: ScrollContainer) -> Control:
+	for child in inner.get_children():
+		if child is Control:
+			return child
+	return null
 
 
 ## The name of any sibling added after `button` whose rectangle covers it.

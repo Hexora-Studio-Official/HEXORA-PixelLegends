@@ -63,15 +63,20 @@ const EXPOSED_KEYS: Array[String] = [
 
 ## Width of the category rail. Below this the panel switches to a strip
 ## above the content, because a rail plus readable rows does not fit.
-const RAIL_WIDTH := 200.0
+## Narrowest a category chip is allowed to be, so the strip reads as tabs
+## rather than as six words floating at different widths.
+const MIN_CHIP_WIDTH := 96.0
 
 var _active: int = Cat.GENERAL
+## How many groups the current category has drawn, so dividers go between
+## them and not before the first.
+var _sections := 0
 ## Staged changes: settings key -> value not yet written.
 var _pending: Dictionary = {}
 ## Values when the panel opened, so Cancel can put them back.
 var _snapshot: Dictionary = {}
 
-var _rail: VBoxContainer
+var _rail: HFlowContainer
 var _rail_buttons: Array[Button] = []
 var _content: VBoxContainer
 var _apply_button: Button
@@ -116,17 +121,20 @@ func _build() -> void:
 	column.add_child(header)
 	column.add_child(UiKit.divider())
 
-	# ---- body -------------------------------------------------------------
-	var body := UiKit.hbox(Design.SPACE_MD)
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(body)
-	_build_rail(body)
+	# ---- categories, across the top --------------------------------------
+	# They used to be a column down the left. That cost 200px of width, and
+	# the rows then had to stack into a narrow strip — which is what turned
+	# a handful of options into a long scroll.
+	column.add_child(UiKit.divider())
+	_build_rail(column)
+	column.add_child(UiKit.divider())
 
+	# ---- rows, at full width ---------------------------------------------
 	var scroll := UiKit.scroll()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(480, 400)
-	body.add_child(scroll)
+	scroll.custom_minimum_size = Vector2(560, 240)
+	column.add_child(scroll)
 	_content = UiKit.vbox(Design.SPACE_MD)
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiKit.prepare_scroll_content(_content)
@@ -157,14 +165,15 @@ func _build() -> void:
 
 
 func _build_rail(parent: Container) -> void:
-	_rail = UiKit.vbox(Design.SPACE_SM)
-	_rail.custom_minimum_size = Vector2(RAIL_WIDTH, 0)
+	_rail = HFlowContainer.new()
+	_rail.add_theme_constant_override("h_separation", Design.SPACE_XS)
+	_rail.add_theme_constant_override("v_separation", Design.SPACE_XS)
+	_rail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(_rail)
 	_rail_buttons.clear()
 	for index in CATEGORIES.size():
 		var button := UiKit.chip(Loc.t(CATEGORIES[index]), index == _active)
-		button.custom_minimum_size = Vector2(RAIL_WIDTH, Design.TOUCH_TARGET_MIN)
-		button.size_flags_horizontal = Control.SIZE_FILL
+		button.custom_minimum_size = Vector2(MIN_CHIP_WIDTH, Design.TOUCH_TARGET_MIN)
 		var category := index
 		UiKit.on_press(button, func() -> void: _select(category))
 		_rail.add_child(button)
@@ -321,6 +330,7 @@ func _shown(key: String) -> Variant:
 func _render_content() -> void:
 	for child in _content.get_children():
 		child.queue_free()
+	_sections = 0
 	match _active:
 		Cat.GENERAL: _render_general()
 		Cat.GRAPHICS: _render_graphics()
@@ -331,7 +341,7 @@ func _render_content() -> void:
 
 
 func _render_general() -> void:
-	var general := _card(&"settings.cat.general")
+	var general := _section(&"settings.cat.general")
 	general.add_child(_read_only_row(&"settings.general.language",
 		Loc.t(&"settings.general.language.english"),
 		&"settings.general.language.note"))
@@ -344,7 +354,7 @@ func _render_general() -> void:
 	general.add_child(_toggle_row(&"settings.general.performance_stats",
 		"game/show_fps"))
 
-	var danger := _card(&"settings.general.reset_card")
+	var danger := _section(&"settings.general.reset_card")
 	danger.add_child(UiKit.paragraph(Loc.t(&"settings.general.reset_note"), 460.0))
 	var reset := UiKit.button(Loc.t(&"settings.general.reset_all"), &"DangerButton")
 	reset.custom_minimum_size = Vector2(240, Design.TOUCH_TARGET_MIN)
@@ -357,7 +367,7 @@ func _render_graphics() -> void:
 		Loc.t(&"settings.graphics.device_hint", {"tier": Settings.device_tier_label()}),
 		Settings.device_name(),
 	]
-	var preset := _card(&"settings.graphics.quality")
+	var preset := _section(&"settings.graphics.quality")
 	preset.add_child(UiKit.paragraph(tier_hint, 520.0, &"CaptionLabel"))
 	preset.add_child(_option_row(&"settings.graphics.quality", "graphics/quality_preset", [
 		{"value": 0, "key": &"settings.graphics.quality.low"},
@@ -367,7 +377,7 @@ func _render_graphics() -> void:
 	]))
 	preset.add_child(UiKit.paragraph(Loc.t(&"settings.graphics.note_fps"), 520.0))
 
-	var video := _card(&"settings.graphics.video")
+	var video := _section(&"settings.graphics.video")
 	video.add_child(_slider_row(&"settings.graphics.resolution_scale",
 		"graphics/render_scale", 0.5, 1.0, 0.05))
 	video.add_child(_option_row(&"settings.graphics.fps", "graphics/fps_limit", [
@@ -385,7 +395,7 @@ func _render_graphics() -> void:
 		{"value": 3, "key": &"settings.graphics.aa.msaa4"},
 	]))
 
-	var detail := _card(&"settings.graphics.detail")
+	var detail := _section(&"settings.graphics.detail")
 	detail.add_child(_toggle_row(&"settings.graphics.shadows", "graphics/shadows"))
 	detail.add_child(_option_row(&"settings.graphics.shadow_quality",
 		"graphics/shadow_quality", [
@@ -406,7 +416,7 @@ func _render_graphics() -> void:
 	detail.add_child(_toggle_row(&"settings.graphics.battery_saver",
 		"graphics/battery_saver"))
 
-	var restore := _card(&"settings.graphics.restore_card")
+	var restore := _section(&"settings.graphics.restore_card")
 	restore.add_child(UiKit.paragraph(Loc.t(&"settings.graphics.restore_note"), 460.0))
 	var button := UiKit.button(Loc.t(&"settings.graphics.restore"), &"OutlineButton")
 	button.custom_minimum_size = Vector2(260, Design.TOUCH_TARGET_MIN)
@@ -427,7 +437,7 @@ func _on_reset_graphics() -> void:
 
 
 func _render_audio() -> void:
-	var mix := _card(&"settings.audio.mix")
+	var mix := _section(&"settings.audio.mix")
 	for entry in [
 		{"key": &"settings.audio.master", "setting": "audio/master"},
 		{"key": &"settings.audio.music", "setting": "audio/music"},
@@ -437,7 +447,7 @@ func _render_audio() -> void:
 	]:
 		mix.add_child(_slider_row(entry["key"], entry["setting"], 0.0, 1.0, 0.05))
 
-	var switches := _card(&"settings.audio.switches")
+	var switches := _section(&"settings.audio.switches")
 	switches.add_child(_toggle_row(&"settings.audio.mute_all", "audio/mute_all"))
 	switches.add_child(_toggle_row(&"settings.audio.muted_when_bg",
 		"audio/mute_in_background"))
@@ -445,7 +455,7 @@ func _render_audio() -> void:
 
 
 func _render_accessibility() -> void:
-	var text := _card(&"settings.access.text_card")
+	var text := _section(&"settings.access.text_card")
 	text.add_child(_option_row(&"settings.access.text_size",
 		"accessibility/text_size", [
 			{"value": 0, "key": &"settings.access.size.small"},
@@ -455,7 +465,7 @@ func _render_accessibility() -> void:
 	text.add_child(_slider_row(&"settings.access.ui_scale",
 		"accessibility/ui_scale", 0.8, 1.3, 0.05))
 
-	var subs := _card(&"settings.access.subtitles_card")
+	var subs := _section(&"settings.access.subtitles_card")
 	subs.add_child(_toggle_row(&"settings.access.subtitles",
 		"accessibility/subtitles", &"settings.unavailable.note", true))
 	subs.add_child(_option_row(&"settings.access.subtitle_size",
@@ -468,7 +478,7 @@ func _render_accessibility() -> void:
 	# These need gameplay to act on: there is no match, no team colour and no
 	# screen effect in the client yet, so they are stored and shown as inert
 	# rather than switched on as if they did something.
-	var later := _card(&"settings.access.gameplay_card")
+	var later := _section(&"settings.access.gameplay_card")
 	later.add_child(UiKit.paragraph(Loc.t(&"settings.unavailable.note"), 460.0))
 	later.add_child(_toggle_row(&"settings.access.high_contrast",
 		"accessibility/high_contrast", &"", true))
@@ -486,7 +496,7 @@ func _render_accessibility() -> void:
 
 
 func _render_network() -> void:
-	var status := _card(&"settings.cat.network")
+	var status := _section(&"settings.cat.network")
 	# Honest: there is no reachability API in Godot and no backend to probe,
 	# so the panel says what it knows instead of inventing a number.
 	status.add_child(_read_only_row(&"settings.net.connection",
@@ -494,14 +504,14 @@ func _render_network() -> void:
 	status.add_child(_read_only_row(&"settings.net.server",
 		Loc.t(&"settings.net.server.unavailable")))
 
-	var usage := _card(&"settings.net.usage_card")
+	var usage := _section(&"settings.net.usage_card")
 	usage.add_child(_toggle_row(&"settings.net.wifi_only", "network/wifi_only"))
 	usage.add_child(_toggle_row(&"settings.net.auto_download", "network/auto_download"))
 	usage.add_child(UiKit.paragraph(Loc.t(&"settings.net.note"), 460.0))
 
 
 func _render_about() -> void:
-	var info := _card(&"settings.cat.about")
+	var info := _section(&"settings.cat.about")
 	# Every one of these reads returns a Variant, and this project treats
 	# untyped inference as an error — so the casts are load-bearing, not
 	# decoration.
@@ -512,7 +522,7 @@ func _render_about() -> void:
 	info.add_child(_read_only_row(&"settings.about.build", String(build_id)))
 	info.add_child(_read_only_row(&"settings.about.engine", String(engine_version)))
 
-	var legal := _card(&"settings.about.legal_card")
+	var legal := _section(&"settings.about.legal_card")
 	legal.add_child(UiKit.paragraph(Loc.t(&"settings.about.legal_note"), 460.0))
 	for key in [
 		&"settings.about.terms", &"settings.about.privacy", &"settings.about.licenses",
@@ -524,12 +534,22 @@ func _render_about() -> void:
 
 # ---------------------------------------------------------------- row kinds
 
-func _card(title_key: StringName) -> VBoxContainer:
-	var holder := UiKit.panel(&"CardPanel")
-	var column := UiKit.vbox(Design.SPACE_SM)
-	holder.add_child(column)
-	column.add_child(UiKit.subheading(Loc.t(title_key)))
-	_content.add_child(holder)
+## A group of rows under a small caps heading.
+##
+## Deliberately not a nested panel. The card style pads itself by 28px on
+## every side, and a category holds up to four groups — so most of the
+## height was padding, and the rows had to be scrolled through instead of
+## being read. A heading and a rule group them for almost no height.
+func _section(title_key: StringName) -> VBoxContainer:
+	if _sections > 0:
+		_content.add_child(UiKit.divider())
+	_sections += 1
+	var column := UiKit.vbox(Design.SPACE_XS)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var heading := UiKit.micro(Loc.t(title_key).to_upper())
+	heading.add_theme_color_override("font_color", Design.ACCENT_HI)
+	column.add_child(heading)
+	_content.add_child(column)
 	return column
 
 
@@ -613,11 +633,12 @@ func _slider_row(label_key: StringName, settings_key: String, minimum: float,
 
 func _option_row(label_key: StringName, settings_key: String, options: Array,
 		disabled: bool = false) -> Control:
-	var wrap := options.size() > 3
+	var wrap := options.size() > 4
 	var holder: Container = HFlowContainer.new() if wrap else UiKit.hbox(Design.SPACE_SM)
 	if holder is HFlowContainer:
 		(holder as HFlowContainer).add_theme_constant_override("h_separation", Design.SPACE_SM)
 		(holder as HFlowContainer).add_theme_constant_override("v_separation", Design.SPACE_SM)
+		(holder as HFlowContainer).custom_minimum_size = Vector2(400, 0)
 	else:
 		(holder as HBoxContainer).alignment = BoxContainer.ALIGNMENT_END
 
