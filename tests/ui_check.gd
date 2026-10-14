@@ -1,4 +1,4 @@
-extends SceneTree
+extends Control
 ##
 ## Does the Settings button on the entrance actually open the panel?
 ##
@@ -7,37 +7,43 @@ extends SceneTree
 ## believed. This is where it is checked instead: it builds the real entrance
 ## scene, finds the real button, presses it, and reports what came up.
 ##
-## Run by CI on every push:
+## Run by CI on every push, as a scene rather than a --script, because a
+## --script run does not register the project's autoloads as identifiers and
+## every screen in this project is compiled against them:
 ##
-##     godot --headless --path . --script res://tests/headless_ui_check.gd
+##     godot --headless --path . res://tests/ui_check.tscn
 ##
-## Exits non-zero if anything about that path is broken.
+## Quits non-zero if anything about that path is broken.
 
 const SCREEN_PATH := "res://src/ui/screens/boot_screen.tscn"
 const BUTTON_NAME := "EntranceSettingsButton"
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	var problems: PackedStringArray = []
+
+	print("CHECK viewport=%s" % get_viewport_rect().size)
 
 	var packed := load(SCREEN_PATH) as PackedScene
 	if packed == null:
 		print("CHECK result=FAIL cannot load " + SCREEN_PATH)
-		quit(1)
+		get_tree().quit(1)
 		return
 	var screen := packed.instantiate() as Control
 	if screen == null:
 		print("CHECK result=FAIL " + SCREEN_PATH + " is not a Control")
-		quit(1)
+		get_tree().quit(1)
 		return
 	# _ready() runs synchronously inside add_child, so the screen has already
 	# built itself by the next line and every widget it owns exists.
-	root.add_child(screen)
+	add_child(screen)
+
+	_dump_children(screen)
 
 	var button := screen.find_child(BUTTON_NAME, true, false) as Button
 	if button == null:
 		print("CHECK result=FAIL the entrance has no child named " + BUTTON_NAME)
-		quit(1)
+		get_tree().quit(1)
 		return
 
 	if not button.is_inside_tree():
@@ -79,10 +85,27 @@ func _initialize() -> void:
 	if not problems.is_empty():
 		for problem in problems:
 			print("CHECK result=FAIL " + problem)
-		quit(1)
+		get_tree().quit(1)
 		return
 	print("CHECK result=PASS the entrance Settings button opens the panel")
-	quit(0)
+	get_tree().quit(0)
+
+
+## Print the entrance's widget tree with rectangles, so a layout mistake is
+## visible in the log instead of being inferred from a failure.
+func _dump_children(screen: Node) -> void:
+	print("CHECK tree ----")
+	for child in screen.get_children():
+		var area := child.get_global_rect() if child is Control else Rect2()
+		var shown := (child as Control).visible if child is Control else false
+		print("CHECK   %s [%s] visible=%s %s" % [child.name, child.get_class(), shown, area])
+		for grandchild in child.get_children():
+			if not (grandchild is Control):
+				continue
+			var inner := (grandchild as Control).get_global_rect()
+			print("CHECK     %s [%s] visible=%s %s"
+				% [grandchild.name, grandchild.get_class(), (grandchild as Control).visible, inner])
+	print("CHECK tree ----")
 
 
 ## The name of any sibling added after `button` whose rectangle covers it.
@@ -93,7 +116,7 @@ func _covering_sibling(button: Button) -> String:
 		if not (child is Control) or child.get_index() <= button.get_index():
 			continue
 		var other := (child as Control).get_global_rect()
-		if other != null and other.intersects(area):
+		if other.intersects(area):
 			return child.name
 	return ""
 
