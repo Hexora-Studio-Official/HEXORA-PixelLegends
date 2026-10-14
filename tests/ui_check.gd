@@ -187,7 +187,11 @@ func _report_categories(dialog: Control, inner: ScrollContainer) -> void:
 		var rows := _rows_of(inner)
 		if rows == null:
 			continue
-		var needed := rows.get_combined_minimum_size().y
+		# Laid-out height, not the combined minimum. A wrapping label reports
+		# the height it would need at its narrowest, which can be several
+		# times what it occupies once it has been given a width — the first
+		# version of this report was inflated by exactly that.
+		var needed := rows.size.y
 		var overflow := maxf(0.0, needed - room)
 		total_overflow += overflow
 		print("CHECK category %-22s rows=%4.0f  room=%4.0f  scroll=%4.0f"
