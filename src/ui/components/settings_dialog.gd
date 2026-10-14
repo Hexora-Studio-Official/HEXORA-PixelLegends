@@ -107,7 +107,7 @@ func _build() -> void:
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(panel)
 
-	var column := UiKit.vbox(Design.SPACE_MD)
+	var column := UiKit.vbox(Design.SPACE_SM)
 	panel.add_child(column)
 
 	# ---- header -----------------------------------------------------------
@@ -125,7 +125,6 @@ func _build() -> void:
 	# They used to be a column down the left. That cost 200px of width, and
 	# the rows then had to stack into a narrow strip — which is what turned
 	# a handful of options into a long scroll.
-	column.add_child(UiKit.divider())
 	_build_rail(column)
 	column.add_child(UiKit.divider())
 
@@ -465,9 +464,12 @@ func _render_accessibility() -> void:
 	text.add_child(_slider_row(&"settings.access.ui_scale",
 		"accessibility/ui_scale", 0.8, 1.3, 0.05))
 
+	# One note for the group. Repeating the same sentence under every row is
+	# how a short section becomes a scroll through the same words.
 	var subs := _section(&"settings.access.subtitles_card")
+	subs.add_child(UiKit.paragraph(Loc.t(&"settings.unavailable.note"), 520.0))
 	subs.add_child(_toggle_row(&"settings.access.subtitles",
-		"accessibility/subtitles", &"settings.unavailable.note", true))
+		"accessibility/subtitles", &"", true))
 	subs.add_child(_option_row(&"settings.access.subtitle_size",
 		"accessibility/subtitle_size", [
 			{"value": 0, "key": &"settings.access.size.small"},
@@ -523,7 +525,9 @@ func _render_about() -> void:
 	info.add_child(_read_only_row(&"settings.about.engine", String(engine_version)))
 
 	var legal := _section(&"settings.about.legal_card")
-	legal.add_child(UiKit.paragraph(Loc.t(&"settings.about.legal_note"), 460.0))
+	# The note belongs to the group. Under each link it was the same sentence
+	# seven times, which is most of why this screen scrolled at all.
+	legal.add_child(UiKit.paragraph(Loc.t(&"settings.about.legal_note"), 520.0))
 	for key in [
 		&"settings.about.terms", &"settings.about.privacy", &"settings.about.licenses",
 		&"settings.about.support", &"settings.about.report", &"settings.about.credits",
@@ -582,7 +586,7 @@ func _link_row(label_key: StringName) -> Control:
 	button.custom_minimum_size = Vector2(240, Design.TOUCH_TARGET_MIN)
 	button.disabled = true
 	button.modulate.a = 0.55
-	return _row(label_key, button, &"settings.unavailable.note")
+	return _row(label_key, button)
 
 
 func _toggle_row(label_key: StringName, settings_key: String,
