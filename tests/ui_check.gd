@@ -97,7 +97,15 @@ func _ready() -> void:
 			problems.append("the panel does not fit on the screen: %s" % area)
 		if dialog.get_child_count() == 0:
 			problems.append("the panel opened but built nothing inside")
-		print("CHECK panel nodes=%d area=%s" % [_count_descendants(dialog), area.size])
+		# The panel's own rectangle can look perfect while a clipping ancestor
+		# leaves the player looking at nothing, so measure what survives.
+		var shown_area := _visible_area(dialog)
+		if shown_area.size.x <= 0.0 or shown_area.size.y <= 0.0:
+			problems.append("the panel is clipped away and draws nothing: %s" % shown_area)
+		elif shown_area.size.y < area.size.y - 1.0 or shown_area.size.x < area.size.x - 1.0:
+			problems.append("the panel is partly clipped: %s of %s" % [shown_area.size, area.size])
+		print("CHECK panel nodes=%d area=%s visible_area=%s"
+			% [_count_descendants(dialog), area.size, shown_area.size])
 
 	print("CHECK button area=%s visible=%s disabled=%s covered_by='%s'"
 		% [rect.size, button.visible, button.disabled, covering])
@@ -132,6 +140,21 @@ func _dump(from: Node, depth: int) -> void:
 			print("CHECK %s%s [%s] visible=%s %s"
 				% [pad, control.name, control.get_class(), control.visible, control.get_global_rect()])
 		_dump(child, depth + 1)
+
+
+## How much of a control the player can actually see: its own rectangle
+## intersected with every ancestor that clips. A panel can have a perfect
+## rectangle and still be clipped to nothing by a zero-height scroll.
+func _visible_area(control: Control) -> Rect2:
+	var area := control.get_global_rect()
+	var node := control.get_parent()
+	while node != null:
+		if node is Control:
+			var ancestor := node as Control
+			if ancestor.clip_contents:
+				area = area.intersection(ancestor.get_global_rect())
+		node = node.get_parent()
+	return area
 
 
 ## The name of any sibling added after `button` whose rectangle covers it.
