@@ -68,7 +68,7 @@ func build() -> void:
 	if _background_shade == null or not is_instance_valid(_background_shade):
 		_background_shade = ColorRect.new()
 		_background_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-		_background_shade.color = Color(0.025, 0.045, 0.10, 0.1)
+		_background_shade.color = Color(0.012, 0.03, 0.062, 0.18)
 		_background_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_background_shade.z_index = -1
 		add_child(_background_shade)

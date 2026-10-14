@@ -6,63 +6,73 @@ extends Node
 ## assembling their own StyleBoxFlats, which is what keeps the UI coherent as
 ## more screens land.
 ##
-## Art direction: an original pixel-art fantasy arena — deep midnight-blue
-## panels, vivid blue team accents, and golden-orange actions framed by ink-dark
-## outlines. Square corners and stepped accents echo the supplied MOBA key art.
+## Art direction: an original pixel-art fantasy arena. Near-black abyss panels,
+## a single electric-cyan information colour, one warm gold for player action,
+## and violet reserved for the rare and the premium — all framed by ink-dark
+## outlines and hard drop edges so every surface reads crisply over full-bleed
+## key art. Square corners and stepped accents echo the supplied MOBA art.
+##
+## The palette is deliberately narrow: three hues do the work (cyan informs,
+## gold acts, violet rewards), everything else is a value step of the abyss.
+## That is what keeps a screen legible at phone scale and in bright sunlight.
 
 # ------------------------------------------------------------------- palette
 
-const BG: Color = Color("091a2a")            ## Night-blue canvas.
-const BG_RAISED: Color = Color("11283a")
-const SURFACE: Color = Color("183246")       ## Cards, panels.
-const SURFACE_ALT: Color = Color("21445c")
-const SURFACE_HI: Color = Color("315e76")    ## Hover / selected surface.
-const SURFACE_SUNKEN: Color = Color("0c2232")## Inset fields, tracks.
+const BG: Color = Color("050a14")            ## Abyss: the canvas beneath all.
+const BG_RAISED: Color = Color("0b1526")
+const SURFACE: Color = Color("122033")       ## Cards, panels.
+const SURFACE_ALT: Color = Color("1a2c46")
+const SURFACE_HI: Color = Color("253c5e")    ## Hover / selected surface.
+const SURFACE_SUNKEN: Color = Color("070d18")## Inset fields, tracks.
 
-const LINE: Color = Color("31566b")          ## Cool-blue panel rule.
-const LINE_STRONG: Color = Color("071724")    ## Ink-navy pixel outline.
+const LINE: Color = Color("2c4568")          ## Panel rule.
+const LINE_STRONG: Color = Color("03060d")   ## Ink outline, near-black.
+## Colour of the hard drop edge cast by raised surfaces.
+const DROP_EDGE: Color = Color(0.01, 0.02, 0.05, 0.55)
 
-const TEXT: Color = Color("fff8e8")
-const TEXT_MUTED: Color = Color("d5e1df")
-const TEXT_DIM: Color = Color("9eb5bb")
-const TEXT_INVERSE: Color = Color("17232a")
+const TEXT: Color = Color("f4f8ff")
+const TEXT_MUTED: Color = Color("b6c6de")
+const TEXT_DIM: Color = Color("7c90ad")
+const TEXT_INVERSE: Color = Color("060a12")
 
-const ACCENT: Color = Color("ffd22a")        ## Bright gold: the player acts.
-const ACCENT_HI: Color = Color("ffec79")
-const ACCENT_DEEP: Color = Color("d98213")
-const TEAL: Color = Color("49bdff")          ## Sky blue: the field informs.
-const TEAL_DEEP: Color = Color("237fbd")
+const ACCENT: Color = Color("ffc93c")        ## Gold: the player acts.
+const ACCENT_HI: Color = Color("ffe89a")
+const ACCENT_DEEP: Color = Color("e0870f")
+const TEAL: Color = Color("38e0ff")          ## Cyan: the field informs.
+const TEAL_DEEP: Color = Color("159ed6")
 
-const SUCCESS: Color = Color("83d43d")       ## Grass green.
-const WARNING: Color = Color("ff9f28")       ## Ember orange.
-const DANGER: Color = Color("f4513c")
-const GOLD: Color = Color("ffbd26")
+const SUCCESS: Color = Color("4ade80")       ## Verdigris green.
+const WARNING: Color = Color("ff9f43")       ## Ember orange.
+const DANGER: Color = Color("ff4d5e")        ## Signal red.
+const GOLD: Color = Color("ffd166")
+const VIOLET: Color = Color("b06bff")        ## Epic / premium tier.
 
-const TEAM_ALPHA: Color = Color("42b7ff")
-const TEAM_BRAVO: Color = Color("f45b42")
+const TEAM_ALPHA: Color = Color("2fd4ff")
+const TEAM_BRAVO: Color = Color("ff5a5f")
 
 ## Soft tints, used for chips and highlighted rows.
-const ACCENT_TINT: Color = Color(1.0, 0.824, 0.165, 0.16)
-const TEAL_TINT: Color = Color(0.286, 0.741, 1.0, 0.15)
-const DANGER_TINT: Color = Color(0.957, 0.318, 0.235, 0.16)
+const ACCENT_TINT: Color = Color(1.0, 0.788, 0.235, 0.16)
+const TEAL_TINT: Color = Color(0.22, 0.878, 1.0, 0.15)
+const DANGER_TINT: Color = Color(1.0, 0.302, 0.369, 0.16)
+const VIOLET_TINT: Color = Color(0.69, 0.42, 1.0, 0.16)
 
 # Frosted glass surfaces for the entrance and main hub. Keep the fill alpha low
 # so the supplied arena art remains visible through every menu surface.
-const GLASS_FILL: Color = Color(0.035, 0.105, 0.165, 0.36)
-const GLASS_HOVER: Color = Color(0.075, 0.22, 0.31, 0.54)
-const GLASS_PRESSED: Color = Color(0.025, 0.09, 0.15, 0.66)
-const GLASS_EDGE: Color = Color(0.72, 0.9, 1.0, 0.42)
-const GLASS_EDGE_HI: Color = Color(0.58, 0.86, 1.0, 0.78)
-const GLASS_GOLD: Color = Color(0.52, 0.32, 0.09, 0.46)
-const GLASS_GOLD_EDGE: Color = Color(1.0, 0.86, 0.5, 0.88)
+const GLASS_FILL: Color = Color(0.02, 0.055, 0.105, 0.40)
+const GLASS_HOVER: Color = Color(0.06, 0.15, 0.25, 0.56)
+const GLASS_PRESSED: Color = Color(0.015, 0.04, 0.08, 0.68)
+const GLASS_EDGE: Color = Color(0.62, 0.83, 1.0, 0.32)
+const GLASS_EDGE_HI: Color = Color(0.55, 0.88, 1.0, 0.74)
+const GLASS_GOLD: Color = Color(0.56, 0.34, 0.06, 0.50)
+const GLASS_GOLD_EDGE: Color = Color(1.0, 0.88, 0.56, 0.92)
 
 ## Currency / rarity ramp, reused by the store and reward popups later.
 const RARITY: Array[Color] = [
-	Color("9eb5bb"),  # common
-	Color("83d43d"),  # uncommon
-	Color("49bdff"),  # rare
-	Color("ff8f28"),  # epic
-	Color("ffbd26"),  # legendary
+	Color("8fa3bd"),  # common
+	Color("4ade80"),  # uncommon
+	Color("38e0ff"),  # rare
+	Color("b06bff"),  # epic
+	Color("ffc93c"),  # legendary
 ]
 
 # ------------------------------------------------------------------- metrics
@@ -87,16 +97,40 @@ const RADIUS_PILL: int = 0
 const BORDER_THIN: int = 2
 const BORDER_ACCENT: int = 3
 const BORDER_STRIPE: int = 5    ## The accent stripe on primary buttons.
+## Hard drop edge under every raised surface, in pixels. A blurred drop shadow
+## would fight the pixel-art language; a short crisp edge reads as depth while
+## staying square and clean at any resolution.
+const BORDER_DROP: int = 4
 
-const FONT_MICRO: int = 14
-const FONT_SMALL: int = 16
+# Type scale. Steps are spaced by roughly 1.2-1.35x so each rank is instantly
+# distinguishable from the next; the two smallest steps tighten and the largest
+# ones open up, which is what stops a phone-sized screen from looking flat.
+const FONT_MICRO: int = 13
+const FONT_SMALL: int = 15
 const FONT_BODY: int = 18
 const FONT_LEAD: int = 22
 const FONT_SUBHEAD: int = 26
-const FONT_H3: int = 30
-const FONT_H2: int = 40
-const FONT_H1: int = 52
-const FONT_DISPLAY: int = 72
+const FONT_H3: int = 31
+const FONT_H2: int = 42
+const FONT_H1: int = 56
+const FONT_DISPLAY: int = 78
+
+# Tracking, in pixels, per step. Large type is tightened (negative) so words
+# read as shapes; small caps type is opened up (positive) so short uppercase
+# labels do not clump together at phone scale.
+const TRACK_DISPLAY: int = -2
+const TRACK_H1: int = -2
+const TRACK_H2: int = -1
+const TRACK_H3: int = 0
+const TRACK_SECTION: int = 2
+const TRACK_BODY: int = 0
+const TRACK_SMALL: int = 1
+
+# Headings sit directly on full-bleed artwork, so they carry a hard ink outline.
+# A drop shadow would blur at this scale; an outline stays crisp and keeps the
+# pixel-art language intact.
+const OUTLINE_HEADING: int = 6
+const OUTLINE_SUB: int = 4
 
 const TOUCH_TARGET_MIN: int = 56  ## Comfortable mobile tap target, in px.
 
@@ -204,22 +238,22 @@ func _build_theme() -> Theme:
 ## Labels — one variation per step of the type scale.
 func _add_labels(built: Theme) -> void:
 	var steps := [
-		{"name": &"DisplayLabel", "font": font_display, "size": FONT_DISPLAY, "color": TEXT, "spacing": -1},
-		{"name": &"TitleLabel", "font": font_display, "size": FONT_H1, "color": TEXT, "spacing": -1},
-		{"name": &"HeadingLabel", "font": font_heading, "size": FONT_H2, "color": TEXT, "spacing": 0},
-		{"name": &"SubheadingLabel", "font": font_heading, "size": FONT_H3, "color": TEXT, "spacing": 0},
-		{"name": &"SectionLabel", "font": font_label, "size": FONT_LEAD, "color": TEXT_MUTED, "spacing": 1},
-		{"name": &"BodyLabel", "font": font_ui, "size": FONT_BODY, "color": TEXT, "spacing": 0},
-		{"name": &"BodyMutedLabel", "font": font_ui, "size": FONT_BODY, "color": TEXT_MUTED, "spacing": 0},
-		{"name": &"CaptionLabel", "font": font_ui, "size": FONT_SMALL, "color": TEXT_MUTED, "spacing": 0},
-		{"name": &"MicroLabel", "font": font_label, "size": FONT_MICRO, "color": TEXT_DIM, "spacing": 0.5},
-		{"name": &"ValueLabel", "font": font_display, "size": FONT_SUBHEAD, "color": TEXT, "spacing": 0},
-		{"name": &"NumericLabel", "font": font_mono, "size": FONT_LEAD, "color": TEXT, "spacing": 0},
-		{"name": &"AccentLabel", "font": font_label, "size": FONT_SMALL, "color": ACCENT, "spacing": 0.5},
-		{"name": &"TealLabel", "font": font_label, "size": FONT_SMALL, "color": TEAL, "spacing": 0.5},
-		{"name": &"DangerLabel", "font": font_label, "size": FONT_SMALL, "color": DANGER, "spacing": 0.5},
-		{"name": &"SuccessLabel", "font": font_label, "size": FONT_SMALL, "color": SUCCESS, "spacing": 0.5},
-		{"name": &"WarningLabel", "font": font_label, "size": FONT_SMALL, "color": WARNING, "spacing": 0.5},
+		{"name": &"DisplayLabel", "font": font_display, "size": FONT_DISPLAY, "color": TEXT, "spacing": TRACK_DISPLAY, "outline": OUTLINE_HEADING},
+		{"name": &"TitleLabel", "font": font_display, "size": FONT_H1, "color": TEXT, "spacing": TRACK_H1, "outline": OUTLINE_HEADING},
+		{"name": &"HeadingLabel", "font": font_heading, "size": FONT_H2, "color": TEXT, "spacing": TRACK_H2, "outline": OUTLINE_SUB},
+		{"name": &"SubheadingLabel", "font": font_heading, "size": FONT_H3, "color": TEXT, "spacing": TRACK_H3, "outline": OUTLINE_SUB},
+		{"name": &"SectionLabel", "font": font_label, "size": FONT_LEAD, "color": TEXT_MUTED, "spacing": TRACK_SECTION, "outline": 0},
+		{"name": &"BodyLabel", "font": font_ui, "size": FONT_BODY, "color": TEXT, "spacing": TRACK_BODY, "outline": 0},
+		{"name": &"BodyMutedLabel", "font": font_ui, "size": FONT_BODY, "color": TEXT_MUTED, "spacing": TRACK_BODY, "outline": 0},
+		{"name": &"CaptionLabel", "font": font_ui, "size": FONT_SMALL, "color": TEXT_MUTED, "spacing": TRACK_SMALL, "outline": 0},
+		{"name": &"MicroLabel", "font": font_label, "size": FONT_MICRO, "color": TEXT_DIM, "spacing": TRACK_SMALL, "outline": 0},
+		{"name": &"ValueLabel", "font": font_display, "size": FONT_SUBHEAD, "color": TEXT, "spacing": TRACK_BODY, "outline": OUTLINE_SUB},
+		{"name": &"NumericLabel", "font": font_mono, "size": FONT_LEAD, "color": TEXT, "spacing": TRACK_BODY, "outline": 0},
+		{"name": &"AccentLabel", "font": font_label, "size": FONT_SMALL, "color": ACCENT, "spacing": TRACK_SMALL, "outline": 0},
+		{"name": &"TealLabel", "font": font_label, "size": FONT_SMALL, "color": TEAL, "spacing": TRACK_SMALL, "outline": 0},
+		{"name": &"DangerLabel", "font": font_label, "size": FONT_SMALL, "color": DANGER, "spacing": TRACK_SMALL, "outline": 0},
+		{"name": &"SuccessLabel", "font": font_label, "size": FONT_SMALL, "color": SUCCESS, "spacing": TRACK_SMALL, "outline": 0},
+		{"name": &"WarningLabel", "font": font_label, "size": FONT_SMALL, "color": WARNING, "spacing": TRACK_SMALL, "outline": 0},
 	]
 	for step in steps:
 		var variation: StringName = step["name"]
@@ -229,7 +263,10 @@ func _add_labels(built: Theme) -> void:
 		built.set_font_size(&"font_size", variation, int(step["size"]))
 		built.set_color(&"font_color", variation, step["color"])
 		built.set_constant(&"line_spacing", variation, int(step["spacing"]))
-		built.set_constant(&"outline_size", variation, 0)
+		var outline := int(step["outline"])
+		built.set_constant(&"outline_size", variation, outline)
+		if outline > 0:
+			built.set_color(&"font_outline_color", variation, LINE_STRONG)
 
 
 ## Buttons — five levels of emphasis, each with the full interaction set.
@@ -257,7 +294,7 @@ func _add_buttons(built: Theme) -> void:
 		{
 			"name": &"DangerButton", "fill": DANGER_TINT, "border": DANGER,
 			"text": DANGER, "stripe": Color.TRANSPARENT,
-			"hover": DANGER, "pressed": Color("d93a58"),
+			"hover": DANGER, "pressed": Color("d92b40"),
 		},
 		{
 			"name": &"TealButton", "fill": TEAL_TINT, "border": TEAL,
@@ -428,7 +465,8 @@ func _add_buttons(built: Theme) -> void:
 ## used by the nav rail.
 func _button_box(
 	fill: Color, border: Color, stripe: Color, radius: int,
-	border_width: int, pad_x: int = 16, pad_y: int = 12, stripe_width: int = BORDER_STRIPE
+	border_width: int, pad_x: int = 16, pad_y: int = 12,
+	drop: int = BORDER_DROP
 ) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = fill
@@ -441,12 +479,24 @@ func _button_box(
 	if stripe.a > 0.0:
 		box.border_color = stripe
 		box.set_border_width_all(0)
-		box.border_width_left = stripe_width
+		box.border_width_left = BORDER_STRIPE
 	elif border_width > 0 and border.a > 0.0:
 		box.border_color = border
 		box.set_border_width_all(border_width)
+	_apply_drop_edge(box, drop)
 	box.anti_aliasing = false
 	return box
+
+
+## A short, crisp edge beneath a raised surface. `shadow_size` is held at one
+## pixel: zero would draw nothing at all, and anything larger would blur into a
+## soft shadow that fights the pixel-art language.
+func _apply_drop_edge(box: StyleBoxFlat, thickness: int) -> void:
+	if thickness <= 0:
+		return
+	box.shadow_color = DROP_EDGE
+	box.shadow_size = 1
+	box.shadow_offset = Vector2(0.0, float(thickness))
 
 
 ## Soft translucent surface used by the entrance and hub controls.
@@ -467,7 +517,7 @@ func _glass_box(
 		box.set_border_width_all(1)
 	box.anti_aliasing = true
 	if shadow_size > 0:
-		box.shadow_color = Color(0.01, 0.035, 0.09, 0.24)
+		box.shadow_color = DROP_EDGE
 		box.shadow_size = shadow_size
 		box.shadow_offset = Vector2(0.0, 4.0)
 	return box
