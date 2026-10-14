@@ -502,11 +502,14 @@ func _render_network() -> void:
 
 func _render_about() -> void:
 	var info := _card(&"settings.cat.about")
-	var version := ProjectSettings.get_setting("application/config/version", "0.0.0")
-	var build := ProjectSettings.get_setting("application/config/build", "dev")
-	var engine_version := Engine.get_version_info()["string"]
+	# Every one of these reads returns a Variant, and this project treats
+	# untyped inference as an error — so the casts are load-bearing, not
+	# decoration.
+	var version := String(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+	var build_id := String(ProjectSettings.get_setting("application/config/build", "dev"))
+	var engine_version := String(Engine.get_version_info()["string"])
 	info.add_child(_read_only_row(&"settings.about.version", String(version)))
-	info.add_child(_read_only_row(&"settings.about.build", String(build)))
+	info.add_child(_read_only_row(&"settings.about.build", String(build_id)))
 	info.add_child(_read_only_row(&"settings.about.engine", String(engine_version)))
 
 	var legal := _card(&"settings.about.legal_card")
