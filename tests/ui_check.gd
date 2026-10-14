@@ -179,10 +179,13 @@ func _report_categories(dialog: Control, inner: ScrollContainer) -> void:
 		return
 	var room := inner.get_global_rect().size.y
 	var total_overflow := 0.0
+	var worst: Button = null
+	var worst_need := -1.0
 	for chip in rail.get_children():
 		if not (chip is Button):
 			continue
-		(chip as Button).pressed.emit()
+		var tab := chip as Button
+		tab.pressed.emit()
 		await get_tree().process_frame
 		var rows := _rows_of(inner)
 		if rows == null:
@@ -193,10 +196,19 @@ func _report_categories(dialog: Control, inner: ScrollContainer) -> void:
 		# version of this report was inflated by exactly that.
 		var needed := rows.size.y
 		var overflow := maxf(0.0, needed - room)
+		if needed > worst_need:
+			worst_need = needed
+			worst = tab
 		total_overflow += overflow
 		print("CHECK category %-22s rows=%4.0f  room=%4.0f  scroll=%4.0f"
-			% [chip.text, needed, room, overflow])
+			% [tab.text, needed, room, overflow])
 	print("CHECK categories total_scroll=%.0f" % total_overflow)
+	# The totals say a row is too tall; only the tree says which one.
+	if worst != null:
+		worst.pressed.emit()
+		await get_tree().process_frame
+		print("CHECK tallest %s needs %.0f" % [worst.text, worst_need])
+		_dump(_rows_of(inner), 0)
 
 
 ## The scrolling list inside the panel, as opposed to the one wrapping it.
