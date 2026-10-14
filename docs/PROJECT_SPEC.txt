@@ -4,7 +4,15 @@ Godot 4.4 — 3D 5v5 MOBA
 LIVE IMPLEMENTATION STATUS & AGENT HANDOFF
 ============================================================
 
-Last status check: 2026-10-13
+Last status check: 2026-10-14
+
+Rollback verification (2026-10-14): reverted commit 2f63395 ("Correct edge
+alignment and compact battle copy") on arena/3af02759-hexora-pixellegends.
+The src/ tree matches parent commit 580b03b exactly; earlier changes remain.
+String tables, project references, GDScript lint, Python syntax, and diff
+whitespace checks passed locally after the rollback. Godot runtime, Android
+export, and device visual checks were not rerun for this rollback. The CI/APK
+results below are historical evidence, not validation of this rollback.
 
 This is the live progress record for the implementation described below. The
 requirements and long-term target remain in the numbered specification. Agents

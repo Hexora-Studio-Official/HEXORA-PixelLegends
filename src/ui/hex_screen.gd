@@ -21,16 +21,11 @@ var backdrop_enabled: bool = true
 var entrance_offset: float = 24.0
 ## Extra padding applied inside the device safe area.
 var safe_padding: int = Design.SPACE_XL
-## Mirror the larger camera-cutout inset when a screen needs a centred safe canvas.
-## Edge-docked hub screens can use the device's true left/right insets instead.
-var mirror_horizontal_safe_insets: bool = true
 
 var content: Control
 var _backdrop: HexBackdrop
 var _safe: MarginContainer
 var _horizontal_safe_inset: float = Design.SPACE_XL
-var _horizontal_safe_inset_left: float = Design.SPACE_XL
-var _horizontal_safe_inset_right: float = Design.SPACE_XL
 
 
 func _ready() -> void:
@@ -95,39 +90,32 @@ func _apply_direction() -> void:
 	layout_direction = direction
 
 
-## Respect the actual device cutout on each edge. Most screens mirror the larger
-## inset to keep centred content balanced; side-docked screens can opt out so
-## one camera cutout does not create a matching empty gutter on the other side.
+## Notches and rounded corners: keep content in a symmetric safe viewport.
+## Mirroring the larger horizontal inset prevents a left-side camera cutout
+## from shifting every centered screen toward the right.
 func _apply_safe_padding() -> void:
-	var horizontal_left := safe_padding
-	var horizontal_right := safe_padding
+	var horizontal_inset := safe_padding
 	var safe := Design.safe_area()
 	var window_size := Vector2(DisplayServer.window_get_size())
 	if safe.size != Vector2i.ZERO and window_size.x > 0.0:
-		# Safe-area measurements are physical pixels. Convert each edge separately
-		# to the UI's logical units before applying the optional symmetry rule.
+		# Safe-area measurements are physical pixels. Convert to the UI's logical
+		# units, then mirror the larger side on both edges. An asymmetric notch
+		# inset must not pull every centered screen toward the opposite edge.
 		var scale := window_size.x / maxf(1.0, size.x if size.x > 1.0 else window_size.x)
 		var physical_left := float(safe.position.x)
 		var physical_right := float(window_size.x - (safe.position.x + safe.size.x))
-		horizontal_left = maxi(safe_padding, int(round(physical_left * scale)))
-		horizontal_right = maxi(safe_padding, int(round(physical_right * scale)))
-	if mirror_horizontal_safe_insets:
-		var mirrored_inset := maxi(horizontal_left, horizontal_right)
-		horizontal_left = mirrored_inset
-		horizontal_right = mirrored_inset
-	_horizontal_safe_inset_left = float(horizontal_left)
-	_horizontal_safe_inset_right = float(horizontal_right)
-	_horizontal_safe_inset = maxf(_horizontal_safe_inset_left, _horizontal_safe_inset_right)
+		horizontal_inset = maxi(safe_padding,
+			int(round(maxf(physical_left, physical_right) * scale)))
+	_horizontal_safe_inset = float(horizontal_inset)
 
-	for side in ["top", "bottom"]:
+	for side in ["left", "right", "top", "bottom"]:
 		_safe.add_theme_constant_override("margin_%s" % side, safe_padding)
-	_safe.add_theme_constant_override("margin_left", horizontal_left)
-	_safe.add_theme_constant_override("margin_right", horizontal_right)
+	_safe.add_theme_constant_override("margin_left", horizontal_inset)
+	_safe.add_theme_constant_override("margin_right", horizontal_inset)
 
 
 func safe_content_width() -> float:
-	return maxf(0.0, get_viewport_rect().size.x
-		- _horizontal_safe_inset_left - _horizontal_safe_inset_right)
+	return maxf(0.0, get_viewport_rect().size.x - _horizontal_safe_inset * 2.0)
 
 
 func _notification(what: int) -> void:
