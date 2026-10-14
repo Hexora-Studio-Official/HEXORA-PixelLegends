@@ -96,15 +96,18 @@ func _ready() -> void:
 func _dump_children(screen: Node) -> void:
 	print("CHECK tree ----")
 	for child in screen.get_children():
-		var area := child.get_global_rect() if child is Control else Rect2()
-		var shown := (child as Control).visible if child is Control else false
-		print("CHECK   %s [%s] visible=%s %s" % [child.name, child.get_class(), shown, area])
+		var control := child as Control
+		if control == null:
+			print("CHECK   %s [%s]" % [child.name, child.get_class()])
+			continue
+		print("CHECK   %s [%s] visible=%s %s"
+			% [control.name, control.get_class(), control.visible, control.get_global_rect()])
 		for grandchild in child.get_children():
-			if not (grandchild is Control):
+			var inner := grandchild as Control
+			if inner == null:
 				continue
-			var inner := (grandchild as Control).get_global_rect()
 			print("CHECK     %s [%s] visible=%s %s"
-				% [grandchild.name, grandchild.get_class(), (grandchild as Control).visible, inner])
+				% [inner.name, inner.get_class(), inner.visible, inner.get_global_rect()])
 	print("CHECK tree ----")
 
 
@@ -130,7 +133,7 @@ func _count_descendants(from: Node) -> int:
 
 func _find_dialog(from: Node) -> Control:
 	if from is SettingsDialog:
-		return from
+		return from as Control
 	for child in from.get_children():
 		var found := _find_dialog(child)
 		if found != null:
