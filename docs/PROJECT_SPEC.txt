@@ -12,7 +12,20 @@ The src/ tree matches parent commit 580b03b exactly; earlier changes remain.
 String tables, project references, GDScript lint, Python syntax, and diff
 whitespace checks passed locally after the rollback. Godot runtime, Android
 export, and device visual checks were not rerun for this rollback. The CI/APK
-results below are historical evidence, not validation of this rollback.
+results from run 38343943699 below are historical evidence, not validation
+of this rollback.
+
+Rollback Android build (2026-10-14): PASS at commit 92d14c2 in GitHub Actions
+run 38504098509. Godot 4.4.1 import/headless startup, debug APK export,
+signature verification, archive integrity, and manifest checks passed.
+Static checks also passed in run 38504098507. Artifact
+`pixellegends-debug-apk` contains `PixelLegends-debug.apk` (ARM64 only):
+https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38504098509/artifacts/11867551015
+Artifact expires 2026-10-28. Download into the coding sandbox was blocked by
+the artifact storage host network restriction; download from GitHub instead.
+This build uses an ephemeral debug signing key, not a release key. Device
+installation, visual review, and touch/persistence tests await the user.
+Do not merge into main until the user explicitly approves this APK.
 
 This is the live progress record for the implementation described below. The
 requirements and long-term target remain in the numbered specification. Agents
