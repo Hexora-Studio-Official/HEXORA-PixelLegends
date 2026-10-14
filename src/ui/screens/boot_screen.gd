@@ -23,6 +23,8 @@ var _play_button: Button
 var _google_button: Button
 var _guest_button: Button
 var _settings_button: Button
+var _settings_layer: Control
+var _settings_dialog: SettingsDialog
 var _progress: ProgressBar
 var _error_label: Label
 var _elapsed := 0.0
@@ -64,7 +66,11 @@ func build() -> void:
 
 	_settings_button = UiKit.button(Loc.t(&"menu.settings"), &"GlassButton", &"settings")
 	_settings_button.custom_minimum_size = Vector2(156, 56)
-	_settings_button.visible = false
+	# Visible from the first frame. It used to be revealed with the sign-in
+	# dock, which meant a player could not reach graphics, audio or text size
+	# until after signing in — even when the reason they wanted Settings was
+	# that the entrance itself was hard to read.
+	_settings_button.visible = true
 	_settings_button.set_anchors_and_offsets_preset(
 		Control.PRESET_TOP_LEFT, Control.PRESET_MODE_KEEP_SIZE)
 	_settings_button.position = Vector2(Design.SPACE_LG, Design.SPACE_LG)
@@ -265,9 +271,6 @@ func _set_busy(busy: bool) -> void:
 	if _guest_button != null:
 		_guest_button.disabled = busy
 		_guest_button.modulate.a = 0.68 if busy else 1.0
-	if _settings_button != null:
-		_settings_button.disabled = busy
-		_settings_button.modulate.a = 0.68 if busy else 1.0
 	if busy:
 		Router.set_loading_label(Loc.t(&"auth.state.signing_in"))
 		Router.show_loading()
@@ -316,26 +319,63 @@ func _on_guest_pressed() -> void:
 
 
 func _open_settings_modal() -> void:
-	var page := SettingsPage.new()
-	page.custom_minimum_size = Vector2(760, 560)
+	if _settings_layer != null and is_instance_valid(_settings_layer):
+		return
+	_settings_dialog = SettingsDialog.new()
+	# Never wider than the screen: on a narrow or very tall device the panel
+	# has to fit rather than run off the edge. The modal wrapper scrolls, so
+	# a short screen is still usable.
+	var available := get_viewport_rect().size.x
+	var width := 940.0 if available <= 1.0 else minf(940.0, available - Design.SPACE_LG * 2.0)
+	_settings_dialog.custom_minimum_size = Vector2(width, 620)
+	_settings_dialog.close_requested.connect(_close_settings_modal)
+	_settings_layer = UiKit.show_modal(self, _settings_dialog, width)
 
-	var wrapper := UiKit.panel(&"GlassModalPanel")
-	var column := UiKit.vbox(Design.SPACE_MD)
-	wrapper.add_child(column)
-	var header := UiKit.hbox(Design.SPACE_MD)
-	header.add_child(UiKit.subheading(Loc.t(&"settings.title")))
-	header.add_child(UiKit.spacer())
-	var close := UiKit.icon_button(&"close", Design.TEXT_MUTED, 20.0)
-	header.add_child(close)
-	column.add_child(header)
-	column.add_child(UiKit.divider())
-	column.add_child(page)
-	var layer := UiKit.show_modal(self, wrapper, 800.0)
-	UiKit.on_press(close, func() -> void: UiKit.close_modal(layer), "back")
+
+func _close_settings_modal() -> void:
+	if _settings_layer != null and is_instance_valid(_settings_layer):
+		UiKit.close_modal(_settings_layer)
+	_settings_layer = null
+	_settings_dialog = null
 
 
 func on_back_requested() -> void:
+	# The panel decides for itself whether unsaved graphics work deserves a
+	# question, so back here only routes to it.
+	if _settings_dialog != null and is_instance_valid(_settings_dialog):
+		_settings_dialog.request_close()
+		return
 	# There is no cancellable sign-in flow any more: guest entry is a single
 	# local step. Back on the entrance means "leave the game", which is what
 	# Android players expect from the system gesture.
+	if Settings.get_bool("game/confirm_exit", true):
+		_confirm_quit()
+		return
 	Router.quit_game()
+
+
+## Leaving the game is the one destructive action on this screen, so it asks
+## when the preference says to. Built from the same pieces as the panel's own
+## confirmation sheet rather than reaching for a second modal layer.
+func _confirm_quit() -> void:
+	var sheet := UiKit.panel(&"GlassModalPanel")
+	sheet.custom_minimum_size = Vector2(420, 0)
+	var column := UiKit.vbox(Design.SPACE_MD)
+	sheet.add_child(column)
+	column.add_child(UiKit.subheading(Loc.t(&"settings.confirm.quit_title")))
+	column.add_child(UiKit.paragraph(Loc.t(&"settings.confirm.quit_body"), 380.0))
+	var row := UiKit.hbox(Design.SPACE_SM)
+	var stay := UiKit.button(Loc.t(&"common.cancel"), &"GlassButton")
+	stay.custom_minimum_size = Vector2(140, Design.TOUCH_TARGET_MIN)
+	row.add_child(stay)
+	var leave := UiKit.button(Loc.t(&"common.leave"), &"DangerButton")
+	leave.custom_minimum_size = Vector2(140, Design.TOUCH_TARGET_MIN)
+	row.add_child(leave)
+	column.add_child(row)
+
+	var layer := UiKit.show_modal(self, sheet, 460.0)
+	UiKit.on_press(stay, func() -> void: UiKit.close_modal(layer), "back")
+	UiKit.on_press(leave, func() -> void:
+		UiKit.close_modal(layer)
+		Router.quit_game()
+	, "click")

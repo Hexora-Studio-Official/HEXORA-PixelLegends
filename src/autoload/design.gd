@@ -204,6 +204,11 @@ var font_heading: Font            ## Chakra Petch SemiBold → font_ui.
 var font_label: Font              ## Chakra Petch Medium → font_ui.
 var font_mono: Font               ## Tabular numerals for timers and scores.
 
+## Multiplier on every type size in the theme, driven by the accessibility
+## "Text Size" preference. A global multiplier rather than per-screen
+## overrides: one number applied in one place, and every screen inherits it.
+var text_scale := 1.0
+
 
 func _ready() -> void:
 	_load_fonts()
@@ -281,6 +286,27 @@ func _build_theme() -> Theme:
 
 
 ## Labels — one variation per step of the type scale.
+## A type size after the accessibility multiplier. Rounded, because a
+## fractional font size makes glyph rasterisation inconsistent between runs.
+func _scaled(size: int) -> int:
+	return int(round(float(size) * text_scale))
+
+
+## Rebuild the theme at a new text scale and hand it back to the root window.
+## Rebuilding rather than patching keeps one source of truth for the type
+## ramp, at the cost of a brief hitch — acceptable for a setting a player
+## changes once.
+func set_text_scale(value: float) -> void:
+	var next := clampf(value, 0.85, 1.35)
+	if absf(next - text_scale) < 0.001:
+		return
+	text_scale = next
+	theme = _build_theme()
+	var root_window := get_tree().root
+	if root_window != null:
+		root_window.theme = theme
+
+
 func _add_labels(built: Theme) -> void:
 	var steps := [
 		{"name": &"DisplayLabel", "font": font_display, "size": FONT_DISPLAY, "color": TEXT, "spacing": TRACK_DISPLAY, "outline": OUTLINE_HEADING},
@@ -305,7 +331,7 @@ func _add_labels(built: Theme) -> void:
 		built.set_type_variation(variation, &"Label")
 		if step["font"] != null:
 			built.set_font(&"font", variation, step["font"])
-		built.set_font_size(&"font_size", variation, int(step["size"]))
+		built.set_font_size(&"font_size", variation, _scaled(step["size"]))
 		built.set_color(&"font_color", variation, step["color"])
 		built.set_constant(&"line_spacing", variation, int(step["spacing"]))
 		var outline := int(step["outline"])
@@ -369,7 +395,7 @@ func _add_buttons(built: Theme) -> void:
 		built.set_color(&"font_focus_color", variation, kind["text"])
 		built.set_color(&"font_disabled_color", variation, TEXT_DIM)
 		built.set_font(&"font", variation, font_label)
-		built.set_font_size(&"font_size", variation, FONT_BODY)
+		built.set_font_size(&"font_size", variation, _scaled(FONT_BODY))
 		built.set_constant(&"h_separation", variation, SPACE_SM)
 		built.set_constant(&"outline_size", variation, 0)
 
@@ -497,7 +523,7 @@ func _add_buttons(built: Theme) -> void:
 		built.set_color(&"font_hover_color", variation, TEXT)
 		built.set_color(&"font_pressed_color", variation, TEXT)
 		built.set_font(&"font", variation, font_label)
-		built.set_font_size(&"font_size", variation, FONT_BODY)
+		built.set_font_size(&"font_size", variation, _scaled(FONT_BODY))
 		built.set_constant(&"h_separation", variation, SPACE_MD)
 
 	# Icon-only controls get the same quiet glass treatment and a bright focus ring.
@@ -616,7 +642,7 @@ func _register_glass_button(
 	built.set_color(&"font_disabled_color", variation,
 		Color(TEXT.r, TEXT.g, TEXT.b, 0.58))
 	built.set_font(&"font", variation, font_label)
-	built.set_font_size(&"font_size", variation, FONT_BODY)
+	built.set_font_size(&"font_size", variation, _scaled(FONT_BODY))
 	built.set_constant(&"h_separation", variation, SPACE_SM)
 	built.set_constant(&"outline_size", variation, 0)
 
@@ -696,7 +722,7 @@ func _add_inputs(built: Theme) -> void:
 		built.set_stylebox(&"read_only", variation, box.call(Color(1, 1, 1, 0.02), LINE, BORDER_THIN))
 		built.set_stylebox(&"disabled", variation, box.call(Color(1, 1, 1, 0.02), LINE, 0))
 		built.set_font(&"font", variation, font_ui)
-		built.set_font_size(&"font_size", variation, FONT_BODY)
+		built.set_font_size(&"font_size", variation, _scaled(FONT_BODY))
 		built.set_color(&"font_color", variation, TEXT)
 		built.set_color(&"font_placeholder_color", variation, TEXT_DIM)
 		built.set_color(&"font_selected_color", variation, TEXT_INVERSE)
@@ -714,7 +740,7 @@ func _add_inputs(built: Theme) -> void:
 	# Check boxes / toggles: keep Godot's icons, restyle the text and spacing.
 	for variation in [&"CheckBox", &"CheckButton"]:
 		built.set_font(&"font", variation, font_ui)
-		built.set_font_size(&"font_size", variation, FONT_BODY)
+		built.set_font_size(&"font_size", variation, _scaled(FONT_BODY))
 		built.set_color(&"font_color", variation, TEXT_MUTED)
 		built.set_color(&"font_hover_color", variation, TEXT)
 		built.set_color(&"font_pressed_color", variation, TEXT)
