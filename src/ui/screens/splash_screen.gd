@@ -10,6 +10,10 @@ extends Control
 ## and the timing are all generated at runtime, so the sting costs nothing to
 ## ship and re-renders crisply at any resolution.
 ##
+## The whole block — wordmark plus subtitle — is centred as one unit rather
+## than the wordmark being placed at a fixed fraction of the height, so the
+## composition stays balanced whatever the subtitle ends up measuring.
+##
 ## Tap to skip. Players see this on every launch, so it is deliberately short.
 
 # ------------------------------------------------------------------ timeline
@@ -28,31 +32,37 @@ const SUBTITLE_RISE := 26.0
 
 # ------------------------------------------------------------------- layout
 
-## Vertical centre of the wordmark, as a fraction of the screen height. 1/6 is
-## the midpoint of the upper third.
-const TITLE_CENTRE_Y_FRACTION := 1.0 / 6.0
 ## The wordmark is sized to a fraction of the *width*, so it reads the same on
 ## a phone and on a desktop window.
-const TITLE_WIDTH_FRACTION := 0.62
+const TITLE_WIDTH_FRACTION := 0.84
 ## ...but never taller than this fraction of the height.
-const TITLE_MAX_HEIGHT_FRACTION := 0.15
+const TITLE_MAX_HEIGHT_FRACTION := 0.22
 const TITLE_TRACKING := 1
-const SUBTITLE_GAP := 0.11
+const TITLE_SHADOW_CELLS := 0.45
+
+## Gap between the wordmark and the subtitle, as a fraction of screen height.
+const SUBTITLE_GAP := 0.06
+const SUBTITLE_SIZE_FRACTION := 0.072
+const SUBTITLE_SIZE_MIN := 30
+const SUBTITLE_SIZE_MAX := 88
 
 const SUBTITLE_TEXT := "Pixel Legends"
 const TITLE_TEXT := "HEXORA-STUDIO"
 
 # ---------------------------------------------------------------- particles
 
-const FIRE_COUNT := 120
-const SMOKE_COUNT := 48
+const FIRE_COUNT := 130
+const SMOKE_COUNT := 90
 const SPARK_COUNT := 44
 
 const FIRE_GRAVITY := -120.0
 const FIRE_DRAG := 1.35
-const SMOKE_RISE := -34.0
+const SMOKE_RISE := -30.0
 const SHOCKWAVE_DURATION := 0.85
 const SHOCKWAVE_REACH := 0.62
+
+## Resolution of the procedurally generated soft puff used for smoke and fire.
+const PUFF_SIZE := 64
 
 var _elapsed := 0.0
 var _finishing := false
@@ -61,12 +71,15 @@ var _rng := RandomNumberGenerator.new()
 var _centre := Vector2.ZERO
 var _title_scale := 12.0
 var _title_origin := Vector2.ZERO
+var _subtitle_size := 48
+var _puff: Texture2D
 
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_rng.seed = 0x1CE0
+	_puff = _make_puff()
 
 
 func _ready() -> void:
@@ -78,11 +91,20 @@ func _layout() -> void:
 	var viewport := get_viewport_rect().size
 	if viewport.x <= 1.0 or viewport.y <= 1.0:
 		return
-	_centre = Vector2(viewport.x * 0.5, viewport.y * TITLE_CENTRE_Y_FRACTION)
 	var cells := PixelFont.measure_cells(TITLE_TEXT, TITLE_TRACKING)
 	var by_width := viewport.x * TITLE_WIDTH_FRACTION / float(cells.x)
 	var by_height := viewport.y * TITLE_MAX_HEIGHT_FRACTION / float(PixelFont.GLYPH_H)
 	_title_scale = minf(by_width, by_height)
+	_subtitle_size = int(clampf(viewport.y * SUBTITLE_SIZE_FRACTION,
+		float(SUBTITLE_SIZE_MIN), float(SUBTITLE_SIZE_MAX)))
+
+	# Centre the pair as one block: wordmark, gap, then subtitle.
+	var title_height := float(PixelFont.GLYPH_H) * _title_scale
+	var gap := viewport.y * SUBTITLE_GAP
+	var block_height := title_height + gap + float(_subtitle_size)
+	var top := (viewport.y - block_height) * 0.5
+
+	_centre = Vector2(viewport.x * 0.5, top + title_height * 0.5)
 	var title_size := PixelFont.measure_pixels(TITLE_TEXT, _title_scale, TITLE_TRACKING)
 	_title_origin = Vector2(_centre.x - title_size.x * 0.5, _centre.y - title_size.y * 0.5)
 
@@ -132,6 +154,24 @@ func _go_to_entrance() -> void:
 
 # ------------------------------------------------------------------ particles
 
+## A radial alpha falloff, generated once.
+##
+## Smoke drawn as flat squares is just a grid of boxes. A soft falloff is what
+## makes a puff read as volume, and building it from an Image means no asset
+## has to be shipped or imported.
+func _make_puff() -> Texture2D:
+	var image := Image.create(PUFF_SIZE, PUFF_SIZE, false, Image.FORMAT_RGBA8)
+	var middle := Vector2(PUFF_SIZE * 0.5, PUFF_SIZE * 0.5)
+	for y in PUFF_SIZE:
+		for x in PUFF_SIZE:
+			var distance := Vector2(float(x) + 0.5, float(y) + 0.5).distance_to(middle)
+			var t := clampf(1.0 - distance / (PUFF_SIZE * 0.5), 0.0, 1.0)
+			# Smoothstep, so the edge feathers instead of stepping.
+			var alpha := t * t * (3.0 - 2.0 * t)
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+	return ImageTexture.create_from_image(image)
+
+
 func _spawn_blast() -> void:
 	_rng.seed = 0x1CE0
 	var reach := get_viewport_rect().size.y
@@ -144,7 +184,7 @@ func _spawn_blast() -> void:
 			"vel": Vector2(cos(angle) * speed, sin(angle) * speed * 0.72),
 			"life": 0.0,
 			"span": _rng.randf_range(0.55, 1.35),
-			"size": _rng.randf_range(6.0, 20.0),
+			"size": _rng.randf_range(14.0, 40.0),
 			"seed": _rng.randf(),
 		})
 	for _i in SMOKE_COUNT:
@@ -155,8 +195,8 @@ func _spawn_blast() -> void:
 			"pos": _centre + Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-0.6, 0.6)) * reach * 0.07,
 			"vel": Vector2(cos(angle) * speed, sin(angle) * speed * 0.6),
 			"life": 0.0,
-			"span": _rng.randf_range(1.6, 3.2),
-			"size": _rng.randf_range(22.0, 64.0),
+			"span": _rng.randf_range(1.8, 3.6),
+			"size": _rng.randf_range(46.0, 130.0),
 			"seed": _rng.randf(),
 		})
 	for _i in SPARK_COUNT:
@@ -217,14 +257,19 @@ func _draw_smoke() -> void:
 		var t := float(particle["life"]) / float(particle["span"])
 		if t >= 1.0:
 			continue
-		# Smoke grows as it thins, and is held very faint so the type stays
-		# the brightest thing on screen.
-		var size := float(particle["size"]) * (1.0 + t * 2.4)
-		var alpha := sin(t * PI) * 0.20
-		var drift := sin(since * 1.4 + float(particle["seed"]) * 6.28) * 14.0 * t
+		# Smoke grows as it thins, and is held faint so the type stays the
+		# brightest thing on screen.
+		var size := float(particle["size"]) * (1.0 + t * 1.9)
+		# Fade in fast, linger, then fade out — a puff that appears and
+		# vanishes at the same rate looks mechanical.
+		var alpha := sin(t * PI) * 0.26
+		var drift := sin(since * 1.15 + float(particle["seed"]) * 6.28) * 22.0 * t
 		var pos: Vector2 = particle["pos"]
-		draw_rect(Rect2(pos.x - size * 0.5 + drift, pos.y - size * 0.5, size, size),
-			Color(0.36, 0.42, 0.52, alpha))
+		# Cooler and darker as it rises and cools.
+		var tone := Color(0.42, 0.47, 0.56).lerp(Color(0.16, 0.20, 0.28), t)
+		draw_texture_rect(_puff,
+			Rect2(pos.x - size * 0.5 + drift, pos.y - size * 0.5, size, size),
+			false, Color(tone.r, tone.g, tone.b, alpha))
 
 
 func _draw_fire() -> void:
@@ -235,12 +280,13 @@ func _draw_fire() -> void:
 		if t >= 1.0:
 			continue
 		var pos: Vector2 = particle["pos"]
-		var size := float(particle["size"]) * (1.0 - t * 0.55)
+		var size := float(particle["size"]) * (1.0 - t * 0.5)
 		# White-hot core, then gold, then ember, then out.
 		var colour := _fire_ramp(t)
 		var alpha := (1.0 - t) * (1.0 - t) * 0.95
-		draw_rect(Rect2(pos.x - size * 0.5, pos.y - size * 0.5, size, size),
-			Color(colour.r, colour.g, colour.b, alpha))
+		draw_texture_rect(_puff,
+			Rect2(pos.x - size * 0.5, pos.y - size * 0.5, size, size),
+			false, Color(colour.r, colour.g, colour.b, alpha))
 
 
 func _fire_ramp(t: float) -> Color:
@@ -316,8 +362,9 @@ func _draw_title() -> void:
 		var origin := Vector2(
 			_title_origin.x + float(index) * advance + (cell_w - grown_w) * 0.5,
 			_title_origin.y + (cell_h - grown_h) * 0.5)
-		PixelFont.draw_character(self, TITLE_TEXT.substr(index, 1), origin,
-			letter_scale, colour, clampf(p * 1.4, 0.0, 1.0))
+		PixelFont.draw_character_shadowed(self, TITLE_TEXT.substr(index, 1), origin,
+			letter_scale, colour, Design.LINE_STRONG, clampf(p * 1.4, 0.0, 1.0),
+			TITLE_SHADOW_CELLS)
 
 
 ## Three-stop ramp across the wordmark: gold leads, cyan carries, violet
@@ -339,19 +386,23 @@ func _draw_subtitle(viewport: Vector2) -> void:
 		font = ThemeDB.fallback_font
 	if font == null:
 		return
-	var size := int(clampf(viewport.y * 0.052, 22.0, 62.0))
-	var total := Vector2.ZERO
-	for index in SUBTITLE_TEXT.length():
-		total.x += font.get_string_size(SUBTITLE_TEXT.substr(index, 1), size).x
-	total.y = font.get_string_size(SUBTITLE_TEXT, size).y
+	# Measure the running prefix rather than summing single-character widths.
+	# A font's advance for a character in context is not the same as its width
+	# in isolation; the difference accumulates and the glyphs end up drawn on
+	# top of each other. Measuring prefixes is how text layout actually works.
+	var offsets: Array[float] = []
+	for index in SUBTITLE_TEXT.length() + 1:
+		offsets.append(font.get_string_size(SUBTITLE_TEXT.substr(0, index), _subtitle_size).x)
+	var total_width: float = offsets[SUBTITLE_TEXT.length()]
+
 	# `draw_string` places text by its baseline, so the visual top has to be
 	# derived from the font's ascent — otherwise the subtitle creeps up into
 	# the wordmark on fonts with a tall ascender.
-	var top := _centre.y + viewport.y * SUBTITLE_GAP
-	var baseline := top + font.get_ascent(size)
-	var x := viewport.x * 0.5 - total.x * 0.5
+	var top := _centre.y + float(PixelFont.GLYPH_H) * _title_scale * 0.5 \
+		+ viewport.y * SUBTITLE_GAP
+	var baseline := top + font.get_ascent(_subtitle_size)
+	var x := viewport.x * 0.5 - total_width * 0.5
 	for index in SUBTITLE_TEXT.length():
-		var character := SUBTITLE_TEXT.substr(index, 1)
 		var start := float(index) * SUBTITLE_STAGGER
 		var t := (since - start) / SUBTITLE_CHAR_DURATION
 		if t <= 0.0:
@@ -361,10 +412,10 @@ func _draw_subtitle(viewport: Vector2) -> void:
 		var colour := _subtitle_colour(index, SUBTITLE_TEXT.length())
 		# A different entrance from the wordmark: each character drifts up into
 		# place rather than being punched in.
-		var pos := Vector2(x, baseline + (1.0 - eased) * SUBTITLE_RISE)
-		draw_string(font, pos, character, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size,
+		var pos := Vector2(x + offsets[index], baseline + (1.0 - eased) * SUBTITLE_RISE)
+		draw_string(font, pos, SUBTITLE_TEXT.substr(index, 1),
+			HORIZONTAL_ALIGNMENT_LEFT, -1.0, _subtitle_size,
 			Color(colour.r, colour.g, colour.b, eased))
-		x += font.get_string_size(character, size).x
 
 
 func _subtitle_colour(index: int, total: int) -> Color:

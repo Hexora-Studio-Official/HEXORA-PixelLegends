@@ -65,6 +65,34 @@ const GLASS_EDGE: Color = Color(0.62, 0.83, 1.0, 0.32)
 const GLASS_EDGE_HI: Color = Color(0.55, 0.88, 1.0, 0.74)
 const GLASS_GOLD: Color = Color(0.56, 0.34, 0.06, 0.50)
 const GLASS_GOLD_EDGE: Color = Color(1.0, 0.88, 0.56, 0.92)
+const GLASS_GOLD_HOVER: Color = Color(0.72, 0.46, 0.10, 0.72)
+const GLASS_GOLD_HOVER_EDGE: Color = Color(1.0, 0.93, 0.68, 1.0)
+const GLASS_GOLD_PRESSED: Color = Color(0.40, 0.24, 0.05, 0.78)
+
+# Panels floating over the key art. Deeper and more opaque than the button
+# glass, so a panel reads as a surface *behind* the controls sitting on it.
+# These used to be literals written directly into the panel table below, which
+# is why re-painting the palette once changed nothing on screen: the live
+# surfaces were not reading from here at all.
+const GLASS_PANEL: Color = Color(0.022, 0.062, 0.115, 0.52)
+const GLASS_PANEL_EDGE: Color = Color(0.58, 0.84, 1.0, 0.52)
+## Modals sit above everything, so they are the most opaque of the set.
+const GLASS_MODAL: Color = Color(0.015, 0.045, 0.09, 0.70)
+const GLASS_MODAL_EDGE: Color = Color(0.62, 0.88, 1.0, 0.62)
+
+## Nav rail buttons: almost invisible at rest so the rail reads as a column of
+## labels, with a cyan wash appearing on hover.
+const GLASS_NAV: Color = Color(0.03, 0.085, 0.14, 0.10)
+const GLASS_NAV_HOVER: Color = Color(0.16, 0.42, 0.58, 0.42)
+const GLASS_NAV_HOVER_EDGE: Color = Color(0.45, 0.82, 1.0, 0.48)
+const GLASS_NAV_PRESSED: Color = Color(0.03, 0.16, 0.26, 0.55)
+
+## Quiet resting state for icon-only controls, and the off state everything
+## disabled shares.
+const GLASS_QUIET: Color = Color(0.02, 0.06, 0.10, 0.22)
+const GLASS_QUIET_EDGE: Color = Color(0.60, 0.85, 1.0, 0.30)
+const GLASS_DISABLED: Color = Color(0.02, 0.05, 0.085, 0.18)
+const GLASS_DISABLED_EDGE: Color = Color(0.62, 0.82, 0.94, 0.16)
 
 ## Currency / rarity ramp, reused by the store and reward popups later.
 const RARITY: Array[Color] = [
@@ -337,14 +365,14 @@ func _add_buttons(built: Theme) -> void:
 	_register_glass_button(
 		built, &"GlassPrimaryButton",
 		GLASS_GOLD, GLASS_GOLD_EDGE,
-		Color(0.68, 0.43, 0.1, 0.62), Color(1.0, 0.92, 0.64, 0.98),
-		Color(0.38, 0.22, 0.05, 0.72), TEXT
+		GLASS_GOLD_HOVER, GLASS_GOLD_HOVER_EDGE,
+		GLASS_GOLD_PRESSED, TEXT
 	)
 	_register_glass_button(
 		built, &"GlassNavButton",
-		Color(0.04, 0.12, 0.18, 0.12), Color.TRANSPARENT,
-		Color(0.65, 0.87, 1.0, 0.15), Color(0.76, 0.92, 1.0, 0.36),
-		Color(0.04, 0.18, 0.26, 0.3), TEXT_MUTED
+		GLASS_NAV, Color.TRANSPARENT,
+		GLASS_NAV_HOVER, GLASS_NAV_HOVER_EDGE,
+		GLASS_NAV_PRESSED, TEXT_MUTED
 	)
 
 	# Chips: compact toggle-ish buttons used for mode and region selection.
@@ -440,16 +468,15 @@ func _add_buttons(built: Theme) -> void:
 	# Icon-only controls get the same quiet glass treatment and a bright focus ring.
 	built.set_type_variation(&"IconButton", &"Button")
 	built.set_stylebox(&"normal", &"IconButton",
-		_glass_box(Color(0.035, 0.105, 0.165, 0.22),
-			Color(0.72, 0.9, 1.0, 0.3), 18, 8, 8, 4))
+		_glass_box(GLASS_QUIET, GLASS_QUIET_EDGE, 18, 8, 8, 4))
 	built.set_stylebox(&"hover", &"IconButton",
 		_glass_box(GLASS_HOVER, GLASS_EDGE_HI, 18, 8, 8, 10))
 	built.set_stylebox(&"pressed", &"IconButton",
 		_glass_box(GLASS_PRESSED, GLASS_EDGE_HI, 18, 8, 8, 4))
 	built.set_stylebox(&"focus", &"IconButton",
-		_glass_box(Color(0.035, 0.105, 0.165, 0.28), GLASS_EDGE_HI, 18, 8, 8, 8))
+		_glass_box(GLASS_QUIET, GLASS_EDGE_HI, 18, 8, 8, 8))
 	built.set_stylebox(&"disabled", &"IconButton",
-		_glass_box(Color(0.035, 0.08, 0.12, 0.16), Color(0.72, 0.86, 0.94, 0.14), 18, 8, 8, 0))
+		_glass_box(GLASS_DISABLED, GLASS_DISABLED_EDGE, 18, 8, 8, 0))
 	built.set_color(&"font_color", &"IconButton", TEXT_MUTED)
 	built.set_color(&"font_hover_color", &"IconButton", TEXT)
 	built.set_color(&"font_pressed_color", &"IconButton", TEXT)
@@ -539,8 +566,7 @@ func _register_glass_button(
 	built.set_stylebox(&"focus", variation,
 		_glass_box(fill, GLASS_EDGE_HI, radius, 20, 14, 8))
 	built.set_stylebox(&"disabled", variation,
-		_glass_box(Color(0.035, 0.08, 0.12, 0.22),
-			Color(0.72, 0.86, 0.94, 0.2), radius, 20, 14, 0))
+		_glass_box(GLASS_DISABLED, GLASS_DISABLED_EDGE, radius, 20, 14, 0))
 	built.set_color(&"font_color", variation, text_color)
 	built.set_color(&"font_hover_color", variation, TEXT)
 	built.set_color(&"font_pressed_color", variation, TEXT)
@@ -565,13 +591,13 @@ func _add_panels(built: Theme) -> void:
 		{"name": &"ActionDockPanel", "fill": BG_RAISED, "border": LINE, "radius": RADIUS_LG, "pad": SPACE_SM},
 		{
 			"name": &"EntranceDockPanel",
-			"fill": Color(0.025, 0.085, 0.145, 0.42),
-			"border": Color(0.72, 0.9, 1.0, 0.42), "radius": 24, "pad": SPACE_MD,
+			"fill": GLASS_PANEL, "border": GLASS_PANEL_EDGE,
+			"radius": 24, "pad": SPACE_MD,
 		},
 		{
 			"name": &"GlassModalPanel",
-			"fill": Color(0.025, 0.075, 0.13, 0.58),
-			"border": Color(0.75, 0.91, 1.0, 0.5), "radius": 24, "pad": SPACE_XL,
+			"fill": GLASS_MODAL, "border": GLASS_MODAL_EDGE,
+			"radius": 24, "pad": SPACE_XL,
 		},
 		{"name": &"BannerPanel", "fill": ACCENT_TINT, "border": ACCENT, "radius": RADIUS_MD, "pad": SPACE_LG},
 		{"name": &"InfoPanel", "fill": TEAL_TINT, "border": TEAL, "radius": RADIUS_MD, "pad": SPACE_LG},
@@ -588,14 +614,21 @@ func _add_panels(built: Theme) -> void:
 		box.set_corner_radius_all(int(panel["radius"]))
 		box.set_content_margin_all(float(panel["pad"]))
 		box.anti_aliasing = false
+		var fill: Color = panel["fill"]
 		if (panel["border"] as Color).a > 0.0:
 			box.border_color = panel["border"]
 			box.set_border_width_all(BORDER_THIN)
 		if variation == &"EntranceDockPanel" or variation == &"GlassModalPanel":
+			# These float above the artwork, so they get a soft lift rather
+			# than a hard edge; a crisp edge here would read as a sticker.
 			box.anti_aliasing = true
-			box.shadow_color = Color(0.01, 0.035, 0.09, 0.26)
+			box.shadow_color = DROP_EDGE
 			box.shadow_size = 16 if variation == &"EntranceDockPanel" else 22
 			box.shadow_offset = Vector2(0.0, 7.0)
+		elif fill.a > 0.0:
+			# Panels resting on the canvas take the same crisp drop edge as
+			# buttons, so every raised surface in the app shares one language.
+			_apply_drop_edge(box, BORDER_DROP)
 		built.set_stylebox(&"panel", variation, box)
 
 
