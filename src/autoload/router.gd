@@ -12,6 +12,7 @@ extends Node
 ## screen (login or menu), not rebuild the whole hub.
 
 const SCREENS := {
+	&"splash": "res://src/ui/screens/splash_screen.tscn",
 	&"boot": "res://src/ui/screens/boot_screen.tscn",
 	&"menu": "res://src/ui/screens/main_menu_screen.tscn",
 }
