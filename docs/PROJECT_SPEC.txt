@@ -24,8 +24,9 @@ https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/38504
 Artifact expires 2026-10-28. Download into the coding sandbox was blocked by
 the artifact storage host network restriction; download from GitHub instead.
 This build uses an ephemeral debug signing key, not a release key. Device
-installation, visual review, and touch/persistence tests await the user.
-Do not merge into main until the user explicitly approves this APK.
+installation, visual review, and touch/persistence test results have not been
+reported in detail. The user explicitly approved merging this APK's source
+branch into main on 2026-10-14; this approval is not device-test evidence.
 
 This is the live progress record for the implementation described below. The
 requirements and long-term target remain in the numbered specification. Agents
