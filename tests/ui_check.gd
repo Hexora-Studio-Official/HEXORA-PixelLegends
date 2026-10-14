@@ -44,13 +44,16 @@ func _ready() -> void:
 		print("CHECK result=FAIL " + SCREEN_PATH + " is not a Control")
 		get_tree().quit(1)
 		return
+	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(screen)
+	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	# Wait for layout. Nothing measured before this point means anything.
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	print("CHECK viewport=%s" % get_viewport_rect().size)
+	print("CHECK viewport=%s host=%s screen=%s"
+		% [get_viewport_rect().size, get_global_rect().size, screen.get_global_rect().size])
 	_dump_children(screen)
 
 	var problems: PackedStringArray = []

@@ -397,11 +397,20 @@ static func show_modal(host: Control, content: Control, width: float = 640.0) ->
 	layer.add_child(centre)
 
 	var scroll := scroll()
-	scroll.custom_minimum_size = Vector2(width, 0)
 	centre.add_child(scroll)
 	scroll.add_child(content)
-
 	host.add_child(layer)
+
+	# A ScrollContainer is only as tall as it is told to be, and a
+	# CenterContainer hands a child exactly its minimum size. Left at zero,
+	# the panel kept a healthy rectangle and was still clipped to nothing:
+	# it opened, built all its rows, and drew nothing at all, which is
+	# indistinguishable from a button that does not work. Give the scroll the
+	# height the content asked for, and no more than the screen has.
+	var room := maxf(host.get_viewport_rect().size.y - Design.SPACE_XL * 2.0, 240.0)
+	var wanted := content.get_combined_minimum_size().y
+	scroll.custom_minimum_size = Vector2(width, minf(maxf(wanted, 240.0), room))
+
 	Audio.play_ui("whoosh", 1.15, -4.0)
 
 	layer.modulate.a = 0.0
