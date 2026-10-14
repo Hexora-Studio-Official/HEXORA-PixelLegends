@@ -26,8 +26,6 @@ const FADE_DURATION := 0.50
 
 const LETTER_STAGGER := 0.05
 const LETTER_DURATION := 0.32
-const SUBTITLE_DURATION := 0.62
-const SUBTITLE_RISE := 26.0
 
 # ------------------------------------------------------------------- layout
 
@@ -40,10 +38,39 @@ const TITLE_TRACKING := 1
 const TITLE_SHADOW_CELLS := 0.45
 
 ## Gap between the wordmark and the subtitle, as a fraction of screen height.
-const SUBTITLE_GAP := 0.06
-const SUBTITLE_SIZE_FRACTION := 0.072
-const SUBTITLE_SIZE_MIN := 30
-const SUBTITLE_SIZE_MAX := 88
+const SUBTITLE_GAP := 0.045
+## It was set at 0.072 of the height and capped at 88px, which on a phone made
+## it a caption beneath the wordmark rather than part of the logo.
+const SUBTITLE_SIZE_FRACTION := 0.105
+const SUBTITLE_SIZE_MIN := 40
+const SUBTITLE_SIZE_MAX := 130
+
+## The subtitle is set on a FIXED PITCH, not on the font's own advances.
+##
+## Laying it out with per-character advances looked correct and overlapped in
+## practice: an advance measured for a character on its own is not the advance
+## that character gets inside a string, and the error accumulates along the
+## line. A fixed pitch settles the question. Every character is given a cell as
+## wide as the widest character in the whole line, so no glyph can reach into
+## its neighbour's cell — no overlap is possible for any font, any string, any
+## size. The wide tracking this produces is wanted anyway: it is what makes a
+## short line read as a logotype instead of as a caption.
+##
+## 1.0 would set the letters solid; 1.22 opens them into a tracked display
+## setting.
+const SUBTITLE_TRACKING := 1.22
+## Never let the tracked line exceed this fraction of the screen width.
+const SUBTITLE_WIDTH_FRACTION := 0.90
+## Advance is linear in font size, so a single measurement at this reference
+## size gives the exact size that fills the width — no iteration needed.
+const SUBTITLE_REFERENCE := 100
+## Left-to-right reveal, and the rule that sweeps out beneath the line.
+const SUBTITLE_STAGGER := 0.035
+const SUBTITLE_CHAR_DURATION := 0.34
+const SUBTITLE_RISE := 22.0
+const SUBTITLE_DURATION := 0.62
+## Thickness of the rule, as a fraction of the type size.
+const SUBTITLE_RULE := 0.045
 
 const SUBTITLE_TEXT := "Pixel Legends"
 const TITLE_TEXT := "HEXORA-STUDIO"
@@ -106,18 +133,52 @@ func _layout() -> void:
 	var by_width := viewport.x * TITLE_WIDTH_FRACTION / float(cells.x)
 	var by_height := viewport.y * TITLE_MAX_HEIGHT_FRACTION / float(PixelFont.GLYPH_H)
 	_title_scale = minf(by_width, by_height)
-	_subtitle_size = int(clampf(viewport.y * SUBTITLE_SIZE_FRACTION,
-		float(SUBTITLE_SIZE_MIN), float(SUBTITLE_SIZE_MAX)))
+	_subtitle_size = _fit_subtitle(viewport)
 
 	# Centre the pair as one block: wordmark, gap, then subtitle.
 	var title_height := float(PixelFont.GLYPH_H) * _title_scale
 	var gap := viewport.y * SUBTITLE_GAP
-	var block_height := title_height + gap + float(_subtitle_size)
+	var block_height := title_height + gap + float(_subtitle_size) * 1.25
 	var top := (viewport.y - block_height) * 0.5
 
 	_centre = Vector2(viewport.x * 0.5, top + title_height * 0.5)
 	var title_size := PixelFont.measure_pixels(TITLE_TEXT, _title_scale, TITLE_TRACKING)
-	_title_origin = Vector2(_centre.x - title_size.x * 0.5, _centre.y - title_size.y * 0.5)
+	# The wordmark's shadow is drawn offset to the right, so its ink reaches
+	# past its measured width by exactly that much. Centring on the measured
+	# width therefore puts the visible block half a shadow to the right of
+	# centre, which is enough to read askew next to the subtitle. Centre the
+	# ink, not the glyph origin.
+	var shadow := TITLE_SHADOW_CELLS * _title_scale
+	_title_origin = Vector2(_centre.x - (title_size.x + shadow) * 0.5,
+		_centre.y - title_size.y * 0.5)
+
+
+## Largest subtitle size that fits both limits: the height fraction, and the
+## width the tracked line is allowed to occupy. Because a glyph's advance
+## scales linearly with font size, one measurement at a reference size gives
+## the answer exactly, with no fitting loop.
+func _fit_subtitle(viewport: Vector2) -> int:
+	var text := SUBTITLE_TEXT.to_upper()
+	var count := text.length()
+	if count == 0:
+		return SUBTITLE_SIZE_MIN
+	var font := Design.font_display
+	if font == null:
+		font = ThemeDB.fallback_font
+	if font == null:
+		return SUBTITLE_SIZE_MIN
+	var widest := 0.0
+	for index in count:
+		widest = maxf(widest,
+			font.get_string_size(text.substr(index, 1), SUBTITLE_REFERENCE).x)
+	if widest <= 0.0:
+		return SUBTITLE_SIZE_MIN
+	var unit := widest / float(SUBTITLE_REFERENCE)
+	var by_height := clampf(viewport.y * SUBTITLE_SIZE_FRACTION,
+		float(SUBTITLE_SIZE_MIN), float(SUBTITLE_SIZE_MAX))
+	var by_width := viewport.x * SUBTITLE_WIDTH_FRACTION \
+		/ (float(count) * unit * SUBTITLE_TRACKING)
+	return int(maxf(4.0, minf(by_height, by_width)))
 
 
 func _process(delta: float) -> void:
@@ -459,19 +520,14 @@ func _title_colour(index: int, total: int) -> Color:
 	return Design.TEAL.lerp(Design.VIOLET, (t - 0.5) / 0.5)
 
 
-## The line is drawn as ONE string, not a character at a time.
+## The subtitle: a tracked display setting, revealed left to right, with a
+## rule sweeping out beneath it.
 ##
-## The two previous attempts positioned each character by hand — first by
-## summing single-character widths, then by measuring running prefixes. Both
-## overlapped. A font's advance for a character inside a string is not
-## recoverable by measuring substrings, and any approximation accumulates: by
-## the end of the line the glyphs land on top of each other. Handing the whole
-## line to the engine in a single call cannot be wrong, and costs the per-
-## character gradient, which is a cheap price for a legible wordmark.
-##
-## The entrance is still distinct from the wordmark: the line rises and
-## brightens as one, with a glow behind it, instead of being punched in
-## letter by letter.
+## Every position here comes from a fixed pitch rather than from the font's
+## own advances — see SUBTITLE_TRACKING for why. That is what makes the
+## centring exact and the overlap impossible, and it is also what lets each
+## letter be coloured and timed on its own without any of the measuring that
+## made the two previous attempts collide.
 func _draw_subtitle(viewport: Vector2) -> void:
 	var since := _elapsed - TIME_SUBTITLE
 	if since < 0.0:
@@ -481,29 +537,70 @@ func _draw_subtitle(viewport: Vector2) -> void:
 		font = ThemeDB.fallback_font
 	if font == null:
 		return
-	var p := clampf(since / SUBTITLE_DURATION, 0.0, 1.0)
-	var eased := 1.0 - pow(1.0 - p, 3.0)
 
-	var width := font.get_string_size(SUBTITLE_TEXT, _subtitle_size).x
+	var text := SUBTITLE_TEXT.to_upper()
+	var count := text.length()
+	# One cell per character, every cell as wide as the widest character in the
+	# line. A glyph then cannot reach into its neighbour's cell, whatever the
+	# font does about kerning.
+	var widest := 0.0
+	var advances: Array[float] = []
+	for index in count:
+		var measured := font.get_string_size(text.substr(index, 1), _subtitle_size).x
+		advances.append(measured)
+		widest = maxf(widest, measured)
+	if widest <= 0.0:
+		return
+	var pitch := widest * SUBTITLE_TRACKING
+	var total := float(count) * pitch
+	var left := viewport.x * 0.5 - total * 0.5
+
 	# `draw_string` places text by its baseline, so the visual top has to be
 	# derived from the font's ascent — otherwise the line creeps up into the
 	# wordmark on fonts with a tall ascender.
-	var top := _centre.y + float(PixelFont.GLYPH_H) * _title_scale * 0.5 \
-		+ viewport.y * SUBTITLE_GAP
+	var title_height := float(PixelFont.GLYPH_H) * _title_scale
+	var top := _centre.y + title_height * 0.5 + viewport.y * SUBTITLE_GAP
 	var baseline := top + font.get_ascent(_subtitle_size)
-	var pos := Vector2(viewport.x * 0.5 - width * 0.5,
-		baseline + (1.0 - eased) * SUBTITLE_RISE)
 
-	# A warm bloom behind the line, brightest as it settles.
-	var glow_size := width * 1.9
-	var glow_alpha := 0.30 * eased
+	# A cool glow behind the line, so it sits in light rather than on black.
+	var settled := clampf(since / SUBTITLE_DURATION, 0.0, 1.0)
+	var glow_h := float(_subtitle_size) * 3.4
 	draw_texture_rect(_puff,
-		Rect2(pos.x + width * 0.5 - glow_size * 0.5,
-			baseline - float(_subtitle_size) * 0.5 - glow_size * 0.42,
-			glow_size, glow_size * 0.84),
-		false, Color(Design.TEAL.r, Design.TEAL.g, Design.TEAL.b, glow_alpha))
+		Rect2(viewport.x * 0.5 - total * 0.62, baseline - glow_h * 0.6,
+			total * 1.24, glow_h),
+		false, Color(Design.TEAL.r, Design.TEAL.g, Design.TEAL.b, 0.20 * settled))
 
-	# Brightens from muted to full as it arrives.
-	var tone := Design.TEXT_MUTED.lerp(Design.TEXT, eased)
-	draw_string(font, pos, SUBTITLE_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
-		_subtitle_size, Color(tone.r, tone.g, tone.b, eased))
+	for index in count:
+		var start := float(index) * SUBTITLE_STAGGER
+		var t := (since - start) / SUBTITLE_CHAR_DURATION
+		if t <= 0.0:
+			continue
+		var p := clampf(t, 0.0, 1.0)
+		var eased := 1.0 - pow(1.0 - p, 3.0)
+		var advance: float = advances[index]
+		# Centre each glyph in its own cell, so the tracking reads as even air
+		# rather than as ragged gaps around the narrow letters.
+		var x := left + float(index) * pitch + (pitch - advance) * 0.5
+		var colour := _subtitle_colour(index, count)
+		draw_string(font, Vector2(x, baseline + (1.0 - eased) * SUBTITLE_RISE),
+			text.substr(index, 1), HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+			_subtitle_size, Color(colour.r, colour.g, colour.b, eased))
+
+	# Once the line is in, a rule sweeps out from the centre and underlines it.
+	var rule_t := clampf((since - float(count) * SUBTITLE_STAGGER * 0.5) / 0.45, 0.0, 1.0)
+	if rule_t <= 0.0:
+		return
+	var rule_eased := 1.0 - pow(1.0 - rule_t, 3.0)
+	var rule_w := total * rule_eased
+	var rule_h := maxf(2.0, float(_subtitle_size) * SUBTITLE_RULE)
+	draw_rect(Rect2(viewport.x * 0.5 - rule_w * 0.5,
+		baseline + float(_subtitle_size) * 0.30, rule_w, rule_h),
+		Color(Design.ACCENT.r, Design.ACCENT.g, Design.ACCENT.b, 0.85 * rule_eased))
+
+
+## Cool ramp across the line: cyan leads into violet. Deliberately cold,
+## because the wordmark above it is warm gold — the two rows should read as
+## two different voices, not as one gradient stretched across both.
+func _subtitle_colour(index: int, total: int) -> Color:
+	var t := float(index) / float(maxi(1, total - 1))
+	return Design.TEAL.lerp(Design.VIOLET, t)
