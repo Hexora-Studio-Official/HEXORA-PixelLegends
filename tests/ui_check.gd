@@ -143,15 +143,26 @@ func _check_at(size: Vector2i, report: bool) -> PackedStringArray:
 	# exactly the thing that was reported.
 	var strip := _find_rail(dialog)
 	if strip != null:
-		print("CHECK tabs %s height=%.0f width=%.0f expected=%d"
-			% [tag, strip.size.y, strip.size.x, Design.TOUCH_TARGET_MIN])
+		print("CHECK tabs %s height=%.0f width=%.0f"
+			% [tag, strip.size.y, strip.size.x])
+		# Wrapped means a tab sits on a different line than the first. The
+		# container's own height is not a reliable signal — it measured 78
+		# for one row, which is neither one row nor two.
+		var first_y := -1.0
 		for tab in strip.get_children():
-			if tab is Button:
-				print("CHECK   tab %-22s w=%4.0f h=%4.0f"
-					% [(tab as Button).text, (tab as Button).size.x, (tab as Button).size.y])
-		if strip.size.y > float(Design.TOUCH_TARGET_MIN) + 8.0:
-			problems.append("%s the category tabs take more than one row: %.0f in %.0f"
-				% [tag, strip.size.y, strip.size.x])
+			if not (tab is Button):
+				continue
+			var label := (tab as Button).text
+			var box := (tab as Button).get_global_rect()
+			if report:
+				print("CHECK   tab %-22s w=%4.0f h=%4.0f y=%5.0f"
+					% [label, box.size.x, box.size.y, box.position.y])
+			if first_y < 0.0:
+				first_y = box.position.y
+			elif absf(box.position.y - first_y) > 4.0:
+				problems.append("%s tab '%s' wrapped onto a second row" % [tag, label])
+			if box.size.y > float(Design.TOUCH_TARGET_MIN) + 8.0:
+				problems.append("%s tab '%s' is two lines tall: %s" % [tag, label, box.size])
 
 	screen.queue_free()
 	await get_tree().process_frame
