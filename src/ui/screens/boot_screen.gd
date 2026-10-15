@@ -328,7 +328,13 @@ func _open_settings_modal() -> void:
 	# Never wider than the screen: on a narrow or very tall device the panel
 	# has to fit rather than run off the edge. The modal wrapper scrolls, so
 	# a short screen is still usable.
-	var viewport := get_viewport_rect().size
+	# Sized against the screen it opens on, not the window. On a phone those
+	# are the same rectangle, but a panel measured against the window and
+	# placed inside a shorter screen is how the footer came to hang past the
+	# bottom edge with the buttons half off it.
+	var viewport := get_global_rect().size
+	if viewport.x <= 1.0 or viewport.y <= 1.0:
+		viewport = get_viewport_rect().size
 	var width := 940.0 if viewport.x <= 1.0 else minf(940.0, viewport.x - Design.SPACE_LG * 2.0)
 	# The categories moved from a side column to a strip along the top, which
 	# gives the rows the full width but costs the panel a row of height. Take
