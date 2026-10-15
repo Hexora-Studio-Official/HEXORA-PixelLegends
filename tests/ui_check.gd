@@ -138,19 +138,6 @@ func _check_at(size: Vector2i, report: bool) -> PackedStringArray:
 	if report:
 		var inner := _find_scroll(dialog)
 		if inner != null:
-			# Where the panel's height actually goes. Guessing at this cost
-			# two rounds, so measure it instead. Printed first because a long
-			# report is cut off at the end.
-			var col := inner.get_parent()
-			if col != null:
-				var used := 0.0
-				for child in col.get_children():
-					if not (child is Control):
-						continue
-					used += (child as Control).size.y
-					print("CHECK   chrome %-18s h=%5.0f"
-						% [(child as Control).name, (child as Control).size.y])
-				print("CHECK   chrome column sum=%.0f" % used)
 			await _report_categories(dialog, inner)
 	# Measured at every size: a strip that wraps on a narrow screen is
 	# exactly the thing that was reported.
