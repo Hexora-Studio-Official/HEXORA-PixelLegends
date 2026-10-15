@@ -198,9 +198,11 @@ func _tab(text: String, active: bool) -> Button:
 	node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	node.clip_text = true
 	node.mouse_filter = Control.MOUSE_FILTER_PASS
+	# Measured, not guessed: six tabs at the wider padding came to 896px
+	# against 884 available, and the strip quietly became two rows.
 	node.custom_minimum_size = Vector2(
 		maxf(MIN_CHIP_WIDTH, UiKit.text_width(text, Design.FONT_BODY)
-			+ float(Design.SPACE_XL * 2)), Design.TOUCH_TARGET_MIN)
+			+ float(Design.SPACE_LG * 2)), Design.TOUCH_TARGET_MIN)
 	return node
 
 
