@@ -126,9 +126,12 @@ func _ready() -> void:
 			print("CHECK tabs height=%.0f expected=%d" % [strip_height, Design.TOUCH_TARGET_MIN])
 			if strip_height > float(Design.TOUCH_TARGET_MIN) + 8.0:
 				problems.append("the category tabs no longer fit on one row: %.0f" % strip_height)
+			print("CHECK strip width=%.0f" % strip.size.x)
 			for tab in strip.get_children():
 				if not (tab is Button):
 					continue
+				print("CHECK   tab %-22s w=%4.0f h=%4.0f"
+					% [(tab as Button).text, (tab as Button).size.x, (tab as Button).size.y])
 				var tab_rect := (tab as Button).get_global_rect()
 				if tab_rect.size.y > float(Design.TOUCH_TARGET_MIN) + 8.0:
 					problems.append("tab '%s' is two lines tall: %s"
