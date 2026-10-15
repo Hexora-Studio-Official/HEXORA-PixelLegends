@@ -140,7 +140,10 @@ func _build() -> void:
 	var scroll := UiKit.scroll()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(560, 240)
+	# Low enough that the column can be squeezed into a short screen. A
+	# taller floor here pushes the footer off the bottom, because the
+	# panel cannot shrink past the height its own rows insist on.
+	scroll.custom_minimum_size = Vector2(560, 120)
 	column.add_child(scroll)
 	_content = UiKit.vbox(Design.SPACE_MD)
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -151,15 +154,18 @@ func _build() -> void:
 	column.add_child(UiKit.divider())
 	var footer := UiKit.hbox(Design.SPACE_SM)
 	var reset := UiKit.button(Loc.t(&"settings.footer.reset"), &"DangerPillButton")
+	reset.name = "ResetToDefaults"
 	UiKit.on_press(reset, _on_reset, "click")
 	footer.add_child(reset)
 	footer.add_child(UiKit.spacer())
 
 	_cancel_button = UiKit.button(Loc.t(&"common.cancel"), &"GlassButton")
+	_cancel_button.name = "CancelChanges"
 	UiKit.on_press(_cancel_button, _on_cancel, "back")
 	footer.add_child(_cancel_button)
 
 	_apply_button = UiKit.button(Loc.t(&"settings.footer.apply"), &"GlassPrimaryButton")
+	_apply_button.name = "ApplyChanges"
 	UiKit.on_press(_apply_button, _on_apply, "confirm")
 	footer.add_child(_apply_button)
 	column.add_child(footer)

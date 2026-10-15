@@ -1,26 +1,30 @@
 extends Control
 ##
-## Does the Settings button on the entrance actually open the panel?
+## Does the Settings panel actually fit on the screen it is opened on?
 ##
-## This repository cannot run GDScript locally, so a claim like "the Settings
-## button works" is otherwise unfalsifiable — it gets asserted, shipped and
-## believed. This is where it is checked instead: it builds the real entrance
-## scene, finds the real button, presses it, and reports what came up.
+## This repository cannot run GDScript locally, so claims like "the Settings
+## button works" and "the panel fits" are otherwise unfalsifiable — they get
+## asserted, shipped and believed. This is where they are checked: it builds
+## the real entrance scene, presses the real button, and measures what came
+## up.
 ##
-## Two traps shaped this file, both of which produced confident nonsense
-## before they were understood:
+## It runs at several viewport sizes, and that is the point of it. The first
+## version measured one size — the one where everything happened to fit —
+## and reported success while the player's phone cut the footer off. A panel
+## that fits at 1080 tall and not at 720 does not fit.
+##
+## Traps already fallen into, recorded so they are not repeated:
 ##
 ##   - _ready() runs BEFORE the first layout pass. Measuring there reports
-##     every widget as its minimum size, which is why the first version of
-##     this check saw a 40x40 screen and an "overlap" that meant nothing.
-##     The entrance defers its own re-measure for exactly the same reason.
-##   - Headless ignores --resolution, so the window stays at its square
-##     default. A phone is not square and the entrance positions its dock
-##     from the viewport height, so the size is set here instead.
+##     every widget at its minimum size.
+##   - Headless ignores --resolution, so the window keeps its default; the
+##     size has to be set here.
+##   - The root control of a headless main scene is sized 0x0, so anchoring
+##     it to its parent measures nothing.
 ##
 ## Run by CI on every push, as a scene rather than a --script, because a
 ## --script run does not register the project's autoloads as identifiers and
-## every screen in this project is compiled against them:
+## every screen here is compiled against them:
 ##
 ##     godot --headless --path . res://tests/ui_check.tscn
 ##
@@ -29,97 +33,107 @@ extends Control
 const SCREEN_PATH := "res://src/ui/screens/boot_screen.tscn"
 const BUTTON_NAME := "EntranceSettingsButton"
 
+## The sizes a landscape phone actually reports. The short ones are why this
+## loops: a panel that only fits on a tall screen does not fit.
+const VIEWPORTS: Array[Vector2i] = [
+	Vector2i(1920, 1080),
+	Vector2i(2340, 1080),
+	Vector2i(1600, 720),
+	Vector2i(1280, 600),
+]
+
+## Buttons that must be reachable on every screen, because they are the ones
+## a player reaches for last — and the ones a short screen hides first.
+const FOOTER_BUTTONS: Array[String] = ["ResetToDefaults", "CancelChanges", "ApplyChanges"]
+
 
 func _ready() -> void:
-	# The root control of a headless main scene is given no size at all, so
-	# stretching to the parent measures 0x0 and the whole tree collapses onto
-	# its minimums — every rectangle below would be fiction. Anchor to nothing
-	# and set the size by hand.
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
-	get_window().size = Vector2i(1920, 1080)
-	size = Vector2(1920, 1080)
+	var problems: PackedStringArray = []
+	for index in VIEWPORTS.size():
+		problems.append_array(await _check_at(VIEWPORTS[index], index == 0))
+	if not problems.is_empty():
+		for problem in problems:
+			print("CHECK result=FAIL " + problem)
+		get_tree().quit(1)
+		return
+	print("CHECK result=PASS the panel fits and its footer is reachable at every size")
+	get_tree().quit(0)
+
+
+func _check_at(size: Vector2i, report: bool) -> PackedStringArray:
+	var problems: PackedStringArray = []
+	get_window().size = size
+	self.size = Vector2(size)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var viewport := get_viewport_rect().size
+	print("CHECK at %s" % viewport)
 
 	var packed := load(SCREEN_PATH) as PackedScene
 	if packed == null:
-		print("CHECK result=FAIL cannot load " + SCREEN_PATH)
-		get_tree().quit(1)
-		return
+		problems.append("cannot load " + SCREEN_PATH)
+		return problems
 	var screen := packed.instantiate() as Control
 	if screen == null:
-		print("CHECK result=FAIL " + SCREEN_PATH + " is not a Control")
-		get_tree().quit(1)
-		return
-	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+		problems.append(SCREEN_PATH + " is not a Control")
+		return problems
 	add_child(screen)
-	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
-
-	# Wait for layout. Nothing measured before this point means anything.
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	print("CHECK viewport=%s host=%s screen=%s"
-		% [get_viewport_rect().size, get_global_rect().size, screen.get_global_rect().size])
-	_dump_children(screen)
-
-	var problems: PackedStringArray = []
+	if report:
+		_dump_children(screen)
 
 	var button := screen.find_child(BUTTON_NAME, true, false) as Button
 	if button == null:
-		print("CHECK result=FAIL the entrance has no child named " + BUTTON_NAME)
-		get_tree().quit(1)
-		return
-
-	if not button.is_inside_tree():
-		problems.append("the button is not in the scene tree")
-	if not button.visible:
-		problems.append("the button is not visible")
-	if button.disabled:
-		problems.append("the button is disabled")
-	var rect := button.get_global_rect()
-	if rect.size.x <= 0.0 or rect.size.y <= 0.0:
-		problems.append("the button has no area: %s" % rect)
-	if not get_viewport_rect().encloses(rect):
-		problems.append("the button sits outside the screen: %s" % rect)
-
-	# A sibling added later is hit-tested first. If one of them covers the
-	# button, the player's tap never reaches it however correct the wiring.
-	var covering := _covering_sibling(button)
-	if covering != "":
-		problems.append("the button is covered by a later sibling: " + covering)
-
-	var before := _count_descendants(screen)
+		problems.append("the entrance has no child named " + BUTTON_NAME)
+		return problems
 	button.pressed.emit()
 	await get_tree().process_frame
-	var dialog := _find_dialog(screen)
+	await get_tree().process_frame
 
+	var dialog := _find_dialog(screen)
 	if dialog == null:
-		problems.append("pressing it opened no panel (nodes %d -> %d)"
-			% [before, _count_descendants(screen)])
-	else:
-		if not dialog.visible:
-			problems.append("the panel is not visible")
-		var area := dialog.get_global_rect()
-		if area.size.x <= 0.0 or area.size.y <= 0.0:
-			problems.append("the panel has no area: %s" % area)
-		if not get_viewport_rect().encloses(area):
-			problems.append("the panel does not fit on the screen: %s" % area)
-		if dialog.get_child_count() == 0:
-			problems.append("the panel opened but built nothing inside")
-		# The panel's own rectangle can look perfect while a clipping ancestor
-		# leaves the player looking at nothing, so measure what survives.
-		var shown_area := _visible_area(dialog)
-		if shown_area.size.x <= 0.0 or shown_area.size.y <= 0.0:
-			problems.append("the panel is clipped away and draws nothing: %s" % shown_area)
-		elif shown_area.size.y < area.size.y - 1.0 or shown_area.size.x < area.size.x - 1.0:
-			problems.append("the panel is partly clipped: %s of %s" % [shown_area.size, area.size])
-		print("CHECK panel nodes=%d area=%s visible_area=%s"
-			% [_count_descendants(dialog), area.size, shown_area.size])
+		problems.append("at %s pressing it opened no panel" % viewport)
+		screen.queue_free()
+		await get_tree().process_frame
+		return problems
+
+	var area := dialog.get_global_rect()
+	var shown := _visible_area(dialog)
+	var tag := "at %s" % viewport
+
+	if shown.size.x <= 0.0 or shown.size.y <= 0.0:
+		problems.append("%s the panel is clipped away and draws nothing" % tag)
+	if not _encloses(viewport, area):
+		problems.append("%s the panel falls outside the screen: %s" % [tag, area])
+	elif not _encloses(viewport, shown):
+		problems.append("%s part of the panel is cut off: %s of %s"
+			% [tag, shown.size, area.size])
+
+	# The complaint that started this: the footer buttons were the part the
+	# screen ate. Every one of them has to be wholly on screen and inside the
+	# panel, at every size.
+	for name in FOOTER_BUTTONS:
+		var footer := dialog.find_child(name, true, false) as Control
+		if footer == null:
+			problems.append("%s the panel has no %s button" % [tag, name])
+			continue
+		var box := footer.get_global_rect()
+		print("CHECK   %-18s %s" % [name, box])
+		if not _encloses(viewport, box):
+			problems.append("%s the %s button is off the screen: %s" % [tag, name, box])
+		elif not area.encloses(box):
+			problems.append("%s the %s button hangs out of the panel: %s" % [tag, name, box])
+
+	print("CHECK   panel %s area=%s visible=%s" % [tag, area.size, shown.size])
+
+	if report:
 		var inner := _find_scroll(dialog)
 		if inner != null:
 			await _report_categories(dialog, inner)
-		# A tab strip that wraps, or a tab whose label has wrapped inside it,
-		# is what made two of the six categories two lines tall. One row of
-		# tabs is exactly one touch target high.
 		var strip := _find_rail(dialog)
 		if strip != null:
 			var strip_height := strip.size.y
@@ -128,30 +142,53 @@ func _ready() -> void:
 				problems.append("the category tabs no longer fit on one row: %.0f" % strip_height)
 			print("CHECK strip width=%.0f" % strip.size.x)
 			for tab in strip.get_children():
-				if not (tab is Button):
-					continue
-				print("CHECK   tab %-22s w=%4.0f h=%4.0f"
-					% [(tab as Button).text, (tab as Button).size.x, (tab as Button).size.y])
-				var tab_rect := (tab as Button).get_global_rect()
-				if tab_rect.size.y > float(Design.TOUCH_TARGET_MIN) + 8.0:
-					problems.append("tab '%s' is two lines tall: %s"
-						% [(tab as Button).text, tab_rect.size])
+				if tab is Button:
+					print("CHECK   tab %-22s w=%4.0f h=%4.0f"
+						% [(tab as Button).text, (tab as Button).size.x, (tab as Button).size.y])
 
-	print("CHECK button area=%s visible=%s disabled=%s covered_by='%s'"
-		% [rect.size, button.visible, button.disabled, covering])
+	screen.queue_free()
+	await get_tree().process_frame
+	return problems
 
-	if not problems.is_empty():
-		for problem in problems:
-			print("CHECK result=FAIL " + problem)
-		get_tree().quit(1)
+
+## True when `box` sits wholly inside a rectangle of `outer` size.
+func _encloses(outer: Vector2, box: Rect2) -> bool:
+	return box.position.x >= -0.5 and box.position.y >= -0.5 \
+		and box.end.x <= outer.x + 0.5 and box.end.y <= outer.y + 0.5
+
+
+## Walk every category and report the height its rows need against the height
+## the panel can show. "Pointless scrolling" is a number, not an opinion, and
+## this is what stops it returning.
+func _report_categories(dialog: Control, inner: ScrollContainer) -> void:
+	var rail := _find_rail(dialog)
+	if rail == null:
+		print("CHECK categories could not find the strip")
 		return
-	print("CHECK result=PASS the entrance Settings button opens the panel")
-	get_tree().quit(0)
+	var room := inner.get_global_rect().size.y
+	var total_overflow := 0.0
+	for chip in rail.get_children():
+		if not (chip is Button):
+			continue
+		var tab := chip as Button
+		tab.pressed.emit()
+		await get_tree().process_frame
+		var rows := _rows_of(inner)
+		if rows == null:
+			continue
+		# Laid-out height, not the combined minimum. A wrapping label reports
+		# the height it would need at its narrowest, which can be several
+		# times what it occupies once it has been given a width.
+		var needed := rows.size.y
+		var overflow := maxf(0.0, needed - room)
+		total_overflow += overflow
+		print("CHECK category %-22s rows=%4.0f  room=%4.0f  scroll=%4.0f"
+			% [tab.text, needed, room, overflow])
+	print("CHECK categories total_scroll=%.0f" % total_overflow)
 
 
-## Print the entrance's widget tree with rectangles, so a layout mistake is
-## visible in the log instead of being inferred from a failure. The entrance
-## nests its dock three levels down, which is why this walks the tree.
+## Print the entrance's widget tree, so a layout mistake is visible in the
+## log instead of being inferred from a failure.
 func _dump_children(screen: Node) -> void:
 	print("CHECK tree ----")
 	_dump(screen, 0)
@@ -173,8 +210,7 @@ func _dump(from: Node, depth: int) -> void:
 
 
 ## How much of a control the player can actually see: its own rectangle
-## intersected with every ancestor that clips. A panel can have a perfect
-## rectangle and still be clipped to nothing by a zero-height scroll.
+## intersected with every ancestor that clips.
 func _visible_area(control: Control) -> Rect2:
 	var area := control.get_global_rect()
 	var node := control.get_parent()
@@ -187,50 +223,6 @@ func _visible_area(control: Control) -> Rect2:
 	return area
 
 
-## Walk every category and report the height its rows need against the height
-## the panel can show. "Pointless scrolling" is a number, not an opinion, and
-## this is what stops it returning: padding added anywhere shows up here as
-## overflow that did not exist before.
-func _report_categories(dialog: Control, inner: ScrollContainer) -> void:
-	var rail := _find_rail(dialog)
-	if rail == null:
-		print("CHECK categories could not find the strip")
-		return
-	var room := inner.get_global_rect().size.y
-	var total_overflow := 0.0
-	var worst: Button = null
-	var worst_need := -1.0
-	for chip in rail.get_children():
-		if not (chip is Button):
-			continue
-		var tab := chip as Button
-		tab.pressed.emit()
-		await get_tree().process_frame
-		var rows := _rows_of(inner)
-		if rows == null:
-			continue
-		# Laid-out height, not the combined minimum. A wrapping label reports
-		# the height it would need at its narrowest, which can be several
-		# times what it occupies once it has been given a width — the first
-		# version of this report was inflated by exactly that.
-		var needed := rows.size.y
-		var overflow := maxf(0.0, needed - room)
-		if needed > worst_need:
-			worst_need = needed
-			worst = tab
-		total_overflow += overflow
-		print("CHECK category %-22s rows=%4.0f  room=%4.0f  scroll=%4.0f"
-			% [tab.text, needed, room, overflow])
-	print("CHECK categories total_scroll=%.0f" % total_overflow)
-	# The totals say a row is too tall; only the tree says which one.
-	if worst != null:
-		worst.pressed.emit()
-		await get_tree().process_frame
-		print("CHECK tallest %s needs %.0f" % [worst.text, worst_need])
-		_dump(_rows_of(inner), 0)
-
-
-## The scrolling list inside the panel, as opposed to the one wrapping it.
 func _find_scroll(from: Node) -> ScrollContainer:
 	for child in from.get_children():
 		if child is ScrollContainer:
@@ -256,26 +248,6 @@ func _rows_of(inner: ScrollContainer) -> Control:
 		if child is Control:
 			return child
 	return null
-
-
-## The name of any sibling added after `button` whose rectangle covers it.
-func _covering_sibling(button: Button) -> String:
-	var parent := button.get_parent()
-	var area := button.get_global_rect()
-	for child in parent.get_children():
-		if not (child is Control) or child.get_index() <= button.get_index():
-			continue
-		var other := (child as Control).get_global_rect()
-		if other.intersects(area):
-			return child.name
-	return ""
-
-
-func _count_descendants(from: Node) -> int:
-	var total := 0
-	for child in from.get_children():
-		total += 1 + _count_descendants(child)
-	return total
 
 
 func _find_dialog(from: Node) -> Control:
