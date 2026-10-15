@@ -431,7 +431,14 @@ static func show_modal(host: Control, content: Control, width: float = 640.0) ->
 	# it opened, built all its rows, and drew nothing at all, which is
 	# indistinguishable from a button that does not work. Give the scroll the
 	# height the content asked for, and no more than the screen has.
-	var room := maxf(host.get_viewport_rect().size.y - Design.SPACE_XL * 2.0, 240.0)
+	# The panel has to fit the screen it is opened on, which is the host's own
+	# rectangle rather than the window's. On a phone those are the same, but
+	# measuring the window is what let a panel sized for a tall window sit
+	# inside a shorter screen with its footer hanging past the bottom.
+	var host_size := host.size
+	if host_size.y <= 1.0:
+		host_size = host.get_viewport_rect().size
+	var room := maxf(host_size.y - Design.SPACE_XL * 2.0, 240.0)
 	var wanted := content.get_combined_minimum_size().y
 	scroll.custom_minimum_size = Vector2(width, minf(maxf(wanted, 240.0), room))
 

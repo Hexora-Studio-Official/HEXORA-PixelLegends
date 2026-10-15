@@ -63,13 +63,13 @@ func _ready() -> void:
 
 func _check_at(size: Vector2i, report: bool) -> PackedStringArray:
 	var problems: PackedStringArray = []
-	get_window().size = size
+	# The window cannot be made short here — headless clamps its height and
+	# scales the width to match, so four "sizes" all came back 1080 tall. The
+	# screen is resized instead, and since the panel now takes its size from
+	# its host, that is the real relationship being measured.
 	self.size = Vector2(size)
 	await get_tree().process_frame
 	await get_tree().process_frame
-
-	var viewport := get_viewport_rect().size
-	print("CHECK at %s" % viewport)
 
 	var packed := load(SCREEN_PATH) as PackedScene
 	if packed == null:
@@ -82,6 +82,11 @@ func _check_at(size: Vector2i, report: bool) -> PackedStringArray:
 	add_child(screen)
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+	var viewport := screen.size
+	print("CHECK at %s" % viewport)
+	if absf(viewport.y - float(size.y)) > 1.0:
+		problems.append("the screen refused the size it was given: %s not %s" % [viewport, size])
 
 	if report:
 		_dump_children(screen)
