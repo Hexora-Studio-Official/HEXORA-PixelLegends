@@ -139,17 +139,19 @@ func _check_at(size: Vector2i, report: bool) -> PackedStringArray:
 		var inner := _find_scroll(dialog)
 		if inner != null:
 			await _report_categories(dialog, inner)
-		var strip := _find_rail(dialog)
-		if strip != null:
-			var strip_height := strip.size.y
-			print("CHECK tabs height=%.0f expected=%d" % [strip_height, Design.TOUCH_TARGET_MIN])
-			if strip_height > float(Design.TOUCH_TARGET_MIN) + 8.0:
-				problems.append("the category tabs no longer fit on one row: %.0f" % strip_height)
-			print("CHECK strip width=%.0f" % strip.size.x)
-			for tab in strip.get_children():
-				if tab is Button:
-					print("CHECK   tab %-22s w=%4.0f h=%4.0f"
-						% [(tab as Button).text, (tab as Button).size.x, (tab as Button).size.y])
+	# Measured at every size: a strip that wraps on a narrow screen is
+	# exactly the thing that was reported.
+	var strip := _find_rail(dialog)
+	if strip != null:
+		print("CHECK tabs %s height=%.0f width=%.0f expected=%d"
+			% [tag, strip.size.y, strip.size.x, Design.TOUCH_TARGET_MIN])
+		for tab in strip.get_children():
+			if tab is Button:
+				print("CHECK   tab %-22s w=%4.0f h=%4.0f"
+					% [(tab as Button).text, (tab as Button).size.x, (tab as Button).size.y])
+		if strip.size.y > float(Design.TOUCH_TARGET_MIN) + 8.0:
+			problems.append("%s the category tabs take more than one row: %.0f in %.0f"
+				% [tag, strip.size.y, strip.size.x])
 
 	screen.queue_free()
 	await get_tree().process_frame
