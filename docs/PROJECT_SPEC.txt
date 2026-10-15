@@ -4,7 +4,40 @@ Godot 4.4 — 3D 5v5 MOBA
 LIVE IMPLEMENTATION STATUS & AGENT HANDOFF
 ============================================================
 
-Last status check: 2026-10-14
+Last status check: 2026-10-15
+
+Settings panel rework and honest layout verification (2026-10-15): on branch
+arena/6919bc8f-hexora-pixellegends the settings surface was rebuilt. Its six
+categories (General, Graphics, Audio, Accessibility, Network & Resources,
+About) became one row of rounded tabs along the top instead of a side column;
+every button is now at least as wide as its own text; the red reset actions
+share one appearance; and the panel takes its height from the screen it opens
+on rather than from the window. That last point was the defect: a panel
+measured for a tall window was being placed inside a shorter screen, which
+pushed its bottom edge and the Reset / Cancel / Apply buttons out of view.
+
+  The layout check was made trustworthy at the same time. It had measured a
+  single viewport size — the one where everything happened to fit — and
+  reported success while a shorter screen cut the footer off. It now builds
+  the panel at four landscape sizes (1920x1080, 2340x1080, 1600x720,
+  1280x600) and requires the panel, and each of the three footer buttons, to
+  lie wholly on screen and inside the panel at every one. It refuses to trust
+  a size the screen did not actually take, because headless clamps the window
+  height and had quietly turned four "sizes" into one.
+
+  Verified: GitHub Actions run 38663337624, conclusion success. Panel
+  940x800 at 1080 tall, 940x624 at 720, 940x504 at 600, with all three
+  footer buttons inside the panel at each size. Artifact
+  `pixellegends-debug-apk` 40,445,193 bytes, expires 2026-10-29T01:02:54Z.
+
+  Not established, and not hidden: the content inside the categories now
+  measures taller than before this rework — the six categories need 3237 px
+  of scrolling where they needed 1633. Two attempted remedies made it worse
+  and were reverted; the cause is not yet identified.
+
+  None of the above is visually confirmed. Godot cannot be installed in the
+  agent sandbox, so every statement here is geometric measurement or CI
+  output, not a look at the running game.
 
 Rollback verification (2026-10-14): reverted commit 2f63395 ("Correct edge
 alignment and compact battle copy") on arena/3af02759-hexora-pixellegends.
@@ -89,8 +122,12 @@ IMPLEMENTED CLIENT SHELL
   is deferred and not implemented in the current UI.
 - Guest profiles are local, receive a generated name, persist on the device,
   and can be renamed from the hub. No forced profile/operator setup is used.
-- Sign out is reachable from the Account card on the Settings → Game tab. It
-  clears the local guest profile and returns to the entrance.
+- Sign out is reachable from the Account card on the Settings → Game tab of
+  the settings page opened from the hub. It clears the local guest profile
+  and returns to the entrance. There are two settings surfaces and only that
+  one offers it: the settings page from the hub, and the settings panel from
+  the entrance, which stops at preferences and deliberately exposes no
+  account or progression keys.
 - The hub reuses the wide art with subtle motion. Feature destinations remain
   placeholders; they now answer a tap with a short explanation instead of
   doing nothing, because a touch screen shows neither tooltips nor hover.
@@ -101,7 +138,8 @@ IMPLEMENTED CLIENT SHELL
 
 Current implementation touchpoints: `project.godot`, `export_presets.cfg`,
 `src/ui/screens/boot_screen.gd`, `src/ui/screens/main_menu_screen.gd`,
-`src/ui/pages/settings_page.gd`, `src/autoload/router.gd`,
+`src/ui/components/settings_dialog.gd`, `src/ui/pages/settings_page.gd`,
+`src/autoload/router.gd`,
 `src/autoload/auth_service.gd`, `src/autoload/session.gd`,
 `src/core/player_profile.gd`, and `src/i18n/strings_en.gd`. These are
 orientation hints; inspect actual code before changing behavior.
@@ -302,9 +340,10 @@ the legacy retirement and shell improvements above.
 
 NEXT ACTIONS
 
-1. Download `pixellegends-debug-apk` from run 38576982315 and install
-   `PixelLegends-debug.apk` on an Android phone or emulator. It is already
-   built; nothing stands between this and a device test.
+1. Download `pixellegends-debug-apk` from run 38663337624 (40,445,193 bytes,
+   expires 2026-10-29) and install `PixelLegends-debug.apk` on an Android
+   phone or emulator. It is already built; nothing stands between this and a
+   device test.
 2. On the device, verify what the recent changes actually touched and CI cannot
    see — none of this is covered by any check run so far:
    - The screen-edge gap is actually gone, on the user's own handset, and the
@@ -317,10 +356,31 @@ NEXT ACTIONS
      "coming soon" notes on Play and Login With Google; the hub's explore bar
      on a narrow screen (CI never reaches the hub); sign-out from
      Settings → Game; and guest persistence across an app restart.
+   - The settings panel from the entrance, on the user's own handset: that its
+     bottom edge and the Reset / Cancel / Apply buttons are fully visible on a
+     short screen, that the six category tabs stay on one row, and that the
+     categories do not demand more scrolling than they used to. CI measures
+     the first two; the third is a regression with no identified cause and no
+     automated check.
 3. Open the project in Godot 4.4.1 on the developer's machine for anything that
    needs eyes on a real renderer.
 4. Record the results here. Do not advance a phase gate without its test
    evidence. Implement only the next scope explicitly approved by the user.
+
+KNOWN ISSUES (found 2026-10-15, deliberately not fixed in this pass)
+
+- Settings options the build cannot honour are still shown as working
+  toggles. In `src/ui/pages/settings_page.gd`, reached from the hub:
+  "Show ping during matches" (`game/show_ping`) and "Keep screen on"
+  (`game/keep_screen_on`). In `src/ui/components/settings_dialog.gd`,
+  reached from the entrance: the performance-stats toggle (`game/show_fps`)
+  and "Reduce animations" (`game/reduce_animations`). No code reads any of
+  the four; there is no match, no networking and no frame-rate readout to
+  honour them with. This contradicts the standing rule that an option the
+  build cannot honour must not be presented as working. Left in place on
+  purpose: this pass reviews documentation only, and the fix belongs in code
+  with its own test. By contrast `game/notifications` is already shown
+  disabled with an unavailable note, which is the treatment these four need.
 
 KNOWN EXTERNAL / WORKSPACE BLOCKERS
 
@@ -648,6 +708,15 @@ The server must:
 - Validate purchases
 - Validate rewards
 - Validate victory conditions
+- Record match outcomes, and enough per-player data to audit a match after
+  the fact
+
+Recording is listed here, not deferred to a later phase, because it answers a
+question no amount of validation can. Validation rejects what is invalid; it
+cannot notice a player who uses legitimate commands in a way the designer did
+not intend, because to the server that looks like ordinary play. Catching that
+needs a record to look back at, and a record added after release has already
+lost the matches that came before it.
 
 Example launch:
 

@@ -14,7 +14,7 @@
 
 - The formal roadmap is at **Phase 0 — Foundation: in progress, not passed**. The exact status, completed work, blockers, and next steps are maintained in the project spec.
 - The active workstream is the branded entrance and menu shell, local guest profile flow, visual environment, documentation, and validation.
-- **Login As Guest** is the only active sign-in choice. **Play** and **Login With Google** are visible but inactive, and each says so on screen. **Sign out** is available from Settings → Game.
+- **Login As Guest** is the only active sign-in choice. **Play** and **Login With Google** are visible but inactive, and each says so on screen. **Sign out** is available from Settings → Game on the settings page opened **from the hub**; the settings panel opened from the entrance deliberately offers preferences only.
 - No playable 3D match, hero, arena, or MOBA simulation is implemented. Nakama-backed accounts, active MOBA matchmaking, and a dedicated match server are not connected to the current UI.
 - The inherited shooter-era scripts, data and generic service autoloads were retired on 2026-10-14 (30 files removed, and the survivors trimmed). What is left in `src/` is the PixelLegends client shell only. Room, matchmaking, friends and Google sign-in remain unbuilt — the old stand-ins are gone rather than waiting to be mistaken for them.
 
