@@ -4,6 +4,19 @@ extends HexScreen
 ## device settings panel have behaviour in this phase.
 
 const BACKGROUND_PATH := "res://assets/Pixel Legends_ 5v5 Fantasy Showdown.png"
+## Below this width the explore rail stops being a side rail and becomes a bar
+## under the top bar, instead of disappearing.
+const RAIL_WIDE_MIN := 1040.0
+const RAIL_NARROW_TOP := 148.0
+const RAIL_NARROW_MIN_HEIGHT := 96.0
+## Height of one nav chip. Mirrored in the layout maths so the rail can work
+## out how tall two rows are.
+const NAV_BUTTON_HEIGHT := 58.0
+## Wide enough (minus margins) to carry all four destinations on one row.
+const NAV_ROW_WIDE_MIN := 620.0
+## Height of the bottom battle dock, mirrored here so the rail can be clamped
+## against it instead of guessing.
+const BATTLE_DOCK_HEIGHT := 150.0
 
 const NAV_ITEMS: Array[Dictionary] = [
 	{"text": &"home.modes", "icon": &"play"},
@@ -15,6 +28,7 @@ const NAV_ITEMS: Array[Dictionary] = [
 var _background: TextureRect
 var _background_shade: ColorRect
 var _top_bar: HBoxContainer
+var _atmosphere: Atmosphere
 var _profile_card: PanelContainer
 var _build_tag: PanelContainer
 var _settings_button: Button
@@ -25,6 +39,10 @@ var _battle_row: HBoxContainer
 var _battle_emblem: HexIcon
 var _battle_soon: Label
 var _battle_play: Button
+## How the rail is currently built; -1 means "not built yet".
+var _rail_signature_built: int = -1
+## Rows the narrow rail wrapped into, used to size it without guessing.
+var _rail_rows: int = 1
 var _edit_name_button: Button
 var _name_label: Label
 var _account_label: Label
@@ -50,10 +68,17 @@ func build() -> void:
 	if _background_shade == null or not is_instance_valid(_background_shade):
 		_background_shade = ColorRect.new()
 		_background_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-		_background_shade.color = Color(0.025, 0.045, 0.10, 0.1)
+		_background_shade.color = Color(0.012, 0.03, 0.062, 0.18)
 		_background_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_background_shade.z_index = -1
 		add_child(_background_shade)
+
+	if _atmosphere == null or not is_instance_valid(_atmosphere):
+		_atmosphere = Atmosphere.new()
+		_atmosphere.name = "Atmosphere"
+		# Above the artwork and its shade, below every control in `content`.
+		_atmosphere.z_index = -1
+		add_child(_atmosphere)
 
 	_build_top_bar()
 	_build_left_rail()
@@ -65,24 +90,15 @@ func build() -> void:
 
 func _ready() -> void:
 	super._ready()
-	_animate_background()
-
-
-func _animate_background() -> void:
-	if _background == null:
-		return
-	_background.pivot_offset = get_viewport_rect().size * 0.5
-	var tween := create_tween().set_loops()
-	tween.tween_property(_background, "scale", Vector2(1.028, 1.028), 19.0) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(_background, "scale", Vector2.ONE, 19.0) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# The artwork used to breathe here: an endless 1.0 → 1.028 scale loop.
+	# Scaling a full-bleed texture by a fraction of a percent makes the pixel
+	# grid shimmer, so the art read as trembling rather than as moving. The
+	# artwork now stays perfectly still and `Atmosphere` puts living light in
+	# front of it instead.
 
 
 func on_screen_resized() -> void:
 	_layout_menu()
-	if _background != null:
-		_background.pivot_offset = get_viewport_rect().size * 0.5
 
 
 func _build_top_bar() -> void:
@@ -152,13 +168,40 @@ func _build_profile_card() -> PanelContainer:
 	return _profile_card
 
 
-func _build_left_rail() -> void:
-	_left_rail = UiKit.panel(&"EntranceDockPanel")
-	_left_rail.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_left_rail.offset_left = 0.0
-	_left_rail.offset_top = 0.0
-	content.add_child(_left_rail)
+## Placeholder destinations announce themselves instead of silently ignoring a
+## tap. On a touch screen there is no tooltip and no hover state, so a button
+## that does nothing is indistinguishable from a broken one; and the whole hub
+## is placeholders right now, so silence would be the normal case.
+func _on_placeholder_pressed() -> void:
+	EventBus.toast_requested.emit(Loc.t(&"home.feature_note"), &"info")
 
+
+## The explore rail, vertical on wide screens and horizontal on narrow ones.
+##
+## It used to be hidden outright below 1040px. That is every phone in portrait,
+## so the navigation of a mobile-first game simply disappeared on the platform
+## it targets. Reflowing it into a compact bar keeps the destinations visible
+## without shrinking their tap targets.
+func _build_left_rail() -> void:
+	if _left_rail == null:
+		_left_rail = UiKit.panel(&"EntranceDockPanel")
+		_left_rail.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		content.add_child(_left_rail)
+
+	# Rebuilt when the arrangement changes, so drop the previous one.
+	for child in _left_rail.get_children():
+		_left_rail.remove_child(child)
+		child.queue_free()
+
+	_rail_rows = 1
+	if _rail_is_wide():
+		_build_rail_column()
+	else:
+		_build_rail_rows()
+
+
+## Wide layout: a vertical side rail with its heading and note.
+func _build_rail_column() -> void:
 	var column := UiKit.vbox(Design.SPACE_SM)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_left_rail.add_child(column)
@@ -169,18 +212,61 @@ func _build_left_rail() -> void:
 	column.add_child(UiKit.divider(Color(0.72, 0.9, 1.0, 0.28), 1))
 
 	for entry: Dictionary in NAV_ITEMS:
-		var button := UiKit.button(Loc.t(entry["text"]), &"GlassNavButton", entry["icon"])
-		button.custom_minimum_size = Vector2(0, 58)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		UiKit.on_hover(button)
-		# Intentionally no pressed callback: these feature destinations are
-		# visual placeholders until they are approved and activated individually.
-		column.add_child(button)
+		column.add_child(_make_nav_button(entry, false))
 
 	column.add_child(UiKit.spacer())
 	var note := UiKit.paragraph(Loc.t(&"home.feature_note"), 230.0, &"CaptionLabel")
 	note.add_theme_color_override("font_color", Design.TEXT_DIM)
 	column.add_child(note)
+
+
+## Narrow layout: the destinations become one or two rows of equal chips
+## across the full width. Squeezing all four into a single row on a phone
+## would give each of them about 78px, which is narrower than a thumb and
+## turns "COLLECTION" into an ellipsis.
+func _build_rail_rows() -> void:
+	var column := UiKit.vbox(Design.SPACE_SM)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_left_rail.add_child(column)
+
+	var per_row := 4 if get_viewport_rect().size.x >= NAV_ROW_WIDE_MIN else 2
+	_rail_rows = maxi(1, int(ceili(float(NAV_ITEMS.size()) / float(per_row))))
+	var row_box: HBoxContainer = null
+	for index in NAV_ITEMS.size():
+		if index % per_row == 0:
+			row_box = UiKit.hbox(Design.SPACE_SM)
+			row_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			column.add_child(row_box)
+		row_box.add_child(_make_nav_button(NAV_ITEMS[index], true))
+
+
+func _make_nav_button(entry: Dictionary, clip_label: bool) -> Button:
+	var button := UiKit.button(Loc.t(entry["text"]), &"GlassNavButton", entry["icon"])
+	button.custom_minimum_size = Vector2(0, NAV_BUTTON_HEIGHT)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiKit.on_hover(button)
+	UiKit.on_press(button, _on_placeholder_pressed, "click")
+	if clip_label:
+		# The inner label is only clipped in the narrow layout: a chip that is
+		# told to shrink has to be allowed to shorten its own text instead of
+		# pushing its neighbours out of the row.
+		var text_label := UiKit.label_text(button)
+		if text_label != null:
+			text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			text_label.clip_text = true
+			text_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	return button
+
+
+func _rail_is_wide() -> bool:
+	return get_viewport_rect().size.x >= RAIL_WIDE_MIN
+
+
+## Changes whenever the rail needs rebuilding: side rail, one row, or two.
+func _rail_signature() -> int:
+	if _rail_is_wide():
+		return 2
+	return 1 if get_viewport_rect().size.x >= NAV_ROW_WIDE_MIN else 0
 
 
 func _build_spotlight() -> void:
@@ -217,6 +303,7 @@ func _build_spotlight() -> void:
 	heroes.custom_minimum_size = Vector2(0, 54)
 	heroes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiKit.on_hover(heroes)
+	UiKit.on_press(heroes, _on_placeholder_pressed, "click")
 	column.add_child(heroes)
 
 
@@ -257,7 +344,9 @@ func _build_battle_dock() -> void:
 	_battle_play.custom_minimum_size = Vector2(250, 72)
 	_battle_play.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	UiKit.on_hover(_battle_play)
-	# Deliberately has no pressed callback in the visual-only milestone.
+	# No match to start in this milestone, but the button still answers a tap:
+	# it explains what is missing instead of pretending the press never landed.
+	UiKit.on_press(_battle_play, _on_placeholder_pressed, "confirm")
 	_battle_row.add_child(_battle_play)
 
 
@@ -292,13 +381,29 @@ func _layout_menu() -> void:
 	if _settings_button != null:
 		_settings_button.custom_minimum_size = Vector2(58.0, 58.0)
 
-	var compact := viewport.x < 1040.0
+	# Rebuild the rail only when its arrangement actually changes, not on every
+	# resize tick — rebuilding throws away perfectly good buttons.
+	var rail_wide := _rail_is_wide()
 	if _left_rail != null:
-		_left_rail.visible = viewport.x >= 1040.0
+		if _rail_signature() != _rail_signature_built:
+			_rail_signature_built = _rail_signature()
+			_build_left_rail()
+		_left_rail.visible = true
 		_left_rail.offset_left = Design.SPACE_MD
-		_left_rail.offset_top = 148.0
-		_left_rail.offset_right = 284.0 if not compact else 244.0
-		_left_rail.offset_bottom = maxf(520.0, viewport.y - 192.0)
+		_left_rail.offset_top = RAIL_NARROW_TOP
+		if rail_wide:
+			_left_rail.offset_right = 284.0
+			_left_rail.offset_bottom = maxf(520.0, viewport.y - 192.0)
+		else:
+			# Full-width bar. The panel reports the height of a single row, so
+			# the extra rows it wrapped into are added here — otherwise a
+			# two-row rail would be measured as one and clip the second row.
+			_left_rail.offset_right = viewport.x - Design.SPACE_MD
+			var extra_rows := float(maxi(0, _rail_rows - 1))
+			_left_rail.offset_bottom = RAIL_NARROW_TOP + maxf(
+				RAIL_NARROW_MIN_HEIGHT,
+				_left_rail.get_combined_minimum_size().y
+				+ extra_rows * (NAV_BUTTON_HEIGHT + Design.SPACE_SM))
 	if _spotlight != null:
 		_spotlight.visible = viewport.x >= 1380.0
 		_spotlight.anchor_left = 1.0
@@ -325,6 +430,18 @@ func _layout_menu() -> void:
 		else:
 			_battle_dock.offset_left = 304.0
 			_battle_dock.offset_right = -368.0
+
+	# On a narrow screen the rail sits above the battle dock. Stop it from
+	# sliding underneath: the bar ends where the dock begins, and if a landscape
+	# phone leaves no room for even that, the dock — the only action on this
+	# screen that does anything — keeps its place and the rail steps aside.
+	if _left_rail != null and not rail_wide:
+		var dock_top := viewport.y - BATTLE_DOCK_HEIGHT - Design.SPACE_SM
+		if dock_top <= RAIL_NARROW_TOP + RAIL_NARROW_MIN_HEIGHT * 0.5:
+			_left_rail.visible = false
+		else:
+			_left_rail.offset_bottom = minf(_left_rail.offset_bottom, dock_top)
+
 	if _battle_row != null:
 		var narrow := viewport.x < 760.0
 		_battle_row.add_theme_constant_override(

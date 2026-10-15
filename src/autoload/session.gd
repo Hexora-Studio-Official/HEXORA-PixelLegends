@@ -113,35 +113,6 @@ func add_currency(credits: int = 0, cores: int = 0) -> void:
 	EventBus.profile_changed.emit(profile)
 
 
-## Legacy match-result aggregation. No current PixelLegends MOBA match scene
-## calls this; fields such as headshots belong to the earlier prototype. Future
-## MOBA results must use server-authoritative data per docs/PROJECT_SPEC.txt.
-func record_match(summary: Dictionary) -> void:
-	if profile == null:
-		return
-	var won := bool(summary.get("won", false))
-	profile.matches_played += 1
-	if won:
-		profile.matches_won += 1
-		profile.current_win_streak += 1
-		profile.longest_win_streak = maxi(profile.longest_win_streak, profile.current_win_streak)
-	else:
-		profile.current_win_streak = 0
-	profile.kills += int(summary.get("kills", 0))
-	profile.deaths += int(summary.get("deaths", 0))
-	profile.headshots += int(summary.get("headshots", 0))
-	profile.damage_dealt += int(summary.get("damage", 0))
-	profile.playtime_seconds += int(summary.get("duration", 0))
-
-	var ranked := bool(summary.get("ranked", false))
-	if ranked:
-		var delta := int(summary.get("rank_delta", 0))
-		profile.rank_points = maxi(0, profile.rank_points + delta)
-
-	_save_local()
-	EventBus.profile_changed.emit(profile)
-
-
 # --------------------------------------------------------------- persistence
 
 func _save_local() -> void:

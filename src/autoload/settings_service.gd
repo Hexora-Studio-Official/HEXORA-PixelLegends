@@ -68,18 +68,22 @@ func _build_defaults() -> Dictionary:
 	var preset := 0 if tier == DeviceTier.LOW else (1 if tier == DeviceTier.MEDIUM else 2)
 	return {
 		# ------------------------------------------------------------ game
-		"game/language": "en",
-		"game/region": GameTypes.Region.AUTO,
 		"game/show_ping": true,
 		"game/show_fps": false,
 		"game/vibration": true,
-		"game/allow_party_invites": true,
-		"game/auto_requeue": false,
 		"game/keep_screen_on": true,
 		"game/streamer_mode": false,
 		"game/terms_version": 1,
 		"game/tutorial_complete": false,
 		"game/first_run_complete": false,
+		# PixelLegends ships English only (see src/autoload/loc.gd). There is
+		# deliberately no "auto-detect", "text language" or "voice language"
+		# key: with one locale they could only be decoration, and the spec
+		# rules out showing options the build cannot honour.
+		"game/remember_settings": true,
+		"game/reduce_animations": false,
+		"game/notifications": true,
+		"game/confirm_exit": true,
 
 		# -------------------------------------------------------- graphics
 		"graphics/quality_preset": preset,
@@ -95,6 +99,7 @@ func _build_defaults() -> Dictionary:
 		"graphics/ragdolls": tier != DeviceTier.LOW,
 		"graphics/hud_scale": 1.0,
 		"graphics/effects_quality": preset,
+		"graphics/battery_saver": tier == DeviceTier.LOW,
 
 		# ----------------------------------------------------------- audio
 		# Linear 0..1. Design keeps these on the buses' initial values so that
@@ -107,44 +112,25 @@ func _build_defaults() -> Dictionary:
 		"audio/mic_enabled": false,
 		"audio/push_to_talk": true,
 		"audio/mute_in_background": true,
+		"audio/mute_all": false,
 
-		# -------------------------------------------------------- controls
-		"controls/preset": 0,                 # touch2 | touch3 | gamepad | kbm
-		"controls/sensitivity": 0.55,
-		"controls/ads_sensitivity": 0.75,     # multiplier of the above
-		"controls/invert_y": false,
-		"controls/auto_sprint": true,
-		"controls/tap_to_fire": false,
-		"controls/left_handed": false,
-		"controls/gyro_enabled": false,
-		"controls/gyro_strength": 0.35,
-		"controls/button_scale": 1.0,
-		"controls/button_opacity": 0.85,
-		"controls/hud_layout": {},            # control name -> Vector2 offset
-		"controls/gamepad_deadzone": 0.18,
+		# --------------------------------------------------- accessibility
+		"accessibility/ui_scale": 1.0,
+		"accessibility/text_size": 1,          # 0 small | 1 normal | 2 large
+		"accessibility/high_contrast": false,
+		"accessibility/colorblind_mode": 0,    # 0 off | 1 protan | 2 deutan | 3 tritan
+		"accessibility/reduce_shake": false,
+		"accessibility/reduce_flashing": false,
+		"accessibility/subtitles": false,
+		"accessibility/subtitle_size": 1,      # 0 small | 1 medium | 2 large
 
-		# ------------------------------------------------------------- net
-		# Both of these are about what happens when there are not enough humans.
-		# The defaults follow what the game actually wants (a small room should
-		# still be playable); a player who would rather wait than play with bots
-		# can turn them off.
-		"net/allow_bots": true,
-		"net/bot_difficulty": 1,
+		# --------------------------------------------------------- network
+		# Local preferences only. Nothing here talks to a server: the client
+		# has no backend yet, so the panel shows connection state it can
+		# actually measure and hides what it cannot.
+		"network/wifi_only": true,
+		"network/auto_download": true,
 
-		# ----------------------------------------------------- developer
-		# Empty by default: an unconfigured build stays fully offline and never
-		# phones home during a review or a demo.
-		"dev/api_base_url": "",
-		"dev/google_client_id": "",
-		# Google hands every installed/desktop OAuth client a "secret" and its
-		# token endpoint refuses the exchange without one. It is not a real
-		# secret (it ships inside every copy of the app) which is exactly why
-		# PKCE exists; we still let the developer paste it here so the login
-		# works on whatever client type their console project uses.
-		"dev/google_client_secret": "",
-		"dev/simulated_latency_ms": 0,
-		"dev/seed_mock_data": true,
-		"dev/verbose_net_log": false,
 	}
 
 
@@ -252,6 +238,8 @@ func _apply_section(section: StringName) -> void:
 		&"audio": apply_audio()
 		&"graphics": apply_graphics()
 		&"game": apply_game()
+		&"accessibility": apply_accessibility()
+		&"network": apply_network()
 
 
 func reset_all() -> void:
@@ -342,11 +330,17 @@ func apply_all() -> void:
 	apply_audio()
 	apply_graphics()
 	apply_game()
+	apply_accessibility()
 	if Loc.locale() != get_string("game/language"):
 		Loc.set_locale(get_string("game/language"), false)
 
 
 func apply_audio() -> void:
+	# Muting the Master bus is the one switch that silences everything at
+	# once, including music the player started before opening Settings.
+	var master_index := AudioServer.get_bus_index("Master")
+	if master_index >= 0:
+		AudioServer.set_bus_mute(master_index, get_bool("audio/mute_all"))
 	for entry in [
 		{"key": "audio/master", "bus": "Master"},
 		{"key": "audio/music", "bus": "Music"},
@@ -446,5 +440,19 @@ func supports_advanced_effects() -> bool:
 	return _device_tier != DeviceTier.LOW
 
 
-func is_online_mode_enabled() -> bool:
-	return not get_string("dev/api_base_url").is_empty()
+## Text size is the one accessibility option with a real, visible effect
+## today: it rebuilds the theme's type ramp. The others are stored so a
+## future gameplay phase can read them, and the panel says so rather than
+## pretending they already do something.
+func apply_accessibility() -> void:
+	var sizes := [0.88, 1.0, 1.18]
+	var index := clampi(get_int("accessibility/text_size", 1), 0, sizes.size() - 1)
+	if Design != null:
+		Design.set_text_scale(sizes[index])
+
+
+## Nothing here talks to a server. These are local preferences about how
+## content may be fetched once there is content to fetch; the panel shows
+## connection state it can actually observe and hides what it cannot.
+func apply_network() -> void:
+	pass

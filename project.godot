@@ -15,7 +15,7 @@ config_version=5
 config/name="PixelLegends"
 config/description="PixelLegends is an original pixel-art 5v5 MOBA. This Godot 4.4 project is currently focused on its visual client shell and product documentation; gameplay and server features are planned, not implemented."
 config/version="0.1.0"
-run/main_scene="res://src/ui/screens/boot_screen.tscn"
+run/main_scene="res://src/ui/screens/splash_screen.tscn"
 config/features=PackedStringArray("4.4", "Mobile")
 config/icon="res://assets/Pixel Legends_ 5v5 Showdown.png"
 config/quit_on_go_back=false
@@ -31,12 +31,17 @@ buses/default_bus_layout="res://default_bus_layout.tres"
 [autoload]
 
 ; Load order matters: each service may only depend on services above it.
-; This list retains services from the earlier prototype as well as shell needs.
-; EventBus, Settings, Loc, Design, Controls, Session, Audio, Toasts, and Router
-; support the current client shell. Auth supports local Guest entry; its
-; online/Google path is inactive. Api is generic legacy scaffolding. Friends,
-; Rooms, and Matchmaking are legacy services, not active MOBA menu features.
-; The future backend and match architecture is defined in docs/PROJECT_SPEC.txt.
+;
+; Every entry below serves the current PixelLegends client shell. The earlier
+; shooter-era services (a generic HTTP API client, friends, LAN/online rooms
+; and matchmaking) were removed rather than left dormant: they described a
+; different game, and docs/PROJECT_SPEC.txt defines the backend and match
+; architecture that a future approved phase must build instead.
+;
+; Controls is the input/touch-feedback service for the shell; it is not an
+; approved MOBA control scheme.
+; Auth supports local Guest entry only. It is not Nakama authentication, and
+; the Google path is not implemented.
 EventBus="*res://src/autoload/event_bus.gd"
 Settings="*res://src/autoload/settings_service.gd"
 Loc="*res://src/autoload/loc.gd"
@@ -44,11 +49,7 @@ Design="*res://src/autoload/design.gd"
 Controls="*res://src/autoload/controls.gd"
 Session="*res://src/autoload/session.gd"
 Audio="*res://src/autoload/audio_service.gd"
-Api="*res://src/autoload/api_client.gd"
 Auth="*res://src/autoload/auth_service.gd"
-Friends="*res://src/autoload/friends_service.gd"
-Rooms="*res://src/autoload/room_service.gd"
-Matchmaking="*res://src/autoload/matchmaking.gd"
 Toasts="*res://src/autoload/toasts.gd"
 Router="*res://src/autoload/router.gd"
 
@@ -79,7 +80,6 @@ folder_colors={
 "res://docs/": "gray",
 "res://src/autoload/": "green",
 "res://src/core/": "purple",
-"res://src/net/": "blue",
 "res://src/ui/": "yellow",
 "res://tools/": "gray"
 }

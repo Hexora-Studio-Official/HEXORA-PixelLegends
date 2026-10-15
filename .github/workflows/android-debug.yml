@@ -5,6 +5,7 @@ on:
     branches:
       - arena/22d75a58-hexora-pixelfield
       - arena/3af02759-hexora-pixellegends
+      - arena/6919bc8f-hexora-pixellegends
     paths-ignore:
       - "**.md"
       - "docs/**"
@@ -109,6 +110,25 @@ jobs:
           }
           run_logged "Godot editor import" editor-import godot --headless --path . --editor --quit
           run_logged "Headless client boot" headless-boot godot --headless --path . --quit-after 10
+
+      - name: Check the entrance Settings button opens the panel
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$RUNNER_TEMP/godot-ui-check.log"
+          status=0
+          godot --headless --path . --resolution 1920x1080 res://tests/ui_check.tscn >"$log_file" 2>&1 || status=$?
+          cat "$log_file"
+          # Publish the measurements whether or not the check passed. They are
+          # the point of running it, and a green build would otherwise hide
+          # them — which is how a layout quietly grows empty space.
+          report="$(grep -E '^CHECK[[:space:]]+(at|chrome|panel|tabs|strip|tab|category|categories|button|result|Reset|Cancel|Apply)' "$log_file" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+          echo "::notice file=tests/ui_check.gd,line=1,title=Entrance Settings measurements::${report}"
+          if [ "$status" -ne 0 ]; then
+            diagnostics="$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$log_file")"
+            echo "::error file=tests/headless_ui_check.gd,line=1,title=Entrance Settings check::${diagnostics}"
+            exit "$status"
+          fi
 
       - name: Export Android debug APK
         shell: bash

@@ -226,7 +226,27 @@ static func button(
 	inner.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(inner)
 	node.set_meta(META_LABEL, inner)
+	# Reserve the width the words need. Without it the button collapses to
+	# its icon slot in any layout that gives a child only what it asks for,
+	# which is how "Reset to Defaults" came to show only "res".
+	node.custom_minimum_size.x = text_width(text) + float(Design.SPACE_XL * 2) \
+		+ (float(Design.SPACE_SM + 20) if icon_kind != &"" else 0.0)
 	return node
+
+
+## How wide `text` is in the UI face at the size `base` is drawn at.
+##
+## A Button is sized from its own `text` property, and the buttons made here
+## keep their words in a child label instead — so on their own they report
+## the width of an empty string and collapse to the icon slot, wrapping the
+## label into a narrow column. Anything that needs to know how wide a button
+## wants to be has to ask this.
+static func text_width(text: String, base: int = Design.FONT_BODY) -> float:
+	if Design.font_label == null:
+		return float(text.length()) * float(base) * 0.6
+	return Design.font_label.get_string_size(
+		text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+		int(round(float(base) * Design.text_scale))).x
 
 
 static func _button_text_color(variation: StringName) -> Color:
@@ -259,80 +279,6 @@ static func icon_button(kind: StringName, color: Color = Design.TEXT_MUTED,
 	return node
 
 
-## Large selectable tile describing one game mode. The visual language lives
-## here so the mode picker, the room browser and the lobby all agree on what a
-## ruleset looks like.
-static func mode_card(mode: GameMode, selected: bool = false,
-		on_toggle: Callable = Callable(), stacked: bool = false) -> Button:
-	var node := Button.new()
-	node.theme_type_variation = &"CardButtonActive" if selected else &"CardButton"
-	node.mouse_filter = Control.MOUSE_FILTER_PASS
-	node.custom_minimum_size = Vector2(0, 88 if not stacked else 108)
-	node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	node.focus_mode = Control.FOCUS_NONE
-	node.tooltip_text = Loc.t(mode.rules_key)
-
-	var row: BoxContainer = vbox(Design.SPACE_SM) if stacked else hbox(Design.SPACE_SM)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	node.add_child(row)
-
-	var icon := HexIcon.make(mode.icon_kind, mode.accent, 28.0, 2.0, mode.accent)
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	row.add_child(icon)
-
-	var column := vbox(Design.SPACE_XXS)
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_child(column)
-
-	var title := label(Loc.t(mode.title_key), &"SectionLabel")
-	title.custom_minimum_size.x = 0.0
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.clip_text = true
-	if stacked:
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(title)
-
-	var details := mode.format_tag()
-	if mode.ranked:
-		details += " · " + Loc.t(&"play.ranked").to_upper()
-	if not mode.supports_lan:
-		details += " · " + Loc.t(&"common.online").to_upper()
-	var summary := label(details, &"CaptionLabel")
-	summary.custom_minimum_size.x = 0.0
-	summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	summary.clip_text = true
-	if stacked:
-		summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	summary.add_theme_color_override("font_color", Design.TEXT_MUTED)
-	summary.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(summary)
-
-	node.set_meta(META_LABEL, title)
-	node.set_meta(META_ICON, icon)
-	node.set_meta(&"accent", mode.accent)
-	if on_toggle.is_valid():
-		node.pressed.connect(func() -> void: on_toggle.call(mode.id))
-	return node
-
-## Restyle a mode card in place. Cheaper and less flickery than rebuilding the
-## whole grid every time a mode is toggled.
-static func set_card_active(node: Button, active: bool) -> void:
-	node.theme_type_variation = &"CardButtonActive" if active else &"CardButton"
-	var accent := node.get_meta(&"accent", Design.ACCENT) as Color
-	var icon := node.get_meta(META_ICON, null) as HexIcon
-	if icon != null:
-		icon.accent = accent
-	var title := label_text(node)
-	if title != null:
-		title.add_theme_color_override("font_color", Design.ACCENT_HI if active else Design.TEXT)
-
-
-## Selectable chip, used for modes, regions and filters.
 static func chip(
 		text: String, active: bool = false, icon_kind: StringName = &"", compact: bool = false
 ) -> Button:
@@ -356,7 +302,11 @@ static func chip(
 		node = button(text, variation, icon_kind)
 	node.set_meta(META_CHIP_INACTIVE, inactive_variation)
 	node.set_meta(META_CHIP_ACTIVE, active_variation)
-	node.custom_minimum_size = Vector2(0, 56)
+	# Compact chips sit in tight grids that give them their width, so they are
+	# left alone; the rest are sized to their words for the same reason the
+	# buttons above are.
+	node.custom_minimum_size = Vector2(
+		0.0 if compact else text_width(text, Design.FONT_SMALL) + float(Design.SPACE_XL * 2), 56)
 	return node
 
 
@@ -471,11 +421,27 @@ static func show_modal(host: Control, content: Control, width: float = 640.0) ->
 	layer.add_child(centre)
 
 	var scroll := scroll()
-	scroll.custom_minimum_size = Vector2(width, 0)
 	centre.add_child(scroll)
 	scroll.add_child(content)
-
 	host.add_child(layer)
+
+	# A ScrollContainer is only as tall as it is told to be, and a
+	# CenterContainer hands a child exactly its minimum size. Left at zero,
+	# the panel kept a healthy rectangle and was still clipped to nothing:
+	# it opened, built all its rows, and drew nothing at all, which is
+	# indistinguishable from a button that does not work. Give the scroll the
+	# height the content asked for, and no more than the screen has.
+	# The panel has to fit the screen it is opened on, which is the host's own
+	# rectangle rather than the window's. On a phone those are the same, but
+	# measuring the window is what let a panel sized for a tall window sit
+	# inside a shorter screen with its footer hanging past the bottom.
+	var host_size := host.size
+	if host_size.y <= 1.0:
+		host_size = host.get_viewport_rect().size
+	var room := maxf(host_size.y - Design.SPACE_XL * 2.0, 240.0)
+	var wanted := content.get_combined_minimum_size().y
+	scroll.custom_minimum_size = Vector2(width, minf(maxf(wanted, 240.0), room))
+
 	Audio.play_ui("whoosh", 1.15, -4.0)
 
 	layer.modulate.a = 0.0
@@ -538,5 +504,3 @@ static func copy_to_clipboard(text: String, label: String = "") -> void:
 	)
 
 
-static func accent_for_mode(mode_id: StringName) -> Color:
-	return Design.mode_accent(mode_id)

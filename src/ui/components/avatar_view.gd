@@ -7,9 +7,11 @@ extends Control
 ## placeholder (which reads as "broken"), we generate something deterministic:
 ## the same account always gets the same colour and shape on every device.
 
+## Drawn from the master palette so a generated avatar never introduces a hue
+## the rest of the interface does not use.
 const PALETTE: Array[Color] = [
-	Color("ffd22a"), Color("49bdff"), Color("83d43d"), Color("ff9f28"),
-	Color("f4513c"), Color("42b7ff"), Color("d0e85a"), Color("ff6c31"),
+	Color("ffc93c"), Color("38e0ff"), Color("4ade80"), Color("ff9f43"),
+	Color("ff4d5e"), Color("2fd4ff"), Color("a3e635"), Color("ff7a45"),
 ]
 
 var initials: String = "??":
