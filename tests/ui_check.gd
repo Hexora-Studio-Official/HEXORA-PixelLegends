@@ -161,8 +161,13 @@ func _check_at(size: Vector2i, report: bool) -> PackedStringArray:
 				first_y = box.position.y
 			elif absf(box.position.y - first_y) > 4.0:
 				problems.append("%s tab '%s' wrapped onto a second row" % [tag, label])
-			if box.size.y > float(Design.TOUCH_TARGET_MIN) + 8.0:
-				problems.append("%s tab '%s' is two lines tall: %s" % [tag, label, box.size])
+			# Wrapped text cannot be told from a simply tall button by
+			# height alone. The reliable test is whether the tab is wide
+			# enough for the words it carries.
+			var wanted := UiKit.text_width(label, Design.FONT_SMALL)
+			if box.size.x < wanted - 1.0:
+				problems.append("%s tab '%s' is too narrow for its text: %.0f < %.0f"
+					% [tag, label, box.size.x, wanted])
 
 	screen.queue_free()
 	await get_tree().process_frame

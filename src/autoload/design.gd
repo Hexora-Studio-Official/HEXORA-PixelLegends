@@ -433,22 +433,22 @@ func _add_buttons(built: Theme) -> void:
 		var tab_text := ACCENT_HI if tab_on else TEXT_MUTED
 		built.set_type_variation(tab_name, &"Button")
 		built.set_stylebox(&"normal", tab_name,
-			_glass_box(tab_fill, tab_edge, TAB_RADIUS, 18, 12, 0))
+			_glass_box(tab_fill, tab_edge, TAB_RADIUS, 18, 8, 0))
 		built.set_stylebox(&"hover", tab_name,
-			_glass_box(GLASS_HOVER, GLASS_EDGE_HI, TAB_RADIUS, 18, 12, 6))
+			_glass_box(GLASS_HOVER, GLASS_EDGE_HI, TAB_RADIUS, 18, 8, 6))
 		built.set_stylebox(&"pressed", tab_name,
-			_glass_box(GLASS_PRESSED, tab_edge, TAB_RADIUS, 18, 12, 2))
+			_glass_box(GLASS_PRESSED, tab_edge, TAB_RADIUS, 18, 8, 2))
 		built.set_stylebox(&"focus", tab_name,
-			_glass_box(tab_fill, TEAL, TAB_RADIUS, 18, 12, 6))
+			_glass_box(tab_fill, TEAL, TAB_RADIUS, 18, 8, 6))
 		built.set_stylebox(&"disabled", tab_name,
-			_glass_box(GLASS_DISABLED, GLASS_DISABLED_EDGE, TAB_RADIUS, 18, 12, 0))
+			_glass_box(GLASS_DISABLED, GLASS_DISABLED_EDGE, TAB_RADIUS, 18, 8, 0))
 		built.set_color(&"font_color", tab_name, tab_text)
 		built.set_color(&"font_hover_color", tab_name, ACCENT_HI)
 		built.set_color(&"font_pressed_color", tab_name, TEXT)
 		built.set_color(&"font_focus_color", tab_name, tab_text)
 		built.set_color(&"font_disabled_color", tab_name, TEXT_DIM)
 		built.set_font(&"font", tab_name, font_label)
-		built.set_font_size(&"font_size", tab_name, _scaled(FONT_BODY))
+		built.set_font_size(&"font_size", tab_name, _scaled(FONT_SMALL))
 		built.set_constant(&"h_separation", tab_name, SPACE_SM)
 		built.set_constant(&"outline_size", tab_name, 0)
 	# Nav rail entries are registered by hand rather than through
