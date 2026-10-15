@@ -620,7 +620,7 @@ func _stacked_row(label_key: StringName, control: Control, hint_key: StringName 
 
 
 func _row(label_key: StringName, control: Control, hint_key: StringName = &"",
-		disabled: bool = false) -> Control:
+		disabled: bool = false) -> HBoxContainer:
 	var row := UiKit.hbox(Design.SPACE_LG)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	var text_block := UiKit.vbox(Design.SPACE_XXS)
@@ -631,16 +631,9 @@ func _row(label_key: StringName, control: Control, hint_key: StringName = &"",
 	row.add_child(control)
 	if disabled and control is Button:
 		(control as Button).disabled = true
-	if hint_key == &"":
-		return row
-	# The note sits under the row at full width. Beside the control it was
-	# squeezed into whatever space that control left, so one line of
-	# explanation became four — and cost more height than the control did.
-	var holder := UiKit.vbox(Design.SPACE_XXS)
-	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	holder.add_child(row)
-	holder.add_child(UiKit.paragraph(Loc.t(hint_key), 820.0, &"CaptionLabel"))
-	return holder
+	if hint_key != &"":
+		text_block.add_child(UiKit.paragraph(Loc.t(hint_key), 420.0, &"CaptionLabel"))
+	return row
 
 
 func _read_only_row(label_key: StringName, value: String,
@@ -666,7 +659,7 @@ func _copy_row(label_key: StringName, value: String) -> Control:
 	block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	block.add_child(UiKit.label(Loc.t(label_key), &"BodyLabel"))
 	block.add_child(UiKit.label(value, &"ValueLabel"))
-	var action := UiKit.chip(Loc.t(&"settings.about.copy"), false, &"", true)
+	var action := UiKit.button(Loc.t(&"settings.about.copy"), &"GlassButton")
 	action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	UiKit.on_press(action, func() -> void:
 		UiKit.copy_to_clipboard(value, Loc.t(label_key))

@@ -122,7 +122,7 @@ jobs:
           # Publish the measurements whether or not the check passed. They are
           # the point of running it, and a green build would otherwise hide
           # them — which is how a layout quietly grows empty space.
-          report="$(grep -E '^CHECK[[:space:]]+(at|chrome|panel|tabs|strip|tab|category|categories|button|result|Reset|Cancel|Apply)' "$log_file" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+          report="$(grep -E '^CHECK[[:space:]]+(chrome|result)' "$log_file" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
           echo "::notice file=tests/ui_check.gd,line=1,title=Entrance Settings measurements::${report}"
           if [ "$status" -ne 0 ]; then
             diagnostics="$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$log_file")"
