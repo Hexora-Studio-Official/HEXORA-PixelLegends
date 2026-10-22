@@ -44,10 +44,10 @@ static func _build_heroes_tab(
 	var role_bar := HFlowContainer.new()
 	role_bar.add_theme_constant_override("h_separation", Design.SPACE_XS)
 	role_bar.add_theme_constant_override("v_separation", Design.SPACE_XS)
-	for r in ROLES:
-		var chip := UiKit.chip(r, String(state["role"]) == r)
+	for raw_role in ROLES:
+		var picked: String = String(raw_role)
+		var chip := UiKit.chip(picked, String(state["role"]) == picked)
 		chip.custom_minimum_size.y = 42.0
-		var picked := r
 		UiKit.on_press(chip, func() -> void:
 			state["role"] = picked
 			rerender.call(0)
@@ -260,10 +260,10 @@ static func _build_items_tab(
 	var cat_row := HFlowContainer.new()
 	cat_row.add_theme_constant_override("h_separation", Design.SPACE_XS)
 	cat_row.add_theme_constant_override("v_separation", Design.SPACE_XS)
-	for cat in ITEM_CATS:
-		var chip := UiKit.chip(cat, String(state["item_cat"]) == cat)
+	for raw_cat in ITEM_CATS:
+		var target_cat: String = String(raw_cat)
+		var chip := UiKit.chip(target_cat, String(state["item_cat"]) == target_cat)
 		chip.custom_minimum_size.y = 42.0
-		var target_cat := cat
 		UiKit.on_press(chip, func() -> void:
 			state["item_cat"] = target_cat
 			rerender.call(2)

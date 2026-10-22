@@ -279,9 +279,9 @@ static func _build_lobby_chat_card(data: HubPreviewData) -> Control:
 	quick_row.add_theme_constant_override("h_separation", Design.SPACE_XS)
 	quick_row.add_theme_constant_override("v_separation", Design.SPACE_XS)
 	for phrase in ["Need Tank!", "I play Mid!", "Ready to queue!"]:
-		var qbtn := UiKit.chip(phrase, false, &"", true)
+		var text: String = String(phrase)
+		var qbtn := UiKit.chip(text, false, &"", true)
 		qbtn.custom_minimum_size = Vector2(126, 38)
-		var text := phrase
 		UiKit.on_press(qbtn, func() -> void:
 			data.lobby_messages.append("[%s] %s" % [Session.display_name(), text])
 			data.changed.emit()

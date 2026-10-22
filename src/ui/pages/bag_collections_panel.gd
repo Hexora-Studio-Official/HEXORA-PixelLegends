@@ -42,10 +42,10 @@ static func _build_inventory_tab(
 ) -> void:
 	var filter_row := HFlowContainer.new()
 	filter_row.add_theme_constant_override("h_separation", Design.SPACE_XS)
-	for cat in INV_CATS:
-		var chip := UiKit.chip(cat, String(state["inv_cat"]) == cat)
+	for raw_cat in INV_CATS:
+		var picked: String = String(raw_cat)
+		var chip := UiKit.chip(picked, String(state["inv_cat"]) == picked)
 		chip.custom_minimum_size.y = 42.0
-		var picked := cat
 		UiKit.on_press(chip, func() -> void:
 			state["inv_cat"] = picked
 			rerender.call(0)

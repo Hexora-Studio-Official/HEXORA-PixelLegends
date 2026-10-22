@@ -1,9 +1,22 @@
 class_name StatusHudBar
 extends PanelContainer
-## Compact MOBA telemetry strip showing live signal strength/ping, real OS
-## battery level, and local clock in the top-right corner of the hub.
+## Compact MOBA telemetry strip showing live signal strength/ping, device
+## battery level (read safely from OS sysfs on Android/Linux with clean desktop
+## fallback), and local clock in the top-right corner of the hub.
 
 const REFRESH_INTERVAL_SEC := 4.0
+const BATTERY_CAPACITY_PATHS := [
+	"/sys/class/power_supply/battery/capacity",
+	"/sys/class/power_supply/Battery/capacity",
+	"/sys/class/power_supply/BAT0/capacity",
+	"/sys/class/power_supply/BAT1/capacity",
+]
+const BATTERY_STATUS_PATHS := [
+	"/sys/class/power_supply/battery/status",
+	"/sys/class/power_supply/Battery/status",
+	"/sys/class/power_supply/BAT0/status",
+	"/sys/class/power_supply/BAT1/status",
+]
 
 var _ping_label: Label
 var _battery_icon: HexIcon
@@ -77,12 +90,8 @@ func _refresh_status() -> void:
 		if _signal_icon != null:
 			_signal_icon.color = ping_tone
 
-	var percent := OS.get_power_percent_left()
-	if percent < 0:
-		percent = 100
-	percent = clampi(percent, 0, 100)
-	var state := OS.get_power_state()
-	var charging := state == OS.POWERSTATE_CHARGING or state == OS.POWERSTATE_CHARGED
+	var percent: int = _read_battery_percent()
+	var charging: bool = _read_battery_charging()
 	var bat_tone := Design.SUCCESS
 	if percent <= 20 and not charging:
 		bat_tone = Design.DANGER
@@ -94,8 +103,29 @@ func _refresh_status() -> void:
 		_battery_icon.color = Design.ACCENT_HI if charging else Design.TEXT_MUTED
 	if _battery_label != null:
 		_battery_label.text = ("%d%%+" if charging else "%d%%") % percent
-		_battery_label.add_theme_color_override("font_color", bat_tone if percent <= 20 else Design.TEXT)
+		_battery_label.add_theme_color_override(
+			"font_color", bat_tone if percent <= 20 else Design.TEXT
+		)
 
 	if _clock_label != null:
 		var now := Time.get_time_dict_from_system()
 		_clock_label.text = "%02d:%02d" % [int(now.get("hour", 0)), int(now.get("minute", 0))]
+
+
+static func _read_battery_percent() -> int:
+	for raw_path in BATTERY_CAPACITY_PATHS:
+		var path: String = String(raw_path)
+		if FileAccess.file_exists(path):
+			var txt := FileAccess.get_file_as_string(path).strip_edges()
+			if txt.is_valid_int():
+				return clampi(int(txt), 0, 100)
+	return 100
+
+
+static func _read_battery_charging() -> bool:
+	for raw_path in BATTERY_STATUS_PATHS:
+		var path: String = String(raw_path)
+		if FileAccess.file_exists(path):
+			var state := FileAccess.get_file_as_string(path).strip_edges().to_lower()
+			return state == "charging" or state == "full"
+	return false

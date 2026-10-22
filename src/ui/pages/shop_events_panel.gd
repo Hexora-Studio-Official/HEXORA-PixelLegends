@@ -35,10 +35,10 @@ static func _build_shop_tab(
 ) -> void:
 	var top := UiKit.hbox(Design.SPACE_SM)
 	top.alignment = BoxContainer.ALIGNMENT_CENTER
-	for cat in SHOP_TABS:
-		var chip := UiKit.chip(cat, String(state["shop_cat"]) == cat)
+	for raw_cat in SHOP_TABS:
+		var picked: String = String(raw_cat)
+		var chip := UiKit.chip(picked, String(state["shop_cat"]) == picked)
 		chip.custom_minimum_size.y = 42.0
-		var picked := cat
 		UiKit.on_press(chip, func() -> void:
 			state["shop_cat"] = picked
 			rerender.call(0)
