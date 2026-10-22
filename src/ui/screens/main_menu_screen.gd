@@ -216,7 +216,8 @@ func _build_left_wing() -> VBoxContainer:
 		{"key": &"hub.nav.events", "icon": &"star", "cb": func() -> void: _open_shop(1)},
 		{"key": &"hub.nav.rankings", "icon": &"chart", "cb": func() -> void: _open_rankings(0)},
 	]
-	for item: Dictionary in entries:
+	for raw_item in entries:
+		var item: Dictionary = raw_item
 		var btn := UiKit.button(Loc.t(item["key"]), &"GlassNavButton", item["icon"])
 		btn.custom_minimum_size = Vector2(182, 54)
 		UiKit.on_hover(btn)
@@ -303,7 +304,8 @@ func _build_bottom_bar() -> HBoxContainer:
 		{"key": &"hub.nav.inventory", "icon": &"bag", "cb": func() -> void: _open_bag(0)},
 		{"key": &"hub.nav.collections", "icon": &"book", "cb": func() -> void: _open_bag(1)},
 	]
-	for entry: Dictionary in prep_items:
+	for raw_entry in prep_items:
+		var entry: Dictionary = raw_entry
 		var text := Loc.t(entry["key"])
 		var btn := UiKit.button(text, &"HudCompactButton", entry["icon"])
 		btn.custom_minimum_size = Vector2(

@@ -6,6 +6,7 @@ on:
       - arena/22d75a58-hexora-pixelfield
       - arena/3af02759-hexora-pixellegends
       - arena/6919bc8f-hexora-pixellegends
+      - arena/66642698-hexora-pixellegends
     paths-ignore:
       - "**.md"
       - "docs/**"
@@ -119,6 +120,9 @@ jobs:
           status=0
           godot --headless --path . --resolution 1920x1080 res://tests/ui_check.tscn >"$log_file" 2>&1 || status=$?
           cat "$log_file"
+          if grep -E '^(ERROR:|SCRIPT ERROR:)|Parse Error' "$log_file"; then
+            status=1
+          fi
           # Publish the measurements whether or not the check passed. They are
           # the point of running it, and a green build would otherwise hide
           # them — which is how a layout quietly grows empty space.

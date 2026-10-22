@@ -101,7 +101,8 @@ static func _build_collections_tab(
 ) -> void:
 	var group_row := HFlowContainer.new()
 	group_row.add_theme_constant_override("h_separation", Design.SPACE_XS)
-	for grp: Dictionary in COL_GROUPS:
+	for raw_grp in COL_GROUPS:
+		var grp: Dictionary = raw_grp
 		var gid := String(grp["id"])
 		var chip := UiKit.chip(String(grp["label"]), String(state["col_group"]) == gid)
 		chip.custom_minimum_size.y = 42.0
@@ -120,7 +121,8 @@ static func _build_collections_tab(
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shell.body.add_child(grid)
 
-	for item: Dictionary in entries:
+	for raw_item in entries:
+		var item: Dictionary = raw_item
 		var cid := String(item["id"])
 		var is_eq := cid == equipped_id
 		var owned := bool(item["owned"])

@@ -40,7 +40,8 @@ static func _build_chat_tab(
 ) -> void:
 	var chan_bar := HFlowContainer.new()
 	chan_bar.add_theme_constant_override("h_separation", Design.SPACE_XS)
-	for ch: Dictionary in CHANNELS:
+	for raw_ch in CHANNELS:
+		var ch: Dictionary = raw_ch
 		var cid := String(ch["id"])
 		var chip := UiKit.chip(String(ch["label"]), String(state["channel"]) == cid)
 		chip.custom_minimum_size.y = 42.0
@@ -58,7 +59,8 @@ static func _build_chat_tab(
 
 	var active_chan := String(state["channel"])
 	var messages: Array = data.chats.get(active_chan, [])
-	for msg: Dictionary in messages:
+	for raw_msg in messages:
+		var msg: Dictionary = raw_msg
 		var row := UiKit.hbox(Design.SPACE_SM)
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		var is_you := String(msg["tag"]) == "YOU"

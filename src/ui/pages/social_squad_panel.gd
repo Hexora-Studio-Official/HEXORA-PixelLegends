@@ -191,7 +191,8 @@ static func _build_following_tab(
 	add_row.add_child(add_btn)
 	shell.body.add_child(add_card)
 
-	var snapshot := data.following.duplicate()
+	var snapshot: Array[Dictionary] = []
+	snapshot.assign(data.following)
 	_build_follow_list_tab(shell, data, snapshot, "PLAYERS YOU FOLLOW", rerender, 2)
 
 
@@ -229,7 +230,8 @@ static func _build_squad_tab(shell: HubOverlayShell, data: HubPreviewData) -> vo
 	rtitle.add_theme_color_override("font_color", Design.TEAL)
 	rcol.add_child(rtitle)
 	var members: Array = info["members"]
-	for m: Dictionary in members:
+	for raw_member in members:
+		var m: Dictionary = raw_member
 		var mrow := UiKit.hbox(Design.SPACE_SM)
 		mrow.add_child(UiKit.label(String(m["name"]), &"BodyLabel"))
 		mrow.add_child(UiKit.spacer())

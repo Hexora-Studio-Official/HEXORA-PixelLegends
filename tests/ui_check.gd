@@ -30,6 +30,7 @@ extends Control
 ##
 ## Quits non-zero if anything about that path is broken.
 
+const SPLASH_SCREEN_PATH := "res://src/ui/screens/splash_screen.tscn"
 const SCREEN_PATH := "res://src/ui/screens/boot_screen.tscn"
 const MENU_SCREEN_PATH := "res://src/ui/screens/main_menu_screen.tscn"
 const BUTTON_NAME := "EntranceSettingsButton"
@@ -51,9 +52,10 @@ const FOOTER_BUTTONS: Array[String] = ["ResetToDefaults", "CancelChanges", "Appl
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	var problems: PackedStringArray = []
+	problems.append_array(await _check_splash_video())
 	for index in VIEWPORTS.size():
 		problems.append_array(await _check_at(VIEWPORTS[index], index == 0))
-		problems.append_array(await _check_main_menu_at(VIEWPORTS[index]))
+		problems.append_array(await _check_main_menu_at(VIEWPORTS[index], index == 0))
 	if not problems.is_empty():
 		for problem in problems:
 			print("CHECK result=FAIL " + problem)
@@ -285,7 +287,35 @@ func _find_dialog(from: Node) -> Control:
 	return null
 
 
-func _check_main_menu_at(size: Vector2i) -> PackedStringArray:
+func _check_splash_video() -> PackedStringArray:
+	var problems: PackedStringArray = []
+	self.size = Vector2(1920, 1080)
+	await get_tree().process_frame
+	var packed := load(SPLASH_SCREEN_PATH) as PackedScene
+	if packed == null:
+		problems.append("cannot load " + SPLASH_SCREEN_PATH)
+		return problems
+	var splash := packed.instantiate() as Control
+	if splash == null:
+		problems.append(SPLASH_SCREEN_PATH + " is not a Control")
+		return problems
+	add_child(splash)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var player := splash.find_children("*", "VideoStreamPlayer", true, false)
+	if player.is_empty():
+		problems.append("splash screen has no VideoStreamPlayer")
+	else:
+		var vp := player[0] as VideoStreamPlayer
+		if vp.stream == null:
+			problems.append("splash VideoStreamPlayer has null video stream")
+		print("CHECK splash video stream=%s playing=%s" % [vp.stream, vp.is_playing()])
+	splash.queue_free()
+	await get_tree().process_frame
+	return problems
+
+
+func _check_main_menu_at(size: Vector2i, full_panel_sweep: bool) -> PackedStringArray:
 	var problems: PackedStringArray = []
 	self.size = Vector2(size)
 	await get_tree().process_frame
@@ -312,6 +342,43 @@ func _check_main_menu_at(size: Vector2i) -> PackedStringArray:
 		if not _encloses(viewport, box):
 			problems.append("menu button '%s' overflows %s: %s" % [btn.name, viewport, box])
 
+	if full_panel_sweep:
+		await _exercise_all_hub_panels(menu)
+
 	menu.queue_free()
 	await get_tree().process_frame
 	return problems
+
+
+func _exercise_all_hub_panels(menu: Control) -> void:
+	var calls := [
+		["_open_modes", [false]],
+		["_open_modes", [true]],
+		["_open_profile", []],
+		["_open_heroes", [0]],
+		["_open_heroes", [1]],
+		["_open_heroes", [2]],
+		["_open_bag", [0]],
+		["_open_bag", [1]],
+		["_open_shop", [0]],
+		["_open_shop", [1]],
+		["_open_rankings", [0]],
+		["_open_rankings", [1]],
+		["_open_rankings", [2]],
+		["_open_social", [0]],
+		["_open_social", [1]],
+		["_open_social", [2]],
+		["_open_social", [3]],
+		["_open_comms", [0]],
+		["_open_comms", [1]],
+		["_open_comms", [2]],
+		["_open_settings", []],
+	]
+	for spec in calls:
+		var method_name: String = spec[0]
+		var args: Array = spec[1]
+		menu.callv(method_name, args)
+		await get_tree().process_frame
+		print("CHECK hub panel %s(%s) OK" % [method_name, args])
+	menu.call("_clear_overlay")
+	await get_tree().process_frame
