@@ -129,8 +129,14 @@ jobs:
           report="$(grep -E '^CHECK[[:space:]]+(at|chrome|panel|tabs|strip|tab|category|categories|button|result|Reset|Cancel|Apply)' "$log_file" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
           echo "::notice file=tests/ui_check.gd,line=1,title=Entrance Settings measurements::${report}"
           if [ "$status" -ne 0 ]; then
-            diagnostics="$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$log_file")"
-            echo "::error file=tests/headless_ui_check.gd,line=1,title=Entrance Settings check::${diagnostics}"
+            diagnostics="$(
+              {
+                grep -nE '^(ERROR:|SCRIPT ERROR:)|Parse Error|^CHECK result=FAIL|   at: ' "$log_file" || true
+                echo '--- tail ---'
+                tail -n 30 "$log_file"
+              } | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g'
+            )"
+            echo "::error file=tests/ui_check.gd,line=1,title=Entrance Settings check::${diagnostics}"
             exit "$status"
           fi
 

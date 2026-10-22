@@ -9,6 +9,7 @@ const SAFETY_TIMEOUT_SEC := 9.2
 const FADE_DURATION := 0.45
 
 var _player: VideoStreamPlayer
+var _fade_tween: Tween
 var _elapsed := 0.0
 var _finishing := false
 
@@ -61,12 +62,19 @@ func _on_video_finished() -> void:
 	_go_to_entrance()
 
 
+func _exit_tree() -> void:
+	if _fade_tween != null and _fade_tween.is_valid():
+		_fade_tween.kill()
+	if _player != null and is_instance_valid(_player):
+		_player.stop()
+
+
 func _go_to_entrance() -> void:
-	if _finishing:
+	if _finishing or not is_inside_tree():
 		return
 	_finishing = true
-	var fade := create_tween()
-	fade.tween_property(self, "modulate:a", 0.0, FADE_DURATION)
-	await fade.finished
-	if Router.has_route(&"boot"):
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(self, "modulate:a", 0.0, FADE_DURATION)
+	await _fade_tween.finished
+	if is_inside_tree() and Router.has_route(&"boot"):
 		Router.goto(&"boot")

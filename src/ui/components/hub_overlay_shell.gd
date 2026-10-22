@@ -14,6 +14,7 @@ var _tabs_row: HFlowContainer
 var _tab_buttons: Array[Button] = []
 var _active_tab: int = 0
 var _on_tab_selected: Callable
+var _tween: Tween
 
 
 func _init() -> void:
@@ -33,8 +34,8 @@ static func open(
 	host.add_child(shell)
 	Audio.play_ui("whoosh", 1.12, -4.0)
 	shell.modulate.a = 0.0
-	var tween := shell.create_tween()
-	tween.tween_property(shell, "modulate:a", 1.0, 0.16)
+	shell._tween = shell.create_tween()
+	shell._tween.tween_property(shell, "modulate:a", 1.0, 0.16)
 	return shell
 
 
@@ -75,11 +76,18 @@ func clear_body() -> void:
 func dismiss() -> void:
 	if not is_inside_tree():
 		return
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
 	Audio.play_ui("back", 1.0, -4.0)
 	closed.emit()
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.13)
-	tween.tween_callback(queue_free)
+	_tween = create_tween()
+	_tween.tween_property(self, "modulate:a", 0.0, 0.13)
+	_tween.tween_callback(queue_free)
+
+
+func _exit_tree() -> void:
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
 
 
 func _build_chrome(
