@@ -30,7 +30,20 @@ arena/66642698-hexora-pixellegends:
      Profile, Settings, Heroes, Builds, Items, Inventory, Collections, Shop,
      Downloads, Mail/Messages, Chat, Events, Personal/Regional/Global Stats &
      Rankings, Signal/Ping + Battery HUD, Squad, Followers/Following, and
-     Invite Friends). Debug APK build intentionally skipped per user instruction.
+     Invite Friends).
+  4. Verified end-to-end in GitHub Actions on commit `bd4e271`:
+     - `Static checks` run `39867488961`: PASS (`check_i18n`, `check_refs`,
+       `gdlint`, and reference-fault self-test).
+     - `Android debug APK` run `39867488862`: PASS on Godot 4.4.1 — editor
+       import, 10s headless startup, full headless UI/panel sweep across
+       `1920x1080`, `2340x1080`, `1600x720`, and `1280x600` plus all 21 hub
+       sub-panels + `VideoStreamTheora` splash playback with zero leaked
+       ObjectDB instances/resources at exit, signed ARM64 debug APK export,
+       `apksigner verify`, `unzip -t`, and `aapt2` manifest verification.
+     - Artifact `pixellegends-debug-apk` (`47,773,464` bytes,
+       `sha256:60e06ba0de1f9521acd64313fc33e13b2eabb8f7c199511754b35320032b1a46`,
+       expires `2026-11-05T22:48:50Z`):
+       https://github.com/Hexora-Studio-Official/HEXORA-PixelLegends/actions/runs/39867488862/artifacts/12465066023
 
 Settings panel rework and honest layout verification (2026-10-15): on branch
 arena/6919bc8f-hexora-pixellegends the settings surface was rebuilt. Its six
