@@ -81,6 +81,15 @@ func build() -> void:
 	UiKit.on_press(_settings_button, _open_settings_modal, "click")
 	content.add_child(_settings_button)
 
+	var status_hud := StatusHudBar.new()
+	status_hud.set_anchors_and_offsets_preset(
+		Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_KEEP_SIZE)
+	status_hud.offset_left = -300.0
+	status_hud.offset_right = -Design.SPACE_LG
+	status_hud.offset_top = Design.SPACE_LG
+	status_hud.offset_bottom = Design.SPACE_LG + 48.0
+	content.add_child(status_hud)
+
 	_action_panel = UiKit.panel(&"EntranceDockPanel")
 	_action_panel.anchor_left = 0.5
 	_action_panel.anchor_right = 0.5

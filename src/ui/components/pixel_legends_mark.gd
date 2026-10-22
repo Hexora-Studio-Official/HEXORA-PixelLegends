@@ -1,16 +1,15 @@
 class_name PixelLegendsMark
 extends Control
-## Small pixel-built PL fallback mark for legacy sign-in/profile screens.
-## The supplied PixelLegends art remains the actual project/app icon.
+## Crisp micro-pixel PL emblem styled in the Imperial Citadel palette.
 
 const PIXEL_ROWS: Array[String] = [
 	"111100111",
 	"100100100",
 	"111100100",
-	"100100100",
-	"100100100",
-	"100100100",
-	"100111111",
+	"100000100",
+	"100000100",
+	"100000100",
+	"100011111",
 ]
 
 
@@ -27,9 +26,9 @@ func _draw() -> void:
 	var frame_size := side * 0.96
 	var frame_rect := Rect2((size - Vector2(frame_size, frame_size)) * 0.5,
 		Vector2(frame_size, frame_size))
-	draw_rect(frame_rect, Design.SURFACE_ALT)
-	draw_rect(frame_rect, Design.LINE_STRONG, false,
-		float(maxi(1, int(round(side * 0.025)))))
+	draw_rect(frame_rect, Design.SURFACE_SUNKEN)
+	draw_rect(frame_rect, Design.ACCENT, false,
+		float(maxi(2, int(round(side * 0.035)))))
 
 	var cell := side * 0.075
 	var gap := side * 0.018
@@ -41,7 +40,7 @@ func _draw() -> void:
 		for column in row.length():
 			if row.substr(column, 1) != "1":
 				continue
-			var color := Design.TEAL if column < 4 else Design.ACCENT
+			var color := Design.TEAL if column < 4 else Design.ACCENT_HI
 			var position := origin + Vector2(
 				float(column) * (cell + gap), float(row_index) * (cell + gap))
 			draw_rect(Rect2(position, Vector2(cell, cell)), color)

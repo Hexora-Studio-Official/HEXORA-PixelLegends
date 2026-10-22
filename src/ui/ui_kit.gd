@@ -252,10 +252,15 @@ static func text_width(text: String, base: int = Design.FONT_BODY) -> float:
 static func _button_text_color(variation: StringName) -> Color:
 	match variation:
 		&"PrimaryButton": return Design.TEXT_INVERSE
+		&"HudPlayButton": return Design.TEXT_INVERSE
 		&"GlassButton": return Design.TEXT
 		&"GlassPrimaryButton": return Design.TEXT
-		&"GlassNavButton": return Design.TEXT_MUTED
+		&"HudNavButton": return Design.TEXT
+		&"HudCompactButton": return Design.TEXT
+		&"HudLobbyButton": return Design.TEAL
+		&"GlassNavButton": return Design.TEXT
 		&"DangerButton": return Design.DANGER
+		&"DangerPillButton": return Design.DANGER
 		&"TealButton": return Design.TEAL
 		&"GhostButton": return Design.TEXT_MUTED
 		_: return Design.TEXT

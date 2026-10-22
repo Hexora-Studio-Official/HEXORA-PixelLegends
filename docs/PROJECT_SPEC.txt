@@ -4,7 +4,33 @@ Godot 4.4 — 3D 5v5 MOBA
 LIVE IMPLEMENTATION STATUS & AGENT HANDOFF
 ============================================================
 
-Last status check: 2026-10-15
+Last status check: 2026-10-23
+
+Video splash screen & full Mobile-MOBA Main Menu Hub (2026-10-23): on branch
+arena/66642698-hexora-pixellegends:
+
+  1. Replaced the legacy procedural splash screen and deleted
+     `src/ui/components/pixel_font.gd` and `tools/build_pixel_font.py`.
+     Encoded `Splash Screen.mp4` into `assets/video/splash_screen.ogv`
+     (`1920x848`, `libtheora` q7 + `libvorbis` q6, 8.06s) and updated
+     `src/ui/screens/splash_screen.tscn` + `splash_screen.gd` to play the
+     full 8-second intro non-skippably before routing to `BootScreen`.
+  2. Upgraded `src/autoload/design.gd` and `src/ui/components/hex_icon.gd`
+     to the "Imperial Citadel" design system (royal obsidian surfaces,
+     imperial burnished gold & crystal cyan accents, high-contrast HUD card
+     tokens, and 41 crisp vector HUD glyphs).
+  3. Replaced the placeholder `MainMenuScreen` entirely while preserving only
+     `assets/Pixel Legends_ 5v5 Fantasy Showdown.png`, structuring the MOBA
+     hub cleanly into modular components (`status_hud_bar.gd`,
+     `hub_overlay_shell.gd`, `hub_preview_data.gd`, `modes_lobby_panel.gd`,
+     `profile_panel.gd`, `heroes_builds_panel.gd`, `bag_collections_panel.gd`,
+     `shop_events_panel.gd`, `rankings_panel.gd`, `social_squad_panel.gd`,
+     and `comms_system_panel.gd`) covering all requested client preview
+     sections (`Classic`, `League`, `Dead Field`, `VS AI`, 5v5 Party Lobby,
+     Profile, Settings, Heroes, Builds, Items, Inventory, Collections, Shop,
+     Downloads, Mail/Messages, Chat, Events, Personal/Regional/Global Stats &
+     Rankings, Signal/Ping + Battery HUD, Squad, Followers/Following, and
+     Invite Friends). Debug APK build intentionally skipped per user instruction.
 
 Settings panel rework and honest layout verification (2026-10-15): on branch
 arena/6919bc8f-hexora-pixellegends the settings surface was rebuilt. Its six

@@ -1,16 +1,6 @@
 extends RefCounted
-## English-only string table (source of truth for the client UI).
-##
-## Why a dictionary instead of .po files? Because it cannot silently fail.
-## The GDScript table is validated by `tools/check_i18n.py` at review time and
-## ships directly in the client without a separate translation import step.
-## The current product UI is English-only; named interpolation is handled by
-## `Loc.t()`.
-##
-## Rules:
-##   * Keys are `area.thing` and lower snake case.
-##   * `{placeholder}` tokens are filled by Loc.t(key, args). Use named tokens,
-##     not positional indices, so call sites stay self-documenting.
+## English UI string table for the PixelLegends client shell.
+## Validated statically by `tools/check_i18n.py` and `tools/check_refs.py`.
 
 const TABLE := {
 	# ---------------------------------------------------------------- meta
@@ -72,16 +62,13 @@ const TABLE := {
 
 	# ---------------------------------------------------------------- auth
 	"auth.login.guest_hint": "No account needed. Progress stays on this device only.",
-
 	"auth.state.signing_in": "Signing you in…",
-
 	"auth.setup.callsign": "Player name",
-
 	"auth.signout": "Sign out",
 	"auth.guest.badge": "Guest",
 
 	# ---------------------------------------------------------------- boot
-	"splash.choose_path": "Choose your path",
+	"splash.choose_path": "Enter the Citadel Arena",
 	"splash.saved_account_unavailable": "This saved account cannot be opened in this visual-only build yet.",
 	"splash.play": "Play",
 	"splash.login.google": "Login With Google",
@@ -90,24 +77,32 @@ const TABLE := {
 	# ---------------------------------------------------------------- menu
 	"menu.settings": "Settings",
 
-	# ------------------------------------------------------------- battle hub
-	"home.preview_badge": "UI PREVIEW · FEATURES IN DEVELOPMENT",
-	"home.explore": "Explore",
-	"home.modes": "5V5 ARENA",
-	"home.heroes": "HEROES",
-	"home.squad": "SQUAD",
-	"home.collection": "COLLECTION",
-	"home.feature_note": "Battle features will arrive one at a time in future updates.",
-	"home.spotlight": "HERO SPOTLIGHT",
-	"home.spotlight_title": "Your legend awaits",
-	"home.spotlight_body": "Hero selection is a placeholder for a future update.",
-	"home.battle_title": "THE ARENA IS BEING PREPARED",
-	"home.battle_subtitle": "Original 5v5 team battles are planned for PixelLegends.",
-	"home.battle_button": "PLAY 5V5",
-	"home.coming_soon": "COMING SOON",
+	# ----------------------------------------------------------------- hub
+	"hub.server_preview": "PREVIEW · SERVER OFFLINE",
+	"hub.nav.shop": "SHOP",
+	"hub.nav.events": "EVENTS",
+	"hub.nav.rankings": "RANKINGS",
+	"hub.nav.heroes": "HEROES",
+	"hub.nav.builds": "BUILDS",
+	"hub.nav.items": "ITEMS",
+	"hub.nav.inventory": "INVENTORY",
+	"hub.nav.collections": "COLLECTIONS",
+	"hub.nav.squad": "SQUAD",
+	"hub.nav.social": "SOCIAL",
+	"hub.nav.invite": "INVITE",
+	"hub.nav.lobby": "LOBBY",
+	"hub.nav.play": "START",
+	"hub.nav.modes": "MODES",
+	"hub.nav.chat": "CHAT",
+	"hub.nav.mail": "MAIL",
+	"hub.nav.downloads": "DOWNLOADS",
+	"hub.nav.profile": "PROFILE",
+
+	# ------------------------------------------------------------- profile
+	"profile.account": "Account",
 	"home.edit_name": "EDIT NAME",
 	"home.edit_name_short": "EDIT",
-	"home.guest_profile": "LOCAL GUEST PROFILE",
+	"home.guest_profile": "LOCAL GUEST",
 	"home.linked_profile": "LINKED ACCOUNT",
 	"home.edit_title": "Edit your player name",
 	"home.edit_hint": "Use 3–16 letters, numbers or underscores. Your name is saved on this device.",
@@ -115,9 +110,6 @@ const TABLE := {
 	"home.edit_save": "SAVE NAME",
 	"home.edit_invalid": "Use 3–16 letters, numbers or underscores.",
 	"home.edit_saved": "Player name updated.",
-
-	# ------------------------------------------------------------- profile
-	"profile.account": "Account",
 
 	# ------------------------------------------------------------ settings
 	"settings.title": "Settings",
@@ -146,7 +138,7 @@ const TABLE := {
 	"settings.graphics.aa.fxaa": "FXAA",
 	"settings.graphics.aa.msaa2": "MSAA 2×",
 	"settings.graphics.aa.msaa4": "MSAA 4×",
-	"settings.graphics.decals": "Bullet decals",
+	"settings.graphics.decals": "Impact decals",
 	"settings.graphics.bloom": "Bloom",
 	"settings.graphics.ragdolls": "Ragdoll physics",
 	"settings.graphics.hud_scale": "HUD scale",
@@ -163,7 +155,6 @@ const TABLE := {
 	"settings.audio.test": "Test tone",
 	"settings.audio.muted_when_bg": "Mute when the app is in the background",
 
-	# Settings panel reachable from the entrance, before sign-in.
 	"settings.dialog.title": "Settings",
 	"settings.cat.general": "General",
 	"settings.cat.graphics": "Graphics",
@@ -271,7 +262,8 @@ const TABLE := {
 
 	# --------------------------------------------------------------- toasts
 	"toast.signed_out": "Signed out",
-	"toast.guest_banner": "Playing as a guest — progress is local only",
+	"toast.copied": "Copied to clipboard",
+	"settings.account.sign_out": "Sign Out",
+	"toast.guest_banner": "Signed in as Guest — local profile loaded",
 	"toast.copied_clipboard": "{label} copied",
-
 }

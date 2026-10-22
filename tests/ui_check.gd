@@ -31,6 +31,7 @@ extends Control
 ## Quits non-zero if anything about that path is broken.
 
 const SCREEN_PATH := "res://src/ui/screens/boot_screen.tscn"
+const MENU_SCREEN_PATH := "res://src/ui/screens/main_menu_screen.tscn"
 const BUTTON_NAME := "EntranceSettingsButton"
 
 ## The sizes a landscape phone actually reports. The short ones are why this
@@ -52,6 +53,7 @@ func _ready() -> void:
 	var problems: PackedStringArray = []
 	for index in VIEWPORTS.size():
 		problems.append_array(await _check_at(VIEWPORTS[index], index == 0))
+		problems.append_array(await _check_main_menu_at(VIEWPORTS[index]))
 	if not problems.is_empty():
 		for problem in problems:
 			print("CHECK result=FAIL " + problem)
@@ -281,3 +283,35 @@ func _find_dialog(from: Node) -> Control:
 		if found != null:
 			return found
 	return null
+
+
+func _check_main_menu_at(size: Vector2i) -> PackedStringArray:
+	var problems: PackedStringArray = []
+	self.size = Vector2(size)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var packed := load(MENU_SCREEN_PATH) as PackedScene
+	if packed == null:
+		problems.append("cannot load " + MENU_SCREEN_PATH)
+		return problems
+	var menu := packed.instantiate() as Control
+	if menu == null:
+		problems.append(MENU_SCREEN_PATH + " is not a Control")
+		return problems
+	add_child(menu)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var viewport := menu.size
+	for child in menu.find_children("*", "Button", true, false):
+		var btn := child as Button
+		if btn == null or not btn.is_visible_in_tree():
+			continue
+		var box := btn.get_global_rect()
+		if not _encloses(viewport, box):
+			problems.append("menu button '%s' overflows %s: %s" % [btn.name, viewport, box])
+
+	menu.queue_free()
+	await get_tree().process_frame
+	return problems

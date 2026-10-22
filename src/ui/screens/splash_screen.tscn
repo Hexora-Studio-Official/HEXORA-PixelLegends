@@ -1,11 +1,5 @@
 [gd_scene load_steps=2 format=3]
 
-; Hand-authored scene, matching boot_screen.tscn: the root Control plus the
-; screen script. The studio sting is drawn procedurally (see
-; splash_screen.gd) because a fire and smoke particle burst cannot be
-; expressed in a scene file, and the type is rasterised from the bitmap face
-; in pixel_font.gd.
-
 [ext_resource type="Script" path="res://src/ui/screens/splash_screen.gd" id="1_screen"]
 
 [node name="SplashScreen" type="Control"]
