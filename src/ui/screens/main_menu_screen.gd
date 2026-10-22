@@ -30,6 +30,7 @@ var _chat_preview_btn: Button
 var _lobby_btn: Button
 var _play_btn: Button
 var _quick_friends_box: VBoxContainer
+var _quick_invite_limit := QUICK_INVITE_LIMIT
 var _active_overlay: HubOverlayShell
 var _settings_layer: Control
 var _settings_dialog: SettingsDialog
@@ -71,12 +72,18 @@ func on_screen_resized() -> void:
 func _layout_responsive_bars() -> void:
 	var vp := size if size.x > 1.0 else get_viewport_rect().size
 	var narrow := vp.x < 1540.0
+	var short := vp.y > 1.0 and vp.y < 760.0
+	var desired_friends := 1 if short else QUICK_INVITE_LIMIT
+	if _quick_invite_limit != desired_friends:
+		_quick_invite_limit = desired_friends
+		_rebuild_quick_friends()
+	var bar_h := 50.0 if short else 60.0
 	if _chat_preview_btn != null:
-		_chat_preview_btn.custom_minimum_size = Vector2(184.0 if narrow else 276.0, 58.0)
+		_chat_preview_btn.custom_minimum_size = Vector2(184.0 if narrow else 276.0, bar_h)
 	if _lobby_btn != null:
-		_lobby_btn.custom_minimum_size = Vector2(148.0 if narrow else 178.0, 60.0)
+		_lobby_btn.custom_minimum_size = Vector2(148.0 if narrow else 178.0, bar_h)
 	if _play_btn != null:
-		_play_btn.custom_minimum_size = Vector2(184.0 if narrow else 224.0, 64.0)
+		_play_btn.custom_minimum_size = Vector2(184.0 if narrow else 224.0, bar_h + 4.0)
 
 
 func _ensure_backdrop_layers() -> void:
@@ -381,7 +388,7 @@ func _rebuild_quick_friends() -> void:
 	for friend_entry: Dictionary in _hub_data.friends:
 		if not bool(friend_entry["online"]):
 			continue
-		if shown >= QUICK_INVITE_LIMIT:
+		if shown >= _quick_invite_limit:
 			break
 		shown += 1
 		var row := UiKit.hbox(Design.SPACE_XS)

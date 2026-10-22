@@ -264,6 +264,7 @@ const TABLE := {
 	"toast.signed_out": "Signed out",
 	"toast.copied": "Copied to clipboard",
 	"settings.account.sign_out": "Sign Out",
+	"settings.audio.vibration": "Vibration",
 	"toast.guest_banner": "Signed in as Guest — local profile loaded",
 	"toast.copied_clipboard": "{label} copied",
 }
