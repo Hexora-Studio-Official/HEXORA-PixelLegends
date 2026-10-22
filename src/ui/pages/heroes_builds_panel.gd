@@ -23,15 +23,13 @@ static func open(host: Control, data: HubPreviewData, initial_tab: int = 0) -> H
 		"item_cat": "All",
 	}
 
-	var render_ref: Array[Callable] = []
 	var render := func(tab_idx: int) -> void:
 		state["tab"] = tab_idx
 		shell.clear_body()
 		match tab_idx:
-			0: _build_heroes_tab(shell, data, state, render_ref[0])
-			1: _build_builds_tab(shell, data, state, render_ref[0])
-			_: _build_items_tab(shell, data, state, render_ref[0])
-	render_ref.append(render)
+			0: _build_heroes_tab(shell, data, state, shell.refresh_tab)
+			1: _build_builds_tab(shell, data, state, shell.refresh_tab)
+			_: _build_items_tab(shell, data, state, shell.refresh_tab)
 
 	shell.set_tabs(["HEROES", "BUILDS", "ITEMS"], initial_tab, render)
 	render.call(initial_tab)

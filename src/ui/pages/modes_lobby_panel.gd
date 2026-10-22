@@ -26,15 +26,13 @@ static func open(
 	ticker.autostart = true
 	shell.add_child(ticker)
 
-	var render_ref: Array[Callable] = []
 	var render := func(tab_index: int) -> void:
 		state["tab"] = tab_index
 		shell.clear_body()
 		if tab_index == 0:
 			_build_modes_tab(shell, data)
 		else:
-			_build_lobby_tab(shell, data, on_open_invite, render_ref[0])
-	render_ref.append(render)
+			_build_lobby_tab(shell, data, on_open_invite, shell.refresh_tab)
 
 	ticker.timeout.connect(func() -> void:
 		if data.queue_active:
@@ -47,7 +45,7 @@ static func open(
 		if is_instance_valid(shell):
 			render.call(int(state["tab"]))
 	data.changed.connect(refresh_cb)
-	shell.closed.connect(func() -> void:
+	shell.tree_exiting.connect(func() -> void:
 		if data.changed.is_connected(refresh_cb):
 			data.changed.disconnect(refresh_cb)
 	)

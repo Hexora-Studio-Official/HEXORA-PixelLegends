@@ -67,6 +67,7 @@ func _exit_tree() -> void:
 		_fade_tween.kill()
 	if _player != null and is_instance_valid(_player):
 		_player.stop()
+		_player.stream = null
 
 
 func _go_to_entrance() -> void:

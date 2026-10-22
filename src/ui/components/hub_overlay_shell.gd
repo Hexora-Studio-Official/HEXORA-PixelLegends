@@ -65,6 +65,11 @@ func select_tab(index: int) -> void:
 		_on_tab_selected.call(_active_tab)
 
 
+func refresh_tab(_ignored: int = -1) -> void:
+	if _on_tab_selected.is_valid():
+		_on_tab_selected.call(_active_tab)
+
+
 func clear_body() -> void:
 	if body == null:
 		return
@@ -88,6 +93,7 @@ func dismiss() -> void:
 func _exit_tree() -> void:
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
+	_on_tab_selected = Callable()
 
 
 func _build_chrome(

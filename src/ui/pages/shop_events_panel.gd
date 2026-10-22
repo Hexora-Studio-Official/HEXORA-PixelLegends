@@ -15,15 +15,13 @@ static func open(host: Control, data: HubPreviewData, initial_tab: int = 0) -> H
 	)
 	var state := {"tab": initial_tab, "shop_cat": "All"}
 
-	var render_ref: Array[Callable] = []
 	var render := func(tab_idx: int) -> void:
 		state["tab"] = tab_idx
 		shell.clear_body()
 		if tab_idx == 0:
-			_build_shop_tab(shell, data, state, render_ref[0])
+			_build_shop_tab(shell, data, state, shell.refresh_tab)
 		else:
-			_build_events_tab(shell, data, render_ref[0])
-	render_ref.append(render)
+			_build_events_tab(shell, data, shell.refresh_tab)
 
 	shell.set_tabs(["SHOP", "EVENTS"], initial_tab, render)
 	render.call(initial_tab)

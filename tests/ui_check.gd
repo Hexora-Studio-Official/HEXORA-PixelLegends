@@ -62,6 +62,8 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	print("CHECK result=PASS the panel fits and its footer is reachable at every size")
+	await get_tree().create_timer(0.25).timeout
+	await get_tree().process_frame
 	get_tree().quit(0)
 
 

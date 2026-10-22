@@ -17,16 +17,14 @@ static func open(
 	)
 	var state := {"tab": initial_tab}
 
-	var render_ref: Array[Callable] = []
 	var render := func(tab_idx: int) -> void:
 		state["tab"] = tab_idx
 		shell.clear_body()
 		match tab_idx:
-			0: _build_invite_tab(shell, data, on_go_lobby, render_ref[0])
-			1: _build_follow_list_tab(shell, data, data.followers, "PLAYERS FOLLOWING YOU", render_ref[0], 1)
-			2: _build_following_tab(shell, data, render_ref[0])
+			0: _build_invite_tab(shell, data, on_go_lobby, shell.refresh_tab)
+			1: _build_follow_list_tab(shell, data, data.followers, "PLAYERS FOLLOWING YOU", shell.refresh_tab, 1)
+			2: _build_following_tab(shell, data, shell.refresh_tab)
 			_: _build_squad_tab(shell, data)
-	render_ref.append(render)
 
 	shell.set_tabs(["INVITE FRIENDS", "FOLLOWERS", "FOLLOWING", "SQUAD"], initial_tab, render)
 	render.call(initial_tab)

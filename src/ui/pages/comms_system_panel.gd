@@ -20,15 +20,13 @@ static func open(host: Control, data: HubPreviewData, initial_tab: int = 0) -> H
 	)
 	var state := {"tab": initial_tab, "channel": "world"}
 
-	var render_ref: Array[Callable] = []
 	var render := func(tab_idx: int) -> void:
 		state["tab"] = tab_idx
 		shell.clear_body()
 		match tab_idx:
-			0: _build_chat_tab(shell, data, state, render_ref[0])
-			1: _build_mail_tab(shell, data, render_ref[0])
-			_: _build_downloads_tab(shell, data, render_ref[0])
-	render_ref.append(render)
+			0: _build_chat_tab(shell, data, state, shell.refresh_tab)
+			1: _build_mail_tab(shell, data, shell.refresh_tab)
+			_: _build_downloads_tab(shell, data, shell.refresh_tab)
 
 	shell.set_tabs(["CHAT", "MESSAGES", "DOWNLOADS"], initial_tab, render)
 	render.call(initial_tab)

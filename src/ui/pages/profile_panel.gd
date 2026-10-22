@@ -17,14 +17,13 @@ static func open(
 		"Local player identity, League career summary, and hero showcase"
 	)
 
-	var render_ref: Array[Callable] = []
-	var render := func() -> void:
+	var render := func(_tab_idx: int) -> void:
 		shell.clear_body()
-		_build_identity_card(shell, data, on_open_social, render_ref[0])
+		_build_identity_card(shell, data, on_open_social, shell.refresh_tab)
 		_build_stats_summary(shell, on_open_rankings)
-		_build_showcase_card(shell, data, render_ref[0])
-	render_ref.append(render)
-	render.call()
+		_build_showcase_card(shell, data, shell.refresh_tab)
+	shell.set_tabs([], 0, render)
+	render.call(0)
 	return shell
 
 
